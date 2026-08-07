@@ -1,0 +1,129 @@
+import { useEffect, useState } from "react";
+import Layout from "../../shared/Layouts/Layout";
+
+import { Building2 } from "lucide-react";
+import PostularCandidatoModal from "./PostularCandidatoModal";
+import VacanteCard from "../../components/cards/VacanteCard";
+import { vacanteRepository } from "../../../infraestructura/repository/vacanteRepository";
+import { periodoRepository } from "../../../infraestructura/repository/periodoRepository";
+import { getVacantes } from "../../../aplicacion/vacante/getVacantes";
+import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos";
+import toast from "react-hot-toast";
+
+export default function VacantesDirector() {
+  const [vacantes, setVacantes] = useState([]);
+  const [periodos, setPeriodos] = useState([]);
+  const [periodoSeleccionado, setPeriodoSeleccionado] = useState(null); // null = "Todos activos"
+  const [vacanteFocus, setVacanteFocus] = useState(null); // para el modal futuro
+  const [loading, setLoading] = useState(true);
+  const [postularModalOpen, setPostularModalOpen] = useState(false);
+
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+
+
+  const cargarDatos = async () => {
+    try {
+      setLoading(true);
+      const periodosData = await getPeriodos({
+        periodoRepository
+      });
+
+      const vacantesData = await getVacantes({ vacanteRepository });
+      setVacantes(vacantesData);
+      setPeriodos(periodosData);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error cargando datos");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /** Solo muestra vacantes cuyo convenio tenga periodo activo (o el filtrado seleccionado). */
+  const vacantesFiltradas = vacantes.filter((v) => {
+    if (v.convenio?.estado !== "APROBADO") {
+      return false;
+    }
+
+    if (periodoSeleccionado === null) {
+      return true;
+    }
+
+    return v.periodo?.id === periodoSeleccionado;
+  });
+
+  const handlePostular = (vacante) => {
+    setVacanteFocus(vacante);
+    setPostularModalOpen(true);
+  };
+
+  return (
+    <Layout footerLabel="Director">
+      <h1 className="text-[26px] font-extrabold text-slate-800 text-center mb-6 tracking-tight">
+        Vacantes en empresas
+      </h1>
+
+      {/* ── Filtro por periodo ─────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 mb-6">
+        <label htmlFor="filtro-periodo" className="text-sm text-gray-500 flex items-center gap-1 whitespace-nowrap">
+          <Building2 size={14} />
+          Periodo:
+        </label>
+
+        <select
+          id="filtro-periodo"
+          value={periodoSeleccionado ?? ""}
+          onChange={(e) =>
+            setPeriodoSeleccionado(e.target.value === "" ? null : Number(e.target.value))
+          }
+          className="
+            border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700
+            bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400
+            transition-all duration-150 cursor-pointer
+          "
+        >
+          <option value="">Todos los activos</option>
+          {periodos.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre}{p.activo ? " ● activo" : ""}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* ── Grid de vacantes ──────────────────────────────────────────────── */}
+      {loading ? (
+        <div className="text-center py-16 text-gray-400 text-sm">
+          Cargando vacantes...
+        </div>
+      ) : vacantesFiltradas.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <Building2 size={36} className="mx-auto mb-3 opacity-40" />
+          <p className="text-sm">No hay vacantes para este periodo</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {vacantesFiltradas.map((vacante, index) => (
+            <VacanteCard
+              key={vacante.id}
+              vacante={vacante}
+              index={index}
+              onPostular={handlePostular}
+            />
+          ))}
+        </div>
+      )}
+
+      {postularModalOpen && (
+        <PostularCandidatoModal
+          vacante={vacanteFocus}
+          onClose={() => setPostularModalOpen(false)}
+          onSuccess={() => { cargarDatos(); setPostularModalOpen(false); }}
+        />
+      )}
+    </Layout >
+  );
+}
