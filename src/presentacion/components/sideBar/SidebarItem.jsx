@@ -74,12 +74,12 @@ export const Empresa_NAV = [
   {
     label: "Convenios",
     icon: <Handshake />,
-    href: "/convenios",
+    href: "/subirConvenio",
   },
   {
     label: "Prácticas",
     icon: <Briefcase />,
-    href: "/practicas",
+    href: "/gruposPractica",
   },
   {
     label: "Candidatos",
@@ -96,6 +96,12 @@ export const Empresa_NAV = [
     icon: <FileUser />,
     href: "/encuestas",
   },
+  {
+    label: "Vacantes",
+    icon: <FileUser />,
+    href: " /vacantesEmpresa",
+  },
+
 ];
 
 // ==========================

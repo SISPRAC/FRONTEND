@@ -2,7 +2,6 @@ export const getPracticantes = async ({ practicanteRepository }) => {
 
     const practicantes = await practicanteRepository.getAll();
 
-    console.log("Practicantes obtenidos:", practicantes);
 
     return practicantes.map((practicante) => {
 

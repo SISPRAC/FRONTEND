@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { grupoRepository } from "../../../infraestructura/repository/grupoRepository";
 import { getGrupos } from "../../../aplicacion/grupos/getGrupos";
 import { getTutorDocentes } from "../../../aplicacion/tutorDocente/getTutorDocente";
-import { periodoRepository } from "../../../infraestructura/repository/periodoRepository";
+import { practicaRepository } from "../../../infraestructura/repository/practicaRepository";
 import { tutorDocenteRepository } from "../../../infraestructura/repository/tutorDocenteRepository";
-import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos";
+import { getPracticas } from "../../../aplicacion/practica/getPracticas";
 import { getCandidatosDisponibles } from "../../../aplicacion/candidato/getDisponiblesGrupo";
 import { candidatoRepository } from "../../../infraestructura/repository/candidatoRepository";
 import { getGrupo } from "../../../aplicacion/grupos/getGrupo";
@@ -33,10 +33,10 @@ const GruposDirector = () => {
   const [GrupoSeleccionado, setGrupoSeleccionado] = useState(null);
   const [formData, setFormData] = useState({
     nombre: "",
-    periodoId: "",
+    practicaId: "",
     docenteId: ""
   });
-  const [periodos, setPeriodos] = useState([]);
+  const [practica, setPractica] = useState([]);
   const [tutorDocentes, setTutorDocentes] = useState([]);
   const [candidatos, setCandidatos] = useState([]);
 
@@ -55,7 +55,7 @@ const GruposDirector = () => {
       const formattedData = data.map(grupo => ({
         id: grupo.id,
         nombre: grupo.nombre,
-        periodo: grupo.Periodo?.nombre,
+        practica: grupo.practica.Periodo.nombre,
         tutorDocente: `${grupo.TutorDocente?.Usuario?.nombres} ${grupo.TutorDocente?.Usuario?.apellidos}`
       }));
       setRows(formattedData);
@@ -69,15 +69,16 @@ const GruposDirector = () => {
   const loadCombos = async () => {
     try {
 
-      const periodosData = await getPeriodos({
-        periodoRepository
+      const practicasData = await getPracticas({
+        practicaRepository
       });
 
       const docentesData = await getTutorDocentes({
         tutorDocenteRepository
       });
 
-      setPeriodos(periodosData);
+
+      setPractica(practicasData);
       setTutorDocentes(docentesData.data);
 
     } catch (error) {
@@ -110,7 +111,6 @@ const GruposDirector = () => {
     try {
       // traer grupo desde backend
       const grupo = await getGrupo({ grupoRepository }, id);
-      console.log("Grupo para editar:", grupo);
       setSelectedGrupo(grupo);
       setMode("edit");
       setIsOpen(true);
@@ -226,8 +226,8 @@ const GruposDirector = () => {
             primary: true
           },
           {
-            key: "periodo",
-            label: "Periodo Académico"
+            key: "practica",
+            label: "Práctica"
           },
           {
             key: "tutorDocente",
@@ -270,7 +270,7 @@ const GruposDirector = () => {
         mode={mode}
         grupo={selectedGrupo}
         candidatos={candidatos}
-        periodos={periodos}
+        practicas={practica}
         tutorDocentes={tutorDocentes}
       />
 

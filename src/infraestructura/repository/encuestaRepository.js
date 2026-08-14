@@ -3,13 +3,11 @@ import {
     createEncuestaRequest,
     getEncuestaRequest,
     editarEncuestaRequest,
-    editarPeriodoPlantillaRequest,
+    asignarEncuestaPracticaRequest,
     deleteEncuestaRequest
 } from "../api/encuesta.api.js";
 
-
 export const encuestaRepository = {
-
 
     // =============================
     // CREAR ENCUESTA COMPLETA
@@ -54,11 +52,13 @@ export const encuestaRepository = {
 
 
     // =============================
-    // EDITAR PLANTILLA
+    // EDITAR ENCUESTA
     // =============================
-    // Titulo
-    // Descripcion
-    // Rol
+    // Actualiza:
+    // - Título
+    // - Descripción
+    // - Preguntas
+    // - Opciones
 
     async editarEncuesta(id, data) {
 
@@ -74,19 +74,13 @@ export const encuestaRepository = {
 
 
     // =============================
-    // EDITAR PERIODO / VERSION
+    // ASIGNAR ENCUESTA A PRÁCTICA
     // =============================
-    // Version
-    // Preguntas
-    // Opciones
 
-    async editarPeriodoPlantilla(id, data) {
+    async asignarEncuestaPractica(data) {
 
         const response =
-            await editarPeriodoPlantillaRequest(
-                id,
-                data
-            );
+            await asignarEncuestaPracticaRequest(data);
 
         return response.data;
 

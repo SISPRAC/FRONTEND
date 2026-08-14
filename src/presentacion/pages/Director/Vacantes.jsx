@@ -6,7 +6,7 @@ import PostularCandidatoModal from "./PostularCandidatoModal";
 import VacanteCard from "../../components/cards/VacanteCard";
 import { vacanteRepository } from "../../../infraestructura/repository/vacanteRepository";
 import { periodoRepository } from "../../../infraestructura/repository/periodoRepository";
-import { getVacantes } from "../../../aplicacion/vacante/getVacantes";
+import { getAperturasVacantes } from "../../../aplicacion/vacante/getAperturasVacantes";
 import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos";
 import toast from "react-hot-toast";
 
@@ -30,9 +30,58 @@ export default function VacantesDirector() {
       const periodosData = await getPeriodos({
         periodoRepository
       });
+      console.log("Periodos obtenidos:", periodosData);
 
-      const vacantesData = await getVacantes({ vacanteRepository });
-      setVacantes(vacantesData);
+
+      const vacantesData = await getAperturasVacantes(vacanteRepository);
+
+      console.log("Vacantes obtenidas:", vacantesData);
+
+      const vacantesNormalizadas = vacantesData.map((item) => ({
+        id: item.id,
+
+        // Datos de la vacante
+        vacante_id: item.vacante_id,
+        titulo: item.Vacante?.nombre ?? "",
+        descripcion: item.Vacante?.descripcion ?? "",
+
+        // Empresa
+        empresa: item.Vacante?.Convenio?.Empresa ?? null,
+
+        // Convenio
+        convenio: item.Vacante?.Convenio ?? null,
+
+        // Periodo
+        periodo: item.practica?.Periodo ?? null,
+
+        // Práctica
+        practica: item.practica ?? null,
+
+        // Apertura
+        cuposDisponibles:
+          Math.max(
+            0,
+            (item.cupos ?? 0) -
+            (item.Postulacions?.filter(
+              p => p.estado === "POSTULADO" || p.estado === "ACEPTADO"
+            ).length ?? 0)
+          ),
+        estado: item.estado,
+
+        // Perfiles de la vacante
+        perfiles: item.Vacante?.Perfils ?? [],
+
+        // Tutor
+        tutorEmpresa: item.TutorEmpresa ?? null,
+
+        // Postulaciones
+        postulaciones: item.Postulacions ?? [],
+
+        // Mantener el objeto original por si luego lo necesitamos
+        aperturaVacante: item,
+      }));
+
+      setVacantes(vacantesNormalizadas);
       setPeriodos(periodosData);
     } catch (error) {
       console.error(error);
@@ -77,20 +126,31 @@ export default function VacantesDirector() {
           id="filtro-periodo"
           value={periodoSeleccionado ?? ""}
           onChange={(e) =>
-            setPeriodoSeleccionado(e.target.value === "" ? null : Number(e.target.value))
+            setPeriodoSeleccionado(
+              e.target.value === ""
+                ? null
+                : Number(e.target.value)
+            )
           }
           className="
-            border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700
-            bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400
-            transition-all duration-150 cursor-pointer
-          "
+        border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700
+        bg-white focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-red-400
+        transition-all duration-150 cursor-pointer
+    "
         >
-          <option value="">Todos los activos</option>
-          {periodos.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}{p.activo ? " ● activo" : ""}
-            </option>
-          ))}
+          <option value="">
+            Todos los activos
+          </option>
+
+          {periodos.map((p) => {
+            console.log("PERIODO RENDERIZADO:", p);
+
+            return (
+              <option key={p.id} value={p.id}>
+                {p.nombre}
+              </option>
+            );
+          })}
         </select>
       </div>
 

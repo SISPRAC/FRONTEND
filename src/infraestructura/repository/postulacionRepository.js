@@ -1,6 +1,7 @@
 import {
     registerPostulacionRequest,
-    eliminarPostulacionRequest
+    eliminarPostulacionRequest,
+    getCandidatosEmpresaRequest
 } from "../api/postulacion.api.js";
 
 export const postulacionRepository = {
@@ -21,6 +22,13 @@ export const postulacionRepository = {
                 aperturaVacanteId,
                 candidatoId
             );
+
+        return response.data;
+    },
+
+    async getCandidatosEmpresa() {
+        const response =
+            await getCandidatosEmpresaRequest();
 
         return response.data;
     }

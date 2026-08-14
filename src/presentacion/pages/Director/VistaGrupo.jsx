@@ -36,6 +36,8 @@ const GrupoVistaDirector = () => {
         grupoRepository
       }, id);
 
+      console.log("Candidatos del grupo obtenidos:", data);
+
       const formattedData = data.candidatos.map(candidato => ({
         id: candidato.id,
         codigo: candidato.codigo,
@@ -142,13 +144,13 @@ const GrupoVistaDirector = () => {
           <p className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-0.5">
             Periodo Lectivo
           </p>
-          <p className="text-2xl font-extrabold text-slate-800">{grupo?.periodo}</p>
+          <p className="text-2xl font-extrabold text-slate-800">{grupo?.practica?.Periodo?.nombre}</p>
         </div>
         <div className="text-right">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-0.5">
             Tutor Asignado
           </p>
-          <p className="text-2xl font-extrabold text-slate-800">{grupo?.tutorDocente}</p>
+          <p className="text-2xl font-extrabold text-slate-800">{grupo?.tutorDocente.nombre}</p>
         </div>
       </div>
 

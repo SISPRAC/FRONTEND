@@ -32,7 +32,7 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
     const [error, setError] = useState(null);
 
     const cuposTotal =
-        vacante?.AperturaVacantes?.[0]?.cupos ??
+        vacante?.aperturaVacante?.cupos ??
         vacante?.cuposDisponibles ??
         0;
     const cuposOcupados =
@@ -50,27 +50,27 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
         cargarPerfiles();
 
         const candidatosPostulados =
-            vacante?.AperturaVacantes?.flatMap(apertura =>
-                apertura.candidatos?.map(item => {
+            vacante?.aperturaVacante?.Postulacions?.map((item) => {
 
-                    const perfilVacanteId = vacante.perfiles?.[0]?.id;
+                const perfilVacanteId =
+                    vacante?.perfiles?.[0]?.id;
 
-                    const perfilCandidato =
-                        item.candidato.perfiles?.find(
-                            p => p.id === perfilVacanteId
-                        );
+                const perfilCandidato =
+                    item.Candidato?.Perfils?.find(
+                        (p) => p.id === perfilVacanteId
+                    );
 
-                    return {
-                        id: item.idPostulacion,
-                        candidatoId: item.candidato.id,
-                        codigo: item.candidato.codigo,
-                        nombre: item.candidato.nombres,
-                        correo: item.candidato.correo,
-                        estado: item.estadoPostulacion,
-                        calificacion: perfilCandidato?.calificacion ?? "-"
-                    };
-                }) || []
-            ) || [];
+                return {
+                    id: item.id,
+                    candidatoId: item.candidato_id,
+                    codigo: item.Candidato?.codigo,
+                    nombre: `${item.Candidato?.Usuario?.nombres ?? ""} ${item.Candidato?.Usuario?.apellidos ?? ""}`.trim(),
+                    correo: item.Candidato?.Usuario?.correo ?? "",
+                    estado: item.estado,
+                    calificacion:
+                        perfilCandidato?.Candidato_perfil?.calificacion ?? "-"
+                };
+            }) || [];
 
         setPostulaciones(candidatosPostulados);
 
@@ -79,6 +79,8 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
     const cargarPerfiles = async () => {
         try {
             const data = await getPerfiles({ perfilRepository });
+
+            console.log("Perfiles obtenidos:", data);
             setPerfiles(data);
 
         } catch (err) {
@@ -112,7 +114,24 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
                 perfil.nombre
             );
 
-            setCandidatosDisponibles(data.data);
+            console.log("Candidatos obtenidos:", data);
+
+            const candidatosNormalizados = data.map((candidato) => {
+                const perfilCandidato = candidato.Perfils?.find(
+                    (p) => p.id === Number(perfilId)
+                );
+
+                return {
+                    id: candidato.id,
+                    codigo: candidato.codigo,
+                    nombre: `${candidato.Usuario?.nombres ?? ""} ${candidato.Usuario?.apellidos ?? ""}`.trim(),
+                    correo: candidato.Usuario?.correo ?? "",
+                    calificacion:
+                        perfilCandidato?.Candidato_perfil?.calificacion ?? 0,
+                };
+            });
+
+            setCandidatosDisponibles(candidatosNormalizados);
         } catch (err) {
             console.error(err);
             setError("Error cargando candidatos");
@@ -166,7 +185,7 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
         try {
 
             const aperturaVacanteId =
-                vacante?.AperturaVacantes?.[0]?.id;
+                vacante?.aperturaVacante?.id;
 
             await eliminarPostulacion(
                 postulacionRepository,
@@ -208,16 +227,37 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
         try {
 
             const aperturaVacanteId =
-                vacante?.AperturaVacantes?.[0]?.id;
+                vacante?.aperturaVacante?.id;
 
             const candidatosIds =
                 seleccionados.map((e) => e.id);
 
-            await registrarPostulacion(
-                { postulacionRepository },
-                aperturaVacanteId,
-                candidatosIds
-            );
+            const nuevasPostulaciones =
+                await registrarPostulacion(
+                    { postulacionRepository },
+                    aperturaVacanteId,
+                    candidatosIds
+                );
+
+            console.log("POSTULACIONES CREADAS:", nuevasPostulaciones);
+
+            const nuevasFilas = seleccionados.map((candidato, index) => ({
+                id: nuevasPostulaciones?.[index]?.id ?? Date.now() + index,
+                candidatoId: candidato.id,
+                codigo: candidato.codigo,
+                nombre: candidato.nombre,
+                correo: candidato.correo,
+                estado: "POSTULADO",
+                calificacion: candidato.calificacion,
+                esNuevo: false
+            }));
+
+            setPostulaciones((prev) => [
+                ...prev,
+                ...nuevasFilas
+            ]);
+
+            setSeleccionados([]);
 
             toast.success("Candidatos postulados correctamente");
 
@@ -225,7 +265,7 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
 
         } catch (err) {
 
-            console.error(err);
+            console.error("ERROR POSTULANDO:", err);
 
             setError(
                 err?.response?.data?.message ||
@@ -375,9 +415,9 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
 
                     {/* Tabla */}
                     <GenericTable
-                            rows={filas}
-                            currentPage={currentPage}
-                            onPageChange={setCurrentPage}
+                        rows={filas}
+                        currentPage={currentPage}
+                        onPageChange={setCurrentPage}
                         columns={[
                             { key: "codigo", label: "Código" },
                             { key: "nombre", label: "Nombre", primary: true },

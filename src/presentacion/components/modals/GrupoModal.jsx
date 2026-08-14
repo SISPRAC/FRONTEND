@@ -16,12 +16,12 @@ export default function GrupoModal({
   mode,
   grupo,
   candidatos = [],
-  periodos = [],   // [{ id, nombre }]
+  practicas = [],   // [{ id, nombre }]
   tutorDocentes = [],   // [{ id, nombre }]
 }) {
   const initialForm = {
     nombre: "",
-    periodo_id: "",
+    practica_id: "",
     tutorDocente_id: "",
   };
 
@@ -246,7 +246,7 @@ export default function GrupoModal({
       setFormData({
         id: grupo.id,
         nombre: grupo.nombre,
-        periodo_id: grupo.periodo_id ?? "",
+        practica_id: grupo.practica_id ?? "",
         tutorDocente_id: grupo.tutorDocente_id ?? "",
       });
       setPracticantes(grupo.practicantes ?? []);
@@ -309,7 +309,7 @@ export default function GrupoModal({
 
     const newErrors = {
       nombre: !formData.nombre.trim(),
-      periodo_id: !formData.periodo_id,
+      practica_id: !formData.practica_id,
       tutorDocente_id: !formData.tutorDocente_id,
     };
     setErrors(newErrors);
@@ -517,17 +517,23 @@ export default function GrupoModal({
               {/* Período y TutorDocente en fila */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 font-semibold text-sm">Período</label>
+                  <label className="block mb-1 font-semibold text-sm">
+                    Práctica
+                  </label>
+
                   <select
-                    value={formData.periodo_id}
-                    onChange={handleField("periodo_id")}
-                    className={inputCls("periodo_id")}
+                    value={formData.practica_id}
+                    onChange={handleField("practica_id")}
+                    className={inputCls("practica_id")}
                   >
                     <option value="" disabled>
-                      Seleccione un Período
+                      Seleccione una práctica
                     </option>
-                    {periodos.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nombre}</option>
+
+                    {practicas.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.Periodo.nombre}
+                      </option>
                     ))}
                   </select>
                 </div>
