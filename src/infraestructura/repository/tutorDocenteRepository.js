@@ -4,4 +4,4 @@ export const tutorDocenteRepository = {
   async getAll() {
     return await getTutorDocentes();
   }
-};
+}; 
