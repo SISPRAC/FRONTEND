@@ -30,9 +30,7 @@ export default function VacantesDirector() {
       const periodosData = await getPeriodos({
         periodoRepository
       });
-      console.log("Periodos obtenidos:", periodosData);
-
-
+     
       const vacantesData = await getAperturasVacantes(vacanteRepository);
 
       console.log("Vacantes obtenidas:", vacantesData);
@@ -143,7 +141,6 @@ export default function VacantesDirector() {
           </option>
 
           {periodos.map((p) => {
-            console.log("PERIODO RENDERIZADO:", p);
 
             return (
               <option key={p.id} value={p.id}>

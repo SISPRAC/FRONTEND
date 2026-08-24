@@ -13,6 +13,10 @@ import EstadoBadge from "../../components/estadoBadge/EstadoBadge";
 
 const ESTADOS_ELIMINABLES = ["POSTULADO"];
 
+// Estados que significan "este candidato ya tiene una postulación activa
+// a esta vacante" y por lo tanto no debe volver a aparecer en el select.
+const ESTADOS_OCUPAN_CUPO = ["POSTULADO", "ACEPTADO"];
+
 export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) {
     // ── Selects encadenados ───────────────────────────────────────────────────
     const [perfiles, setPerfiles] = useState([]);
@@ -32,9 +36,7 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
     const [error, setError] = useState(null);
 
     const cuposTotal =
-        vacante?.aperturaVacante?.cupos ??
-        vacante?.cuposDisponibles ??
-        0;
+        Number(vacante?.aperturaVacante?.cupos ?? 0);
     const cuposOcupados =
         postulaciones.filter(
             p =>
@@ -42,27 +44,60 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
                 p.estado === "ACEPTADO"
         ).length +
         seleccionados.length;
-    const cuposRestantes = Math.max(0, cuposTotal - cuposOcupados);
-    const puedeAgregar = cuposRestantes > 0;
+
+    const cuposRestantes =
+        Math.max(0, cuposTotal - cuposOcupados);
+
+    const puedeAgregar =
+        cuposRestantes > 0;
+
+    useEffect(() => {
+        if (!perfilSeleccionado) return;
+
+        setPostulaciones((prev) =>
+            prev.map((postulacion) => {
+
+                const candidato = vacante?.aperturaVacante?.Postulacions?.find(
+                    (p) => p.id === postulacion.id
+                )?.Candidato;
+
+                const perfilCandidato = candidato?.Perfils?.find(
+                    (p) => p.id === Number(perfilSeleccionado)
+                );
+
+                return {
+                    ...postulacion,
+                    calificacion:
+                        perfilCandidato?.Candidato_perfil?.calificacion ?? "-"
+                };
+            })
+        );
+    }, [perfilSeleccionado, vacante]);
 
     // ── Carga perfiles al montar ──────────────────────────────────────────────
     useEffect(() => {
         cargarPerfiles();
+        console.log("Vacante en modal:", vacante);
 
         const candidatosPostulados =
             vacante?.aperturaVacante?.Postulacions?.map((item) => {
 
-                const perfilVacanteId =
-                    vacante?.perfiles?.[0]?.id;
-
                 const perfilCandidato =
                     item.Candidato?.Perfils?.find(
-                        (p) => p.id === perfilVacanteId
+                        (p) => p.id === Number(perfilSeleccionado)
                     );
 
                 return {
                     id: item.id,
-                    candidatoId: item.candidato_id,
+                    // Blindaje: el backend a veces manda "candidato_id" y otras
+                    // veces "candidatoId" según el endpoint. Tomamos el que
+                    // exista y lo normalizamos a Number para que las
+                    // comparaciones con candidato.id (también Number) sí matcheen.
+                    candidatoId: Number(
+                        item.candidato_id ??
+                        item.candidatoId ??
+                        item.Candidato?.id
+                    ),
                     codigo: item.Candidato?.codigo,
                     nombre: `${item.Candidato?.Usuario?.nombres ?? ""} ${item.Candidato?.Usuario?.apellidos ?? ""}`.trim(),
                     correo: item.Candidato?.Usuario?.correo ?? "",
@@ -80,7 +115,6 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
         try {
             const data = await getPerfiles({ perfilRepository });
 
-            console.log("Perfiles obtenidos:", data);
             setPerfiles(data);
 
         } catch (err) {
@@ -97,6 +131,9 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
             return;
         }
 
+        setCandidatosDisponibles([]);
+        setcandidatoSeleccionado("");
+
         cargarCandidatos(perfilSeleccionado);
     }, [perfilSeleccionado]);
 
@@ -109,12 +146,22 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
                 (p) => p.id === Number(perfilId)
             );
 
+            if (!perfil) {
+                setCandidatosDisponibles([]);
+                return;
+            }
+
             const data = await getCandidatosPerfil(
                 { candidatoRepository },
                 perfil.nombre
             );
 
-            console.log("Candidatos obtenidos:", data);
+            // No es un error: simplemente no existen candidatos
+            // con ese perfil.
+            if (!data || data.length === 0) {
+                setCandidatosDisponibles([]);
+                return;
+            }
 
             const candidatosNormalizados = data.map((candidato) => {
                 const perfilCandidato = candidato.Perfils?.find(
@@ -122,7 +169,7 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
                 );
 
                 return {
-                    id: candidato.id,
+                    id: Number(candidato.id),
                     codigo: candidato.codigo,
                     nombre: `${candidato.Usuario?.nombres ?? ""} ${candidato.Usuario?.apellidos ?? ""}`.trim(),
                     correo: candidato.Usuario?.correo ?? "",
@@ -132,27 +179,30 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
             });
 
             setCandidatosDisponibles(candidatosNormalizados);
+
         } catch (err) {
-            console.error(err);
+            console.error("Error cargando candidatos:", err);
+
+            setCandidatosDisponibles([]);
             setError("Error cargando candidatos");
+
         } finally {
             setLoadingCandidatos(false);
         }
     };
 
-    // IDs ya ocupados (BD + sesión actual)
+    // IDs ya ocupados (BD + sesión actual). Todo se normaliza a Number para
+    // que la comparación con candidato.id (también Number) sea confiable.
     const idsOcupados = new Set([
         ...postulaciones
-            .filter(
-                p =>
-                    p.estado === "POSTULADO" ||
-                    p.estado === "ACEPTADO"
-            )
-            .map((p) => p.candidatoId),
-        ...seleccionados.map((e) => e.id),
+            .filter((p) => ESTADOS_OCUPAN_CUPO.includes(p.estado))
+            .map((p) => Number(p.candidatoId)),
+        ...seleccionados.map((e) => Number(e.id)),
     ]);
 
-    const candidatosFiltrados = candidatosDisponibles.filter((c) => !idsOcupados.has(c.id)).sort((a, b) => b.calificacion - a.calificacion);
+    const candidatosFiltrados = candidatosDisponibles
+        .filter((c) => !idsOcupados.has(Number(c.id)))
+        .sort((a, b) => b.calificacion - a.calificacion);
 
     // ── Agregar candidato desde el select ────────────────────────────────────
     const handleAgregarcandidato = (e) => {
@@ -239,8 +289,6 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
                     candidatosIds
                 );
 
-            console.log("POSTULACIONES CREADAS:", nuevasPostulaciones);
-
             const nuevasFilas = seleccionados.map((candidato, index) => ({
                 id: nuevasPostulaciones?.[index]?.id ?? Date.now() + index,
                 candidatoId: candidato.id,
@@ -286,6 +334,7 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
         })),
         ...seleccionados.map((e) => ({ ...e, estado: "NUEVO", esNuevo: true })),
     ];
+
 
     if (!vacante) return null;
 
@@ -379,37 +428,47 @@ export default function PostularCandidatoModal({ vacante, onClose, onSuccess }) 
                             </select>
                         </div>
 
-                        {/* Select Candiato (depende del perfil) */}
+                        {/* Select Candidato (depende del perfil), o aviso si ya no hay cupos */}
                         <div className="flex flex-col gap-1">
                             <label className="text-xs font-semibold text-gray-500">Candidato</label>
-                            <select
-                                value={candidatoSeleccionado}
-                                disabled={!perfilSeleccionado || !puedeAgregar || loadingCandidatos}
-                                onChange={handleAgregarcandidato}
-                                className={`
-                  border rounded-lg px-3 py-1.5 text-sm bg-white transition-all
-                  ${perfilSeleccionado && puedeAgregar && !loadingCandidatos
-                                        ? "border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#e8192c] focus:border-[#e8192c] cursor-pointer"
-                                        : "border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50"}
-                `}
-                            >
-                                <option value="" disabled>
-                                    {loadingCandidatos
-                                        ? "Cargando…"
-                                        : !perfilSeleccionado
-                                            ? "Primero elige un perfil"
-                                            : !puedeAgregar
-                                                ? "Cupos llenos"
+
+                            {puedeAgregar ? (
+                                <select
+                                    value={candidatoSeleccionado}
+                                    disabled={!perfilSeleccionado || loadingCandidatos}
+                                    onChange={handleAgregarcandidato}
+                                    className={`
+                      border rounded-lg px-3 py-1.5 text-sm bg-white transition-all
+                      ${perfilSeleccionado && !loadingCandidatos
+                                            ? "border-gray-200 text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#e8192c] focus:border-[#e8192c] cursor-pointer"
+                                            : "border-gray-100 text-gray-400 cursor-not-allowed bg-gray-50"}
+                    `}
+                                >
+                                    <option value="" disabled>
+                                        {loadingCandidatos
+                                            ? "Cargando…"
+                                            : !perfilSeleccionado
+                                                ? "Primero elige un perfil"
                                                 : candidatosFiltrados.length === 0
                                                     ? "Sin candidatos disponibles"
                                                     : "Agregar candidato"}
-                                </option>
-                                {candidatosFiltrados.map((c) => (
-                                    <option key={c.id} value={c.id}>
-                                        {c.nombre} - {c.calificacion}
                                     </option>
-                                ))}
-                            </select>
+                                    {candidatosFiltrados.map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                            {c.nombre} - {c.calificacion}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <div
+                                    className="
+                    border border-red-200 bg-red-50 text-red-600
+                    rounded-lg px-3 py-1.5 text-sm font-medium text-center
+                  "
+                                >
+                                    Cupos completos
+                                </div>
+                            )}
                         </div>
                     </div>
 

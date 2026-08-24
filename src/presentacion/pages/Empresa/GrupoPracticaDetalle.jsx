@@ -10,7 +10,7 @@ import {
 
 import Layout from "../../shared/Layouts/Layout";
 import ConfirmModal from "../../components/modals/ConfirmModal";
-import AperturaVacanteModal from "../../components/modals/VacanteModal.jsx";
+import AperturaVacanteModal from "../../components/modals/AperturaVacanteModal.jsx";
 
 import { vacanteRepository } from "../../../infraestructura/repository/vacanteRepository.js";
 import { practicaRepository } from "../../../infraestructura/repository/practicaRepository.js";

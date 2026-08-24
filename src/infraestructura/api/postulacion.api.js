@@ -28,3 +28,38 @@ export const getCandidatosEmpresaRequest = async () => {
     }
   });
 };
+
+export const aceptarPostulacionRequest = async (postulacionId) => {
+
+  const token = localStorage.getItem("token");
+
+  return await postulacionApi.patch(
+    `/${postulacionId}/aceptar`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+};
+
+export const rechazarPostulacionRequest = async (
+  postulacionId,
+  comentarioEmpresa = null
+) => {
+
+  const token = localStorage.getItem("token");
+
+  return await postulacionApi.patch(
+    `/${postulacionId}/rechazar`,
+    {
+      comentarioEmpresa
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+};

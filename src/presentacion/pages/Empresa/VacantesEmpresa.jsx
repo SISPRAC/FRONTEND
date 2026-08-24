@@ -7,13 +7,14 @@ import {
   Trash2,
   Plus
 } from "lucide-react";
-
+import toast from "react-hot-toast";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { vacanteRepository } from "../../../infraestructura/repository/vacanteRepository.js";
 import { getVacantesByEmpresa } from "../../../aplicacion/vacante/getVacantesByEmpresa.js";
 import { crearVacante } from "../../../aplicacion/vacante/crearVacante.js";
+import { eliminarVacante } from "../../../aplicacion/vacante/eliminarVacante.js";
 import { actualizarVacante } from "../../../aplicacion/vacante/actualizarVacante.js";
 
 const VacantesEmpresa = () => {
@@ -41,7 +42,6 @@ const VacantesEmpresa = () => {
   const [form, setForm] = useState({
     nombre: "",
     descripcion: "",
-    cantidad: 1,
     estado: "DISPONIBLE"
   });
 
@@ -76,7 +76,7 @@ const VacantesEmpresa = () => {
 
             empresa:
               vacante.Convenio?.Empresa?.nombre
-                ?? "",
+              ?? "",
 
             aperturas:
               vacante.AperturaVacantes?.length ?? 0,
@@ -166,7 +166,6 @@ const VacantesEmpresa = () => {
     setForm({
       nombre: "",
       descripcion: "",
-      cantidad: 1,
       estado: "DISPONIBLE"
     });
 
@@ -196,9 +195,6 @@ const VacantesEmpresa = () => {
       nombre: vacante.nombre ?? "",
       descripcion:
         vacante.descripcion ?? "",
-      cantidad:
-        vacante.cantidad ?? 1,
-
       estado:
         vacante.estado === "Disponible"
           ? "DISPONIBLE"
@@ -231,10 +227,10 @@ const VacantesEmpresa = () => {
           {
             nombre: form.nombre,
             descripcion: form.descripcion,
-            cantidad:
-              Number(form.cantidad)
           }
         );
+
+        toast.success("Vacante creada correctamente");
 
       } else {
 
@@ -244,11 +240,11 @@ const VacantesEmpresa = () => {
           {
             nombre: form.nombre,
             descripcion: form.descripcion,
-            cantidad:
-              Number(form.cantidad),
             estado: form.estado
           }
         );
+
+        toast.success("Vacante actualizada correctamente");
 
       }
 
@@ -263,10 +259,14 @@ const VacantesEmpresa = () => {
         error
       );
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
         error.message ||
-        "No se pudo guardar la vacante"
+        (
+          modoModal === "crear"
+            ? "Error al crear la vacante"
+            : "Error al actualizar la vacante"
+        )
       );
 
     } finally {
@@ -306,18 +306,12 @@ const VacantesEmpresa = () => {
 
       setCargando(true);
 
-      /*
-       * NO eliminamos físicamente.
-       * La cerramos.
-       */
-
-      await actualizarVacante(
+      const resultado = await eliminarVacante(
         vacanteRepository,
-        vacanteEliminar.id,
-        {
-          estado: "CERRADA"
-        }
+        vacanteEliminar.id
       );
+
+      console.log(resultado);
 
       setModalEliminar(false);
 
@@ -325,17 +319,19 @@ const VacantesEmpresa = () => {
 
       await cargarVacantes();
 
+      toast.success("Vacante cerrada correctamente");
+
     } catch (error) {
 
       console.error(
-        "Error al cerrar la vacante:",
+        "Error al eliminar/cerrar la vacante:",
         error
       );
 
-      alert(
+      toast.error(
         error.response?.data?.message ||
         error.message ||
-        "No se pudo cerrar la vacante"
+        "Error al cerrar la vacante"
       );
 
     } finally {
@@ -343,29 +339,6 @@ const VacantesEmpresa = () => {
       setCargando(false);
 
     }
-
-  };
-
-
-  /* =========================
-     VER DETALLE
-  ========================= */
-
-  const handleView = (id) => {
-
-    const vacante =
-      rows.find(
-        (item) => item.id === id
-      );
-
-    navigate(
-      `/empresa/vacantes/${id}`,
-      {
-        state: {
-          vacante
-        }
-      }
-    );
 
   };
 
@@ -530,7 +503,6 @@ const VacantesEmpresa = () => {
       ========================= */}
 
       <GenericTable
-
         rows={vacantesFiltradas}
 
         currentPage={currentPage}
@@ -548,10 +520,6 @@ const VacantesEmpresa = () => {
             label: "Descripción"
           },
           {
-            key: "cantidad",
-            label: "Cupos"
-          },
-          {
             key: "aperturas",
             label: "Aperturas"
           },
@@ -567,11 +535,6 @@ const VacantesEmpresa = () => {
 
         actions={[
           {
-            icon: <Eye size={22} />,
-            className: "hover:bg-blue-100",
-            onClick: handleView
-          },
-          {
             icon: <Pencil size={21} />,
             className: "hover:bg-yellow-100",
             onClick: handleEditar
@@ -586,7 +549,6 @@ const VacantesEmpresa = () => {
         emptyMessage="No hay vacantes que coincidan con los filtros."
 
         pageSize={6}
-
       />
 
 
@@ -719,51 +681,6 @@ const VacantesEmpresa = () => {
                     py-2
                     text-sm
                     resize-none
-                    focus:outline-none
-                    focus:ring-2
-                    focus:ring-slate-300
-                  "
-                />
-
-              </div>
-
-
-              {/* CANTIDAD */}
-
-              <div>
-
-                <label
-                  className="
-                    block
-                    text-sm
-                    font-medium
-                    text-slate-700
-                    mb-1
-                  "
-                >
-                  Cantidad máxima de cupos
-                </label>
-
-                <input
-                  type="number"
-                  min="1"
-                  value={form.cantidad}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      cantidad:
-                        e.target.value
-                    })
-                  }
-                  required
-                  className="
-                    w-full
-                    border
-                    border-slate-300
-                    rounded-md
-                    px-3
-                    py-2
-                    text-sm
                     focus:outline-none
                     focus:ring-2
                     focus:ring-slate-300

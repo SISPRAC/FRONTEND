@@ -3,13 +3,17 @@ import {
   getVacantesByEmpresaRequest,
   getVacanteByIdRequest,
   crearVacanteRequest,
-  actualizarVacanteRequest
+  actualizarVacanteRequest,
+  eliminarVacanteRequest
 } from "../api/vacante.api.js";
 
 
 export const vacanteRepository = {
 
-  // Todas las aperturas para administrador/director
+  // ============================================================
+  // TODAS LAS APERTURAS
+  // ============================================================
+
   async getAperturas() {
 
     const response =
@@ -19,7 +23,10 @@ export const vacanteRepository = {
   },
 
 
-  // Vacantes de la empresa autenticada
+  // ============================================================
+  // VACANTES DE LA EMPRESA AUTENTICADA
+  // ============================================================
+
   async getByEmpresa() {
 
     const response =
@@ -29,7 +36,10 @@ export const vacanteRepository = {
   },
 
 
-  // Una vacante específica
+  // ============================================================
+  // UNA VACANTE ESPECÍFICA
+  // ============================================================
+
   async getById(id) {
 
     const response =
@@ -39,7 +49,10 @@ export const vacanteRepository = {
   },
 
 
-  // Crear vacante
+  // ============================================================
+  // CREAR VACANTE
+  // ============================================================
+
   async create(data) {
 
     const response =
@@ -49,7 +62,10 @@ export const vacanteRepository = {
   },
 
 
-  // Actualizar vacante
+  // ============================================================
+  // ACTUALIZAR VACANTE
+  // ============================================================
+
   async update(id, data) {
 
     const response =
@@ -57,6 +73,19 @@ export const vacanteRepository = {
         id,
         data
       );
+
+    return response.data;
+  },
+
+
+  // ============================================================
+  // ELIMINAR / CERRAR VACANTE
+  // ============================================================
+
+  async delete(id) {
+
+    const response =
+      await eliminarVacanteRequest(id);
 
     return response.data;
   }

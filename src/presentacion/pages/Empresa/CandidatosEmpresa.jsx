@@ -17,6 +17,7 @@ const CandidatosEmpresa = () => {
 
   const navigate = useNavigate();
 
+  
 
   useEffect(() => {
 
@@ -28,6 +29,7 @@ const CandidatosEmpresa = () => {
           await obtenerCandidatosEmpresa(
             postulacionRepository
           );
+
 
         const candidatosFormateados = candidatos.map((candidato) => ({
           ...candidato,

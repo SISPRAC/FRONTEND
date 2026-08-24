@@ -11,6 +11,10 @@ const getToken = () => {
 };
 
 
+/* ============================================================
+   OBTENER APERTURAS DE VACANTES
+============================================================ */
+
 export const getAperturasVacantesRequest = async () => {
 
   const token = getToken();
@@ -23,6 +27,10 @@ export const getAperturasVacantesRequest = async () => {
 
 };
 
+
+/* ============================================================
+   OBTENER VACANTES DE LA EMPRESA
+============================================================ */
 
 export const getVacantesByEmpresaRequest = async () => {
 
@@ -37,6 +45,10 @@ export const getVacantesByEmpresaRequest = async () => {
 };
 
 
+/* ============================================================
+   OBTENER VACANTE POR ID
+============================================================ */
+
 export const getVacanteByIdRequest = async (id) => {
 
   const token = getToken();
@@ -49,6 +61,10 @@ export const getVacanteByIdRequest = async (id) => {
 
 };
 
+
+/* ============================================================
+   CREAR VACANTE
+============================================================ */
 
 export const crearVacanteRequest = async (data) => {
 
@@ -67,6 +83,10 @@ export const crearVacanteRequest = async (data) => {
 };
 
 
+/* ============================================================
+   ACTUALIZAR VACANTE
+============================================================ */
+
 export const actualizarVacanteRequest = async (
   id,
   data
@@ -77,6 +97,26 @@ export const actualizarVacanteRequest = async (
   return await vacanteApi.put(
     `/${id}`,
     data,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
+
+};
+
+
+/* ============================================================
+   ELIMINAR / CERRAR VACANTE
+============================================================ */
+
+export const eliminarVacanteRequest = async (id) => {
+
+  const token = getToken();
+
+  return await vacanteApi.delete(
+    `/${id}`,
     {
       headers: {
         Authorization: `Bearer ${token}`
