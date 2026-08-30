@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { SquareArrowRight, SquareArrowLeft } from 'lucide-react';
+import { useMemo } from "react";
+import { SquareArrowRight, SquareArrowLeft } from "lucide-react";
 
 export default function GenericTable({
   rows,
@@ -9,8 +9,8 @@ export default function GenericTable({
   pageSize = 6,
   currentPage,
   onPageChange,
+  rowKey = "id",
 }) {
-
 
   const totalPages = Math.ceil(rows.length / pageSize);
 
@@ -49,7 +49,7 @@ export default function GenericTable({
 
             {paginatedRows.map((row, i) => (
               <tr
-                key={row.id}
+                key={row[rowKey]}
                 className={[
                   "transition-colors duration-100 hover:bg-slate-50 text-center",
                   i < paginatedRows.length - 1
@@ -76,15 +76,17 @@ export default function GenericTable({
                 {actions.length > 0 && (
                   <td className="px-4 py-3.5">
                     <div className="flex items-center gap-2 justify-center">
+
                       {actions.map((action, index) => (
                         <button
                           key={index}
-                          onClick={() => action.onClick(row.id)}
+                          onClick={() => action.onClick(row[rowKey])}
                           className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${action.className}`}
                         >
                           {action.icon}
                         </button>
                       ))}
+
                     </div>
                   </td>
                 )}
@@ -136,3 +138,4 @@ export default function GenericTable({
     </>
   );
 }
+

@@ -8,7 +8,6 @@ const ESTADO_OPCIONES = [
 const initialForm = {
   vacante_id: "",
   tutorEmpresa_id: "",
-  practica_id: "",
   cupos: 1,
   estado: "DISPONIBLE"
 };
@@ -18,12 +17,13 @@ export default function AperturaVacanteModal({
   mode = "crear",
   initialData,
   vacantes = [],
-  practicas = [],
+  practica,
   tutores = [],
+  aperturas = [],
   onClose,
   onSave
 }) {
-  
+
   const [form, setForm] = useState(initialForm);
   const [errores, setErrores] = useState({});
 
@@ -37,7 +37,6 @@ export default function AperturaVacanteModal({
       setForm({
         vacante_id: initialData.vacante_id ?? "",
         tutorEmpresa_id: initialData.tutorEmpresa_id ?? "",
-        practica_id: initialData.practica_id ?? "",
         cupos: initialData.cupos ?? 1,
         estado: initialData.estado ?? "DISPONIBLE"
       });
@@ -68,62 +67,86 @@ export default function AperturaVacanteModal({
 
   const validar = () => {
 
-    const nuevosErrores = {};
+  const nuevosErrores = {};
 
+  if (!form.vacante_id) {
 
-    if (!form.vacante_id) {
+    nuevosErrores.vacante_id =
+      "Debe seleccionar una vacante.";
 
-      nuevosErrores.vacante_id =
-        "Debe seleccionar una vacante.";
+  }
 
-    }
+  if (!form.tutorEmpresa_id) {
 
+    nuevosErrores.tutorEmpresa_id =
+      "Debe seleccionar un tutor empresarial.";
 
-    if (!form.tutorEmpresa_id) {
+  }
 
-      nuevosErrores.tutorEmpresa_id =
-        "Debe seleccionar un tutor empresarial.";
+  if (!form.cupos || Number(form.cupos) < 1) {
 
-    }
+    nuevosErrores.cupos =
+      "Debe existir al menos un cupo.";
 
+  }
 
-    if (!form.practica_id) {
+  // ============================================================
+  // VALIDAR APERTURA DUPLICADA
+  // ============================================================
 
-      nuevosErrores.practica_id =
-        "Debe seleccionar una práctica.";
+  const vacanteYaTieneApertura = aperturas.some((apertura) => {
 
-    }
+    const mismaVacante =
+      Number(apertura.vacante_id) ===
+      Number(form.vacante_id);
 
+    const mismaPractica =
+      Number(apertura.practica_id) ===
+      Number(practica?.id);
 
-    if (!form.cupos || Number(form.cupos) < 1) {
+    // Cuando estamos editando, no debemos comparar
+    // la apertura consigo misma.
+    const esLaMismaApertura =
+      mode === "editar" &&
+      Number(apertura.id) ===
+      Number(initialData?.id);
 
-      nuevosErrores.cupos =
-        "Debe existir al menos un cupo.";
+    return (
+      mismaVacante &&
+      mismaPractica &&
+      !esLaMismaApertura
+    );
 
-    }
+  });
 
+  if (vacanteYaTieneApertura) {
 
-    setErrores(nuevosErrores);
+    nuevosErrores.vacante_id =
+      "Esta vacante ya tiene una apertura para esta práctica.";
 
-    return Object.keys(nuevosErrores).length === 0;
+  }
 
-  };
+  setErrores(nuevosErrores);
+
+  return Object.keys(nuevosErrores).length === 0;
+
+};
 
 
   const handleSubmit = () => {
 
     if (!validar()) return;
 
-
     const payload = {
 
-      vacante_id: Number(form.vacante_id),
+      vacante_id:
+        Number(form.vacante_id),
 
       tutorEmpresa_id:
         Number(form.tutorEmpresa_id),
 
       practica_id:
-        Number(form.practica_id),
+        Number(practica.id),
 
       cupos:
         Number(form.cupos),
@@ -133,9 +156,7 @@ export default function AperturaVacanteModal({
 
     };
 
-
     onSave(payload);
-
   };
 
 
@@ -250,62 +271,33 @@ export default function AperturaVacanteModal({
 
             <label
               className="
-                block
-                text-sm
-                font-medium
-                text-slate-600
-                mb-1
-              "
+      block
+      text-sm
+      font-medium
+      text-slate-600
+      mb-1
+    "
             >
-              Práctica <span className="text-red-500">*</span>
+              Práctica
             </label>
 
-            <select
-              value={form.practica_id}
-              onChange={(e) =>
-                handleChange(
-                  "practica_id",
-                  e.target.value
-                )
-              }
+            <div
               className="
-                w-full
-                border
-                border-slate-300
-                rounded-md
-                px-3
-                py-2
-                text-sm
-                text-slate-700
-                bg-white
-                focus:outline-none
-                focus:ring-2
-                focus:ring-red-200
-              "
+      w-full
+      border
+      border-slate-300
+      rounded-md
+      px-3
+      py-2
+      text-sm
+      text-slate-700
+      bg-slate-100
+    "
             >
-
-              <option value="">
-                Seleccione una práctica
-              </option>
-
-              {practicas.map((practica) => (
-
-                <option
-                  key={practica.id}
-                  value={practica.id}
-                >
-                  {practica.Periodo.nombre}
-                </option>
-
-              ))}
-
-            </select>
-
-            {errores.practica_id && (
-              <p className="text-xs text-red-500 mt-1">
-                {errores.practica_id}
-              </p>
-            )}
+              {practica?.Periodo?.nombre ??
+                practica?.periodo ??
+                "—"}
+            </div>
 
           </div>
 

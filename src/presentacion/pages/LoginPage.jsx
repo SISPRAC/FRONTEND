@@ -30,9 +30,11 @@ export default function LoginPage() {
                 localStorage.setItem("token", res.accessToken);
                 localStorage.setItem("user", JSON.stringify(res.user));
 
-                toast.success("Inicio de sesión exitoso");
-
                 const rol = res.user.Roles[0]?.nombre;
+
+                localStorage.setItem("rolActivo", rol);
+
+                toast.success("Inicio de sesión exitoso");
 
                 switch (rol) {
                     case "Administrador":
@@ -44,6 +46,7 @@ export default function LoginPage() {
                         break;
 
                     case "Empresa":
+                        console.log("Ingreso papu..");
                         navigate("/homeEmpresa");
                         break;
 

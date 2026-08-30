@@ -47,13 +47,6 @@ const VacantesEmpresa = () => {
 
   const [cargando, setCargando] = useState(false);
 
-  const navigate = useNavigate();
-
-
-  /* =========================
-     CARGAR VACANTES
-  ========================= */
-
   const cargarVacantes = async () => {
 
     try {
@@ -77,9 +70,6 @@ const VacantesEmpresa = () => {
             empresa:
               vacante.Convenio?.Empresa?.nombre
               ?? "",
-
-            aperturas:
-              vacante.AperturaVacantes?.length ?? 0,
 
             estado:
               vacante.estado === "DISPONIBLE"
@@ -520,10 +510,6 @@ const VacantesEmpresa = () => {
             label: "Descripción"
           },
           {
-            key: "aperturas",
-            label: "Aperturas"
-          },
-          {
             key: "convenio",
             label: "Convenio"
           },
@@ -601,18 +587,19 @@ const VacantesEmpresa = () => {
               className="space-y-4"
             >
 
+
               {/* NOMBRE */}
 
               <div>
 
                 <label
                   className="
-                    block
-                    text-sm
-                    font-medium
-                    text-slate-700
-                    mb-1
-                  "
+      block
+      text-sm
+      font-medium
+      text-slate-700
+      mb-1
+    "
                 >
                   Nombre
                 </label>
@@ -626,20 +613,22 @@ const VacantesEmpresa = () => {
                       nombre: e.target.value
                     })
                   }
+                  placeholder="Ingrese el nombre de la vacante"
                   required
                   maxLength={15}
                   className="
-                    w-full
-                    border
-                    border-slate-300
-                    rounded-md
-                    px-3
-                    py-2
-                    text-sm
-                    focus:outline-none
-                    focus:ring-2
-                    focus:ring-slate-300
-                  "
+      w-full
+      border
+      border-slate-300
+      rounded-md
+      px-3
+      py-2
+      text-sm
+      placeholder:text-slate-400
+      focus:outline-none
+      focus:ring-2
+      focus:ring-slate-300
+    "
                 />
 
               </div>
@@ -651,12 +640,12 @@ const VacantesEmpresa = () => {
 
                 <label
                   className="
-                    block
-                    text-sm
-                    font-medium
-                    text-slate-700
-                    mb-1
-                  "
+      block
+      text-sm
+      font-medium
+      text-slate-700
+      mb-1
+    "
                 >
                   Descripción
                 </label>
@@ -666,25 +655,26 @@ const VacantesEmpresa = () => {
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      descripcion:
-                        e.target.value
+                      descripcion: e.target.value
                     })
                   }
+                  placeholder="Describa las funciones, requisitos y características de la vacante"
                   required
                   rows={4}
                   className="
-                    w-full
-                    border
-                    border-slate-300
-                    rounded-md
-                    px-3
-                    py-2
-                    text-sm
-                    resize-none
-                    focus:outline-none
-                    focus:ring-2
-                    focus:ring-slate-300
-                  "
+      w-full
+      border
+      border-slate-300
+      rounded-md
+      px-3
+      py-2
+      text-sm
+      resize-none
+      placeholder:text-slate-400
+      focus:outline-none
+      focus:ring-2
+      focus:ring-slate-300
+    "
                 />
 
               </div>

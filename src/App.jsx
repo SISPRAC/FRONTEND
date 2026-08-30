@@ -41,6 +41,7 @@ import CandidatoDetalleEmpresa from "./presentacion/pages/Empresa/CandidatoDetal
 import GruposPractica from "./presentacion/pages/Empresa/GruposPractica"
 import GrupoPracticaDetalle from "./presentacion/pages/Empresa/GrupoPracticaDetalle"
 import VacantesEmpresa from "./presentacion/pages/Empresa/VacantesEmpresa"
+import  ActualizarEmpresa  from "./presentacion/pages/Empresa/ActualizarDatosEmpresa";
 
 // Admin
 import HomeAdmin from "./presentacion/pages/Admin/HomeAdmin"
@@ -85,6 +86,7 @@ export default function App() {
           }
         >
           <Route path="/homeAdmin" element={<HomeAdmin />} />
+           <Route path="/periodos" element={<PeriodosAcademicos />} />
           <Route path="/practicas" element={<Practicas />} />
           <Route path="/usuarios" element={<UsersPage />} />
           <Route path="/documentos" element={< PracticaRequisitoDocumentoPage />} />
@@ -99,7 +101,6 @@ export default function App() {
           element={
             <ProtectedRoute
               roles={[
-                "Administrador",
                 "Director de programa",
               ]}
             />
@@ -107,8 +108,6 @@ export default function App() {
         >
           <Route path="/dashboard" element={<DashboardDirector />} />
           <Route path="/homeDirector" element={<DashboardDirector />} />
-
-          <Route path="/periodos" element={<PeriodosAcademicos />} />
 
           <Route path="/grupos" element={<GruposDirector />} />
           <Route path="/grupos/:id/candidatos" element={<GrupoVistaGrupo />} />
@@ -151,8 +150,10 @@ export default function App() {
           <Route path="/candidatos" element={<CandidatosEmpresa />} />
           <Route path="/empresa/candidatos/:id" element={<CandidatoDetalleEmpresa />} />
           <Route path="/gruposPractica" element={<GruposPractica />} />
-          <Route path="/director/grupos/:id" element={<GrupoPracticaDetalle />} />
+          <Route path="/empresa/grupos/:id" element={<GrupoPracticaDetalle />} />
           <Route path="/vacantesEmpresa" element={<VacantesEmpresa />} />
+          <Route path="/miPerfil" element={<ActualizarEmpresa/>} />
+
         </Route>
 
         {/* =========================

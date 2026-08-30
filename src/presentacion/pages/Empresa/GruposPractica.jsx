@@ -1,8 +1,12 @@
 import Layout from "../../shared/Layouts/Layout";
 import { Eye } from "lucide-react";
 import GenericTable from "../../components/Table/GenericTable";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+import { EmpresaRepository } from "../../../infraestructura/repository/empresaRepository";
+import { obtenerGruposEmpresa } from "../../../aplicacion/empresa/obtenerGruposEmpresa";
+
 
 const GruposPractica = () => {
 
@@ -10,58 +14,83 @@ const GruposPractica = () => {
   const [periodoFiltro, setPeriodoFiltro] = useState("TODOS");
   const [busqueda, setBusqueda] = useState("");
 
+  const [rows, setRows] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const navigate = useNavigate();
 
 
-  // DATOS TEMPORALES
-  // Después estos datos vendrán del backend.
-  const [rows] = useState([
-    {
-      id: 1,
-      grupo: "Grupo 1",
-      periodo: "2026-01",
-      practica: "Práctica 2026-01",
-      candidatos: 5
-    },
-    {
-      id: 2,
-      grupo: "Grupo 2",
-      periodo: "2026-01",
-      practica: "Práctica 2026-01",
-      candidatos: 4
-    },
-    {
-      id: 3,
-      grupo: "Grupo 3",
-      periodo: "2026-01",
-      practica: "Práctica 2026-01",
-      candidatos: 6
-    },
-    {
-      id: 4,
-      grupo: "Grupo 1",
-      periodo: "2026-02",
-      practica: "Práctica 2026-02",
-      candidatos: 3
-    },
-    {
-      id: 5,
-      grupo: "Grupo 2",
-      periodo: "2026-02",
-      practica: "Práctica 2026-02",
-      candidatos: 5
-    },
-    {
-      id: 6,
-      grupo: "Grupo 1",
-      periodo: "2025-02",
-      practica: "Práctica 2025-02",
-      candidatos: 7
-    }
-  ]);
+  // ==========================================
+  // OBTENER GRUPOS DE LA EMPRESA
+  // ==========================================
+
+  useEffect(() => {
+
+    const cargarGrupos = async () => {
+
+      try {
+
+        setLoading(true);
+        setError("");
+
+        const response =
+          await obtenerGruposEmpresa(EmpresaRepository);
+
+        console.log("Respuesta grupos empresa:", response);
+
+        const data = response?.data ?? [];
+
+        const grupos = data.map((grupo) => ({
+          id: grupo.practica_id,
+
+          grupo: `Grupo ${grupo.practica_id}`,
+
+          periodo: grupo.periodo,
+
+          practica: `Práctica ${grupo.periodo}`,
+
+          practicantes: grupo.practicantes ?? 0,
+
+          aperturas: grupo.aperturas?.length ?? 0,
+
+          estado: grupo.estado,
+
+          practica_id: grupo.practica_id
+        }));
+
+        setRows(grupos);
+
+      } catch (error) {
+
+        console.error(
+          "Error al obtener los grupos:",
+          error
+        );
+
+        setError(
+          error?.response?.data?.message ||
+          "No fue posible cargar los grupos."
+        );
+
+      } finally {
+
+        setLoading(false);
+
+      }
+
+    };
+
+    cargarGrupos();
+
+  }, []);
 
 
-  // PERIODOS DISPONIBLES PARA EL FILTRO
+  // ==========================================
+  // PERIODOS DISPONIBLES
+  // ==========================================
+
   const periodos = useMemo(() => {
 
     return [
@@ -73,7 +102,10 @@ const GruposPractica = () => {
   }, [rows]);
 
 
+  // ==========================================
   // FILTRAR GRUPOS
+  // ==========================================
+
   const gruposFiltrados = useMemo(() => {
 
     return rows.filter((grupo) => {
@@ -102,25 +134,26 @@ const GruposPractica = () => {
 
     });
 
-  }, [rows, periodoFiltro, busqueda]);
+  }, [
+    rows,
+    periodoFiltro,
+    busqueda
+  ]);
 
 
+  // ==========================================
   // VER GRUPO
+  // ==========================================
+
   const handleView = (id) => {
 
-    const grupo = rows.find(
-      (g) => g.id === id
-    );
-
-    navigate(`/director/grupos/${id}`, {
-      state: { grupo }
-    });
+    navigate(`/empresa/grupos/${id}`);
 
   };
 
 
   return (
-    <Layout footerLabel="Director de programa">
+    <Layout footerLabel="Empresa">
 
       <h1
         className="
@@ -136,149 +169,238 @@ const GruposPractica = () => {
       </h1>
 
 
-      {/* FILTROS */}
-      <div
-        className="
-          flex
-          flex-col
-          md:flex-row
-          md:items-center
-          md:justify-between
-          gap-4
-          mb-5
-        "
-      >
+      {/* ==========================================
+          CARGANDO
+      ========================================== */}
 
-        {/* FILTRO PERIODO */}
-        <div className="flex items-center gap-2">
+      {loading && (
 
-          <label
-            htmlFor="periodo"
-            className="
-              text-sm
-              font-medium
-              text-slate-600
-            "
-          >
-            Periodo:
-          </label>
+        <div className="text-center py-10 text-slate-500">
 
-          <select
-            id="periodo"
-            value={periodoFiltro}
-            onChange={(e) => {
-              setPeriodoFiltro(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="
-              border
-              border-slate-300
-              rounded-md
-              px-3
-              py-2
-              text-sm
-              text-slate-700
-              bg-white
-              focus:outline-none
-              focus:ring-2
-              focus:ring-slate-300
-            "
-          >
-
-            <option value="TODOS">
-              Todos
-            </option>
-
-            {periodos.map((periodo) => (
-              <option
-                key={periodo}
-                value={periodo}
-              >
-                {periodo}
-              </option>
-            ))}
-
-          </select>
+          Cargando grupos...
 
         </div>
 
+      )}
 
-        {/* BUSCADOR */}
-        <input
-          type="text"
-          value={busqueda}
-          onChange={(e) => {
-            setBusqueda(e.target.value);
-            setCurrentPage(1);
-          }}
-          placeholder="Buscar grupo..."
+
+      {/* ==========================================
+          ERROR
+      ========================================== */}
+
+      {!loading && error && (
+
+        <div
           className="
-            w-full
-            md:w-64
-            border
-            border-slate-300
-            rounded-md
-            px-3
-            py-2
-            text-sm
-            text-slate-700
-            bg-white
-            focus:outline-none
-            focus:ring-2
-            focus:ring-slate-300
+            text-center
+            py-10
+            text-red-500
+            font-medium
           "
-        />
+        >
 
-      </div>
+          {error}
+
+        </div>
+
+      )}
 
 
-      {/* TABLA */}
-      <GenericTable
+      {/* ==========================================
+          CONTENIDO
+      ========================================== */}
 
-        rows={gruposFiltrados}
+      {!loading && !error && (
 
-        currentPage={currentPage}
+        <>
 
-        onPageChange={setCurrentPage}
+          {/* FILTROS */}
 
-        columns={[
+          <div
+            className="
+              flex
+              flex-col
+              md:flex-row
+              md:items-center
+              md:justify-between
+              gap-4
+              mb-5
+            "
+          >
 
-          {
-            key: "grupo",
-            label: "Grupo",
-            primary: true
-          },
+            {/* FILTRO PERIODO */}
 
-          {
-            key: "periodo",
-            label: "Periodo"
-          },
+            <div className="flex items-center gap-2">
 
-          {
-            key: "practica",
-            label: "Práctica"
-          },
+              <label
+                htmlFor="periodo"
+                className="
+                  text-sm
+                  font-medium
+                  text-slate-600
+                "
+              >
+                Periodo:
+              </label>
 
-          {
-            key: "candidatos",
-            label: "Candidatos"
-          }
+              <select
+                id="periodo"
+                value={periodoFiltro}
+                onChange={(e) => {
 
-        ]}
+                  setPeriodoFiltro(e.target.value);
+                  setCurrentPage(1);
 
-        actions={[
-          {
-            icon: <Eye size={24} />,
-            className: "hover:bg-blue-100",
-            onClick: handleView
-          }
-        ]}
+                }}
+                className="
+                  border
+                  border-slate-300
+                  rounded-md
+                  px-3
+                  py-2
+                  text-sm
+                  text-slate-700
+                  bg-white
+                  focus:outline-none
+                  focus:ring-2
+                  focus:ring-slate-300
+                "
+              >
 
-        emptyMessage="No hay grupos que coincidan con los filtros."
+                <option value="TODOS">
+                  Todos
+                </option>
 
-        pageSize={6}
+                {periodos.map((periodo) => (
 
-      />
+                  <option
+                    key={periodo}
+                    value={periodo}
+                  >
+                    {periodo}
+                  </option>
+
+                ))}
+
+              </select>
+
+            </div>
+
+
+            {/* BUSCADOR */}
+
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => {
+
+                setBusqueda(e.target.value);
+                setCurrentPage(1);
+
+              }}
+              placeholder="Buscar grupo..."
+              className="
+                w-full
+                md:w-64
+                border
+                border-slate-300
+                rounded-md
+                px-3
+                py-2
+                text-sm
+                text-slate-700
+                bg-white
+                focus:outline-none
+                focus:ring-2
+                focus:ring-slate-300
+              "
+            />
+
+          </div>
+
+
+          {/* TABLA */}
+
+          <GenericTable
+
+            rows={gruposFiltrados}
+
+            currentPage={currentPage}
+
+            onPageChange={setCurrentPage}
+
+            columns={[
+
+              {
+                key: "grupo",
+                label: "Grupo",
+                primary: true
+              },
+
+              {
+                key: "periodo",
+                label: "Periodo"
+              },
+
+              {
+                key: "practica",
+                label: "Práctica"
+              },
+
+              {
+                key: "practicantes",
+                label: "Practicantes"
+              },
+              {
+                key: "aperturas",
+                label: "Aperturas"
+              },
+              {
+                key: "estado",
+                label: "Estado",
+
+                render: (row) => (
+                  <span
+                    className={`
+        inline-flex
+        items-center
+        px-3
+        py-1
+        rounded-full
+        text-xs
+        font-bold
+        ${row.estado === "EN_CURSO"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-red-100 text-red-700"
+                      }
+      `}
+                  >
+                    {row.estado === "EN_CURSO"
+                      ? "En curso"
+                      : "Finalizada"}
+                  </span>
+                )
+              }
+
+            ]}
+
+            actions={[
+              {
+                icon: <Eye size={24} />,
+                className: "hover:bg-blue-100",
+                onClick: handleView
+              }
+            ]}
+
+            emptyMessage="No hay grupos que coincidan con los filtros."
+
+            pageSize={6}
+
+          />
+
+        </>
+
+      )}
 
     </Layout>
   );

@@ -13,18 +13,14 @@ import {
   GraduationCap,
   MapPinned,
   BadgeInfo,
-  FileStack
+  FileStack,
+  User
 } from "lucide-react";
 
 // ==========================
 // DIRECTOR
 // ==========================
 export const Director_NAV = [
-  {
-    label: "Periodos",
-    icon: <SquareChartGantt />,
-    href: "/periodos",
-  },
   {
     label: "Grupos",
     icon: <Users />,
@@ -100,6 +96,11 @@ export const Empresa_NAV = [
     label: "Vacantes",
     icon: <FileUser />,
     href: " /vacantesEmpresa",
+  },
+  {
+    label: "Mi perfil",
+    icon: <User />,
+    href: " /miPerfil",
   },
 
 ];
@@ -193,6 +194,11 @@ export const TutorEmpresarial_NAV = [
 // ==========================
 
 export const Admin_NAV = [
+  {
+    label: "Periodos",
+    icon: <SquareChartGantt />,
+    href: "/periodos",
+  },
   {
     label: "Prácticas",
     icon: <Briefcase />,
