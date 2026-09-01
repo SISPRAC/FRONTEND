@@ -1,3 +1,4 @@
 export const getTutorDocentes = async ({tutorDocenteRepository}) => {
-  return await tutorDocenteRepository.getAll();
+  const res = await tutorDocenteRepository.getAll();
+  return res.data;
 };

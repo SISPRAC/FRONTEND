@@ -20,6 +20,7 @@ import ReportesPage from "./presentacion/pages/Director/ReportesPage";
 import VistaVisita from "./presentacion/pages/Director/VistaVisita";
 import Documentos from "./presentacion/pages/Director/Documentos";
 import DashboardDirector from "./presentacion/pages/Director/DashboardDirector";
+import TutoresDocentes from "./presentacion/pages/Director/GestionTutorDocente";
 
 // tutor Docente
 import HomeTutorDocente from "./presentacion/pages/TutorDocente/HomeTutorDocente"
@@ -42,6 +43,7 @@ import GruposPractica from "./presentacion/pages/Empresa/GruposPractica"
 import GrupoPracticaDetalle from "./presentacion/pages/Empresa/GrupoPracticaDetalle"
 import VacantesEmpresa from "./presentacion/pages/Empresa/VacantesEmpresa"
 import  ActualizarEmpresa  from "./presentacion/pages/Empresa/ActualizarDatosEmpresa";
+import TutoresEmpresariales from "./presentacion/pages/Empresa/GestionTutorEmpresa";
 
 // Admin
 import HomeAdmin from "./presentacion/pages/Admin/HomeAdmin"
@@ -132,6 +134,8 @@ export default function App() {
 
           <Route path="/protocolos" element={<Documentos />} />
 
+          <Route path="/tutorDocente" element={<TutoresDocentes />} />
+
 
         </Route>
 
@@ -152,6 +156,7 @@ export default function App() {
           <Route path="/gruposPractica" element={<GruposPractica />} />
           <Route path="/empresa/grupos/:id" element={<GrupoPracticaDetalle />} />
           <Route path="/vacantesEmpresa" element={<VacantesEmpresa />} />
+           <Route path="/tutorEmpresarial" element={<TutoresEmpresariales />} />
           <Route path="/miPerfil" element={<ActualizarEmpresa/>} />
 
         </Route>

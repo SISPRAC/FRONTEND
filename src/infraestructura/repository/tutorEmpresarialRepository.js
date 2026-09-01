@@ -1,11 +1,18 @@
-import { getTutorEmpresariales } from "../api/tutorEmpresarial.api";
+import {
+  getTutorEmpresariales,
+  invitarTutorEmpresarialRequest
+} from "../api/tutorEmpresarial.api";
 
 export const tutorEmpresarialRepository = {
 
   async getAll() {
+    const { data } = await getTutorEmpresariales();
+    return data;
+  },
 
-    return await getTutorEmpresariales();
-
+  async invitar(correo) {
+    const { data } = await invitarTutorEmpresarialRequest(correo);
+    return data;
   }
 
 };

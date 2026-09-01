@@ -23,3 +23,9 @@ tutorEmpresarialApi.interceptors.request.use(
 export const getTutorEmpresariales = () => {
   return tutorEmpresarialApi.get("/all");
 };
+
+export const invitarTutorEmpresarialRequest = (correo) => {
+  return tutorEmpresarialApi.post("/invitacion", {
+    correo
+  });
+};

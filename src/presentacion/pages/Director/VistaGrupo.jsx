@@ -1,6 +1,6 @@
 import Layout from "../../shared/Layouts/Layout";
 
-import { ThumbsUp, Calendar, Briefcase, UserX, Building2 } from "lucide-react";
+import { ArrowLeft, UserX, Building2 } from "lucide-react";
 import { getCandidatosGrupo } from "../../../aplicacion/grupos/getCandidatosGrupo";
 import { grupoRepository } from "../../../infraestructura/repository/grupoRepository";
 import GenericTable from "../../components/Table/GenericTable";
@@ -137,6 +137,30 @@ const GrupoVistaDirector = () => {
 
   return (
     <Layout footerLabel="Director">
+
+      <div className="relative flex items-center justify-center mb-8">
+
+        <button
+          onClick={() => navigate(-1)}
+          className="
+            absolute left-0
+            flex items-center gap-2
+            text-slate-600 hover:text-slate-900
+            font-medium text-sm
+            px-3 py-2
+            rounded-md
+            hover:bg-slate-100
+            transition-colors
+          "
+        >
+
+          <ArrowLeft size={20} />
+
+          Volver
+
+        </button>
+
+      </div>
 
       {/* ── Header: Periodo + Tutor ── */}
       <div className="flex justify-between items-start mb-6 px-1">

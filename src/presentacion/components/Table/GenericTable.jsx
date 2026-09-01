@@ -10,6 +10,7 @@ export default function GenericTable({
   currentPage,
   onPageChange,
   rowKey = "id",
+  loading = false,
 }) {
 
   const totalPages = Math.ceil(rows.length / pageSize);
@@ -47,62 +48,79 @@ export default function GenericTable({
 
           <tbody>
 
-            {paginatedRows.map((row, i) => (
-              <tr
-                key={row[rowKey]}
-                className={[
-                  "transition-colors duration-100 hover:bg-slate-50 text-center",
-                  i < paginatedRows.length - 1
-                    ? "border-b border-slate-100"
-                    : "",
-                ].join(" ")}
-              >
-
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={
-                      column.primary
-                        ? "px-4 py-3.5 text-sm text-slate-800 font-bold"
-                        : "px-4 py-3.5 text-sm text-slate-500"
-                    }
-                  >
-                    {column.render
-                      ? column.render(row)
-                      : row[column.key]}
-                  </td>
-                ))}
-
-                {actions.length > 0 && (
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-2 justify-center">
-
-                      {actions.map((action, index) => (
-                        <button
-                          key={index}
-                          onClick={() => action.onClick(row[rowKey])}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${action.className}`}
-                        >
-                          {action.icon}
-                        </button>
-                      ))}
-
-                    </div>
-                  </td>
-                )}
-
-              </tr>
-            ))}
-
-            {rows.length === 0 && (
+            {loading ? (
               <tr>
                 <td
                   colSpan={columns.length + (actions.length ? 1 : 0)}
                   className="text-center py-10 text-slate-400 text-sm"
                 >
-                  {emptyMessage}
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <div className="w-6 h-6 border-2 border-slate-300 border-t-[#e8192c] rounded-full animate-spin" />
+
+                    <span>Cargando...</span>
+                  </div>
                 </td>
               </tr>
+            ) : (
+              <>
+                {paginatedRows.map((row, i) => (
+                  <tr
+                    key={row[rowKey]}
+                    className={[
+                      "transition-colors duration-100 hover:bg-slate-50 text-center",
+                      i < paginatedRows.length - 1
+                        ? "border-b border-slate-100"
+                        : "",
+                    ].join(" ")}
+                  >
+
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        className={
+                          column.primary
+                            ? "px-4 py-3.5 text-sm text-slate-800 font-bold"
+                            : "px-4 py-3.5 text-sm text-slate-500"
+                        }
+                      >
+                        {column.render
+                          ? column.render(row)
+                          : row[column.key]}
+                      </td>
+                    ))}
+
+                    {actions.length > 0 && (
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2 justify-center">
+
+                          {actions.map((action, index) => (
+                            <button
+                              key={index}
+                              onClick={() => action.onClick(row[rowKey])}
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${action.className}`}
+                            >
+                              {action.icon}
+                            </button>
+                          ))}
+
+                        </div>
+                      </td>
+                    )}
+
+                  </tr>
+                ))}
+
+                {rows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={columns.length + (actions.length ? 1 : 0)}
+                      className="text-center py-10 text-slate-400 text-sm"
+                    >
+                      {emptyMessage}
+                    </td>
+                  </tr>
+                )}
+              </>
             )}
 
           </tbody>

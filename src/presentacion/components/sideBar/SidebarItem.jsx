@@ -57,6 +57,11 @@ export const Director_NAV = [
     href: "/dashboard",
   },
   {
+    label: "Tutores Docentes",
+    icon: <Users />,
+    href: "/tutorDocente",
+  },
+  {
     label: "ARL",
     icon: <FileText />,
     href: "/arl",
@@ -96,6 +101,11 @@ export const Empresa_NAV = [
     label: "Vacantes",
     icon: <FileUser />,
     href: " /vacantesEmpresa",
+  },
+  {
+    label: "Tutores Empresariales",
+    icon: <Users />,
+    href: "/tutorEmpresarial",
   },
   {
     label: "Mi perfil",

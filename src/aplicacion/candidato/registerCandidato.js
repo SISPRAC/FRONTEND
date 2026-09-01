@@ -1,6 +1,12 @@
 export const registerCandidato = async (
   { candidatoRepository },
-  data
+  data,
+  token
 ) => {
-  return await candidatoRepository.register(data);
+
+  return await candidatoRepository.register(
+    data,
+    token
+  );
+
 };

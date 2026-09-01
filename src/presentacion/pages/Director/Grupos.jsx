@@ -39,6 +39,7 @@ const GruposDirector = () => {
   const [practica, setPractica] = useState([]);
   const [tutorDocentes, setTutorDocentes] = useState([]);
   const [candidatos, setCandidatos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadGrupos();
@@ -48,6 +49,7 @@ const GruposDirector = () => {
 
   const loadGrupos = async () => {
     try {
+      setLoading(true);
       const data = await getGrupos({
         grupoRepository
       });
@@ -59,10 +61,12 @@ const GruposDirector = () => {
         tutorDocente: `${grupo.TutorDocente?.Usuario?.nombres} ${grupo.TutorDocente?.Usuario?.apellidos}`
       }));
       setRows(formattedData);
-       setCurrentPage(1);
+      setCurrentPage(1);
 
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -79,7 +83,7 @@ const GruposDirector = () => {
 
 
       setPractica(practicasData);
-      setTutorDocentes(docentesData.data);
+      setTutorDocentes(docentesData);
 
     } catch (error) {
       console.error(error);
@@ -186,7 +190,7 @@ const GruposDirector = () => {
       console.error(error);
       toast.error(
         error.response?.data?.message ||
-        "Error al eliminar grupo" 
+        "Error al eliminar grupo"
       );
 
     }
@@ -199,8 +203,8 @@ const GruposDirector = () => {
   };
   return (
 
-    <Layout 
-     
+    <Layout
+
       footerLabel="Director"
     >
 
@@ -216,9 +220,10 @@ const GruposDirector = () => {
       </h1>
 
       <GenericTable
-              rows={rows}
-              currentPage={currentPage}
-              onPageChange={setCurrentPage}
+        rows={rows}
+        loading={loading}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
         columns={[
           {
             key: "nombre",
@@ -252,7 +257,7 @@ const GruposDirector = () => {
           }
         ]}
         emptyMessage="No hay grupos registrados."
-         pageSize={6}
+        pageSize={6}
       />
 
       <AddButton
