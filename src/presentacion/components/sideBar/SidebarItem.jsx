@@ -13,18 +13,14 @@ import {
   GraduationCap,
   MapPinned,
   BadgeInfo,
-  FileStack
+  FileStack,
+  User
 } from "lucide-react";
 
 // ==========================
 // DIRECTOR
 // ==========================
 export const Director_NAV = [
-  {
-    label: "Periodos",
-    icon: <SquareChartGantt />,
-    href: "/periodos",
-  },
   {
     label: "Grupos",
     icon: <Users />,
@@ -61,6 +57,11 @@ export const Director_NAV = [
     href: "/dashboard",
   },
   {
+    label: "Tutores Docentes",
+    icon: <Users />,
+    href: "/tutorDocente",
+  },
+  {
     label: "ARL",
     icon: <FileText />,
     href: "/arl",
@@ -74,12 +75,12 @@ export const Empresa_NAV = [
   {
     label: "Convenios",
     icon: <Handshake />,
-    href: "/convenios",
+    href: "/subirConvenio",
   },
   {
     label: "Prácticas",
     icon: <Briefcase />,
-    href: "/practicas",
+    href: "/gruposPractica",
   },
   {
     label: "Candidatos",
@@ -96,6 +97,22 @@ export const Empresa_NAV = [
     icon: <FileUser />,
     href: "/encuestas",
   },
+  {
+    label: "Vacantes",
+    icon: <FileUser />,
+    href: " /vacantesEmpresa",
+  },
+  {
+    label: "Tutores Empresariales",
+    icon: <Users />,
+    href: "/tutorEmpresarial",
+  },
+  {
+    label: "Mi perfil",
+    icon: <User />,
+    href: " /miPerfil",
+  },
+
 ];
 
 // ==========================
@@ -187,6 +204,11 @@ export const TutorEmpresarial_NAV = [
 // ==========================
 
 export const Admin_NAV = [
+  {
+    label: "Periodos",
+    icon: <SquareChartGantt />,
+    href: "/periodos",
+  },
   {
     label: "Prácticas",
     icon: <Briefcase />,

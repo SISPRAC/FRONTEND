@@ -20,6 +20,7 @@ import ReportesPage from "./presentacion/pages/Director/ReportesPage";
 import VistaVisita from "./presentacion/pages/Director/VistaVisita";
 import Documentos from "./presentacion/pages/Director/Documentos";
 import DashboardDirector from "./presentacion/pages/Director/DashboardDirector";
+import TutoresDocentes from "./presentacion/pages/Director/GestionTutorDocente";
 
 // tutor Docente
 import HomeTutorDocente from "./presentacion/pages/TutorDocente/HomeTutorDocente"
@@ -35,6 +36,14 @@ import HomePracticante from "./presentacion/pages/Practicante/HomePracticante"
 
 // Empresa
 import HomeEmpresa from "./presentacion/pages/Empresa/HomeEmpresa"
+import SubirConvenio from "./presentacion/pages/Empresa/SubirConvenio"
+import CandidatosEmpresa from "./presentacion/pages/Empresa/CandidatosEmpresa"
+import CandidatoDetalleEmpresa from "./presentacion/pages/Empresa/CandidatoDetalleEmpresa"
+import GruposPractica from "./presentacion/pages/Empresa/GruposPractica"
+import GrupoPracticaDetalle from "./presentacion/pages/Empresa/GrupoPracticaDetalle"
+import VacantesEmpresa from "./presentacion/pages/Empresa/VacantesEmpresa"
+import  ActualizarEmpresa  from "./presentacion/pages/Empresa/ActualizarDatosEmpresa";
+import TutoresEmpresariales from "./presentacion/pages/Empresa/GestionTutorEmpresa";
 
 // Admin
 import HomeAdmin from "./presentacion/pages/Admin/HomeAdmin"
@@ -55,6 +64,19 @@ export default function App() {
         {/* Públicas */}
         <Route path="/" element={<LoginPage />} />
 
+        <Route
+          path="/registrarCandidato"
+          element={<RegisterCandidatePage />}
+        />
+        <Route
+          path="/registrarEmpresa"
+          element={<RegisterEmpresaPage />}
+        />
+        <Route
+          path="/registrarStaff"
+          element={<RegisterStaffPage />}
+        />
+
         {/* =========================
               ADMINISTRADOR
           ========================== */}
@@ -66,11 +88,12 @@ export default function App() {
           }
         >
           <Route path="/homeAdmin" element={<HomeAdmin />} />
-           <Route path="/practicas" element={<Practicas />} />
-           <Route path="/usuarios" element={<UsersPage />} />
-           <Route path="/documentos" element={< PracticaRequisitoDocumentoPage/>} />
+           <Route path="/periodos" element={<PeriodosAcademicos />} />
+          <Route path="/practicas" element={<Practicas />} />
+          <Route path="/usuarios" element={<UsersPage />} />
+          <Route path="/documentos" element={< PracticaRequisitoDocumentoPage />} />
 
-    
+
         </Route>
 
         {/* =========================
@@ -80,7 +103,6 @@ export default function App() {
           element={
             <ProtectedRoute
               roles={[
-                "Administrador",
                 "Director de programa",
               ]}
             />
@@ -88,8 +110,6 @@ export default function App() {
         >
           <Route path="/dashboard" element={<DashboardDirector />} />
           <Route path="/homeDirector" element={<DashboardDirector />} />
-
-          <Route path="/periodos" element={<PeriodosAcademicos />} />
 
           <Route path="/grupos" element={<GruposDirector />} />
           <Route path="/grupos/:id/candidatos" element={<GrupoVistaGrupo />} />
@@ -114,18 +134,9 @@ export default function App() {
 
           <Route path="/protocolos" element={<Documentos />} />
 
-          <Route
-            path="/registrarCandidato"
-            element={<RegisterCandidatePage />}
-          />
-          <Route
-            path="/registrarEmpresa"
-            element={<RegisterEmpresaPage />}
-          />
-          <Route
-            path="/registrarStaff"
-            element={<RegisterStaffPage />}
-          />
+          <Route path="/tutorDocente" element={<TutoresDocentes />} />
+
+
         </Route>
 
         {/* =========================
@@ -139,7 +150,15 @@ export default function App() {
           }
         >
           <Route path="/homeEmpresa" element={<HomeEmpresa />} />
-        
+          <Route path="/subirConvenio" element={<SubirConvenio />} />
+          <Route path="/candidatos" element={<CandidatosEmpresa />} />
+          <Route path="/empresa/candidatos/:id" element={<CandidatoDetalleEmpresa />} />
+          <Route path="/gruposPractica" element={<GruposPractica />} />
+          <Route path="/empresa/grupos/:id" element={<GrupoPracticaDetalle />} />
+          <Route path="/vacantesEmpresa" element={<VacantesEmpresa />} />
+           <Route path="/tutorEmpresarial" element={<TutoresEmpresariales />} />
+          <Route path="/miPerfil" element={<ActualizarEmpresa/>} />
+
         </Route>
 
         {/* =========================

@@ -1,104 +1,69 @@
 import axios from "axios";
 
 const encuestaApi = axios.create({
-
     baseURL: "http://localhost:3000/api/encuesta",
-
     withCredentials: true
-
 });
-
 
 // =============================
 // OBTENER TODAS LAS ENCUESTAS
 // =============================
-
 export const getEncuestasRequest = () => {
-
     return encuestaApi.get("/all");
-
 };
-
 
 // =============================
 // CREAR ENCUESTA COMPLETA
 // =============================
 // Crea:
 // - PlantillaEncuesta
-// - PeriodoPlantilla
 // - Preguntas
 // - Opciones
-
 export const createEncuestaRequest = async (data) => {
-
     return await encuestaApi.post(
         "/crear",
         data
     );
-
 };
-
 
 // =============================
 // OBTENER UNA ENCUESTA
 // =============================
-
 export const getEncuestaRequest = (id) => {
-
     return encuestaApi.get(
         `/${id}`
     );
-
 };
 
-
 // =============================
-// EDITAR PLANTILLA
+// ACTUALIZAR ENCUESTA
 // =============================
-// Actualiza:
-// - Titulo
-// - Descripcion
-// - Rol
-
+// Actualiza la plantilla y sus preguntas/opciones
+// según las reglas del backend.
 export const editarEncuestaRequest = (id, data) => {
-
     return encuestaApi.put(
         `/${id}`,
         data
     );
-
 };
 
-
 // =============================
-// EDITAR VERSION / PERIODO
+// ASIGNAR ENCUESTA A PRÁCTICA
 // =============================
-// Actualiza:
-// - Version
-// - Preguntas
-// - Opciones
-
-export const editarPeriodoPlantillaRequest = (
-    id,
-    data
-) => {
-
-    return encuestaApi.put(
-        `/periodo/${id}`,
+// Crea:
+// - PracticaEncuesta
+export const asignarEncuestaPracticaRequest = (data) => {
+    return encuestaApi.post(
+        "/asignar-practica",
         data
     );
-
 };
-
 
 // =============================
 // ELIMINAR ENCUESTA
 // =============================
-
 export const deleteEncuestaRequest = (id) => {
-
     return encuestaApi.delete(
         `/${id}`
     );
-
 };

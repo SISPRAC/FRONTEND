@@ -1,3 +1,4 @@
 export const getCandidatosPerfil = async ({candidatoRepository},PerfilNombre) => {
-  return await candidatoRepository.getCandidatosPerfiles(PerfilNombre);
+  const candidatosPerfiles = await candidatoRepository.getCandidatosPerfiles(PerfilNombre);
+  return candidatosPerfiles.data;
 };

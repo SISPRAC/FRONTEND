@@ -49,3 +49,9 @@ export const updateUserRolesRequest = async (id, roles) => {
 export const deleteUserRequest = async (id) => {
     return await userApi.delete(`/${id}`);
 };
+
+export const cambiarEstadoUsuarioRequest = async (id, estado) => {
+    return await userApi.patch(`/${id}/estado`, {
+        estado
+    });
+};

@@ -1,6 +1,6 @@
 import Layout from "../../shared/Layouts/Layout";
 
-import { ThumbsUp, Calendar, Briefcase, UserX, Building2 } from "lucide-react";
+import { ArrowLeft, UserX, Building2 } from "lucide-react";
 import { getCandidatosGrupo } from "../../../aplicacion/grupos/getCandidatosGrupo";
 import { grupoRepository } from "../../../infraestructura/repository/grupoRepository";
 import GenericTable from "../../components/Table/GenericTable";
@@ -35,6 +35,8 @@ const GrupoVistaDirector = () => {
       const data = await getCandidatosGrupo({
         grupoRepository
       }, id);
+
+      console.log("Candidatos del grupo obtenidos:", data);
 
       const formattedData = data.candidatos.map(candidato => ({
         id: candidato.id,
@@ -136,19 +138,43 @@ const GrupoVistaDirector = () => {
   return (
     <Layout footerLabel="Director">
 
+      <div className="relative flex items-center justify-center mb-8">
+
+        <button
+          onClick={() => navigate(-1)}
+          className="
+            absolute left-0
+            flex items-center gap-2
+            text-slate-600 hover:text-slate-900
+            font-medium text-sm
+            px-3 py-2
+            rounded-md
+            hover:bg-slate-100
+            transition-colors
+          "
+        >
+
+          <ArrowLeft size={20} />
+
+          Volver
+
+        </button>
+
+      </div>
+
       {/* ── Header: Periodo + Tutor ── */}
       <div className="flex justify-between items-start mb-6 px-1">
         <div>
           <p className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-0.5">
             Periodo Lectivo
           </p>
-          <p className="text-2xl font-extrabold text-slate-800">{grupo?.periodo}</p>
+          <p className="text-2xl font-extrabold text-slate-800">{grupo?.practica?.Periodo?.nombre}</p>
         </div>
         <div className="text-right">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-widest mb-0.5">
             Tutor Asignado
           </p>
-          <p className="text-2xl font-extrabold text-slate-800">{grupo?.tutorDocente}</p>
+          <p className="text-2xl font-extrabold text-slate-800">{grupo?.tutorDocente.nombre}</p>
         </div>
       </div>
 

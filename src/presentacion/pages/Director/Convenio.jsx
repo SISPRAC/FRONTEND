@@ -7,18 +7,30 @@ import { FileSliders } from "lucide-react";
 import toast from "react-hot-toast";
 import EstadoBadge from "../../components/estadoBadge/EstadoBadge";
 import { useNavigate } from "react-router-dom";
-import { getConvenio } from "../../../aplicacion/convenio/getConvenio";
+import { EmpresaRepository } from "../../../infraestructura/repository/empresaRepository";
+import InviteModal from "../../components/modals/InviteModal";
 
 export default function Convenios() {
   const navigate = useNavigate();
 
-  const [convenioSeleccionado, setConvenioSeleccionado] = useState(null);
   const [rows, setRows] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // =========================================================
+  // MODAL INVITAR EMPRESA
+  // =========================================================
+
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+
 
   useEffect(() => {
     loadConvenios();
   }, []);
+
+
+  // =========================================================
+  // CARGAR CONVENIOS
+  // =========================================================
 
   const loadConvenios = async () => {
     try {
@@ -29,27 +41,74 @@ export default function Convenios() {
       const formattedData = data.map(convenio => ({
         ...convenio
       }));
+
       setRows(formattedData);
-       setCurrentPage(1);
+      setCurrentPage(1);
+
     } catch (error) {
       console.error(error);
+
+      toast.error(
+        error.response?.data?.message ||
+        "Error al cargar los convenios"
+      );
     }
   };
 
- const handleVerConvenio = async (id) => {
+
+  // =========================================================
+  // VER CONVENIO
+  // =========================================================
+
+  const handleVerConvenio = async (id) => {
     navigate("/convenio", {
-        state: {
-            convenioId: id
-        }
+      state: {
+        convenioId: id
+      }
     });
-};
+  };
+
+
+  // =========================================================
+  // ABRIR MODAL INVITAR
+  // =========================================================
+
+  const handleInvitar = () => {
+    setIsInviteOpen(true);
+  };
+
+
+  // =========================================================
+  // ENVIAR INVITACIÓN
+  // =========================================================
+
+  const handleEnviarInvitacion = async (correo) => {
+    try {
+
+      await EmpresaRepository.invitar({
+        correo
+      });
+
+      toast.success("Invitación enviada con éxito");
+
+      setIsInviteOpen(false);
+
+    } catch (error) {
+
+      console.error(error);
+
+      toast.error(
+        error.response?.data?.message ||
+        "Error al enviar la invitación"
+      );
+
+    }
+  };
+
 
   return (
 
-    <Layout 
-    
-      footerLabel="Director"
-    >
+    <Layout footerLabel="Director">
 
       <h1 className="
         text-[26px]
@@ -62,10 +121,12 @@ export default function Convenios() {
         Convenios
       </h1>
 
+
       <GenericTable
         rows={rows}
         currentPage={currentPage}
         onPageChange={setCurrentPage}
+
         columns={[
           {
             key: "empresa",
@@ -79,10 +140,12 @@ export default function Convenios() {
           {
             key: "estado",
             label: "Estado",
-            // Si GenericTable soporta render personalizado:
-            render: (row) => <EstadoBadge estado={row.estado} />,
+            render: (row) => (
+              <EstadoBadge estado={row.estado} />
+            ),
           }
         ]}
+
         actions={[
           {
             icon: <FileSliders size={24} />,
@@ -90,10 +153,47 @@ export default function Convenios() {
             onClick: handleVerConvenio
           },
         ]}
+
         emptyMessage="No hay Convenios registrados."
         pageSize={6}
       />
 
-    </Layout >
+
+      {/* =====================================================
+          BOTÓN INVITAR EMPRESA
+      ===================================================== */}
+
+      <div className="flex justify-end mt-8">
+
+        <button
+          onClick={handleInvitar}
+          className="
+            px-6 py-2.5
+            bg-[#e8192c]
+            hover:bg-[#c8111f]
+            text-white
+            font-semibold
+            rounded-lg
+            transition
+          "
+        >
+          Invitar empresa
+        </button>
+
+      </div>
+
+
+      {/* =====================================================
+          MODAL INVITAR EMPRESA
+      ===================================================== */}
+
+      <InviteModal
+        isOpen={isInviteOpen}
+        onClose={() => setIsInviteOpen(false)}
+        onSubmit={handleEnviarInvitacion}
+        tipo="empresa"
+      />
+
+    </Layout>
   );
 }

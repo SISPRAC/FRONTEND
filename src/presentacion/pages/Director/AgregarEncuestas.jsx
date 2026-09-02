@@ -14,11 +14,7 @@ import Layout from "../../shared/Layouts/Layout";
 import { getEncuesta } from "../../../aplicacion/encuesta/getEncuesta";
 import { crearEncuesta } from "../../../aplicacion/encuesta/crearEncuesta";
 import { actualizarEncuesta } from "../../../aplicacion/encuesta/editarEncuesta";
-import { actualizarPeriodoPlantilla } from "../../../aplicacion/encuesta/actualizarPeriodoPlantilla";
-
 import { encuestaRepository } from "../../../infraestructura/repository/encuestaRepository";
-
-import { periodoRepository } from "../../../infraestructura/repository/periodoRepository";
 
 import toast from "react-hot-toast";
 
@@ -68,87 +64,23 @@ export default function AgregarEncuestaPage() {
     // DATOS DE LA ENCUESTA
     // =============================
 
-    const [titulo, setTitulo] =
-        useState("");
+    const [titulo, setTitulo] = useState("");
+    const [descripcion, setDescripcion] = useState("");
+    const [rol, setRol] = useState("");
 
-    const [descripcion, setDescripcion] =
-        useState("");
+    const [modo, setModo] = useState("crear");
 
-    const [rol, setRol] =
-        useState("");
+    const [menuRolAbierto, setMenuRolAbierto] = useState(false);
 
+    const [preguntas, setPreguntas] = useState([
+        nuevaPreguntaVacia()
+    ]);
 
-    // =============================
-    // PERIODOS
-    // =============================
-
-    const [periodos, setPeriodos] =
-        useState([]);
-
-    const [periodo_id, setPeriodo_id] =
-        useState("");
-
-    const [version, setVersion] =
-        useState("");
-
-
-    // =============================
-    // PERIODO PLANTILLA
-    // =============================
-
-    const [periodosPlantilla, setPeriodosPlantilla] =
-        useState([]);
-
-    const [periodoPlantillaId, setPeriodoPlantillaId] =
-        useState("");
-
-
-    // =============================
-    // MODO
-    // =============================
-
-    const [modo, setModo] =
-        useState("crear");
-
-
-    // =============================
-    // UI
-    // =============================
-
-    const [menuRolAbierto, setMenuRolAbierto] =
-        useState(false);
-
-    const [menuPeriodoAbierto, setMenuPeriodoAbierto] =
-        useState(false);
-
-
-    const [preguntas, setPreguntas] =
-        useState([
-            nuevaPreguntaVacia()
-        ]);
-
-
-    const [archivoNombre, setArchivoNombre] =
-        useState("");
-
-
-    const [error, setError] =
-        useState("");
-
+    const [archivoNombre, setArchivoNombre] = useState("");
+    const [error, setError] = useState("");
 
     const fileInputRef =
         useRef(null);
-
-
-    // =============================
-    // CARGAR PERIODOS
-    // =============================
-
-    useEffect(() => {
-
-        cargarPeriodos();
-
-    }, []);
 
 
     // =============================
@@ -166,38 +98,6 @@ export default function AgregarEncuestaPage() {
     }, [id]);
 
 
-    // =============================
-    // CARGAR PERIODOS
-    // =============================
-
-    const cargarPeriodos = async () => {
-
-        try {
-
-            const data =
-                await periodoRepository.getAll();
-
-
-            setPeriodos(
-                data || []
-            );
-
-
-        } catch (error) {
-
-            console.error(
-                error
-            );
-
-
-            toast.error(
-                "No se pudieron cargar los periodos"
-            );
-
-        }
-
-    };
-
 
     // =============================
     // CARGAR ENCUESTA
@@ -209,22 +109,14 @@ export default function AgregarEncuestaPage() {
 
             const encuesta =
                 await getEncuesta(
-
                     {
                         encuestaRepository
                     },
-
                     id
-
                 );
 
-            console.log("Encuesta ", encuesta);
 
-
-            setModo(
-                "editar"
-            );
-
+            setModo("editar");
 
             // =============================
             // DATOS GENERALES
@@ -234,76 +126,64 @@ export default function AgregarEncuestaPage() {
                 encuesta.titulo || ""
             );
 
-
             setDescripcion(
                 encuesta.descripcion || ""
             );
-
 
             setRol(
                 encuesta.Role?.nombre || ""
             );
 
-
             // =============================
-            // PERIODOS DE LA PLANTILLA
-            // =============================
-
-            const periodosEncuesta =
-                encuesta.periodosPlantilla || [];
-
-
-            setPeriodosPlantilla(
-                periodosEncuesta
-            );
-
-
-            // =============================
-            // SELECCIONAR PRIMER PERIODO
+            // PREGUNTAS
             // =============================
 
-            if (
-                periodosEncuesta.length > 0
-            ) {
+            const preguntasEncuesta =
+                encuesta.preguntas || [];
 
-                const primerPeriodo =
-                    periodosEncuesta[0];
-
-
-                setPeriodoPlantillaId(
-                    primerPeriodo.id
-                );
-
-
-                setPeriodo_id(
-                    primerPeriodo.periodo_id || ""
-                );
-
-
-                setVersion(
-                    primerPeriodo.version || ""
-                );
-
-
-                cargarPreguntas(
-                    primerPeriodo
-                );
-
-            } else {
+            if (preguntasEncuesta.length === 0) {
 
                 setPreguntas([
                     nuevaPreguntaVacia()
                 ]);
 
-            }
+            } else {
 
+                setPreguntas(
+
+                    preguntasEncuesta.map(
+                        pregunta => ({
+
+                            id: pregunta.id,
+
+                            texto:
+                                pregunta.texto || "",
+
+                            orden:
+                                pregunta.orden,
+
+                            opciones:
+                                pregunta.OpcionesPregunta?.map(
+                                    opcion => ({
+
+                                        id: opcion.id,
+
+                                        texto:
+                                            opcion.texto || ""
+
+                                    })
+                                ) || []
+
+                        })
+                    )
+
+                );
+
+            }
 
         } catch (error) {
 
-            console.error(
-                error
-            );
-
+            console.error(error);
 
             toast.error(
                 "No se pudo cargar la encuesta"
@@ -367,41 +247,6 @@ export default function AgregarEncuestaPage() {
                 })
             )
 
-        );
-
-    };
-
-
-    // =============================
-    // CAMBIAR PERIODO
-    // =============================
-
-    const handleCambiarPeriodo = (
-        periodoPlantilla
-    ) => {
-
-        setPeriodoPlantillaId(
-            periodoPlantilla.id
-        );
-
-
-        setPeriodo_id(
-            periodoPlantilla.periodo_id || ""
-        );
-
-
-        setVersion(
-            periodoPlantilla.version || ""
-        );
-
-
-        cargarPreguntas(
-            periodoPlantilla
-        );
-
-
-        setMenuPeriodoAbierto(
-            false
         );
 
     };
@@ -658,7 +503,6 @@ export default function AgregarEncuestaPage() {
                     value
                 );
 
-            console.log(encuesta);
 
 
             if (
@@ -998,29 +842,6 @@ export default function AgregarEncuestaPage() {
         }
 
 
-        if (
-            modo === "crear" &&
-            !periodo_id
-        ) {
-
-            return (
-                "Debe seleccionar un periodo."
-            );
-
-        }
-
-
-        if (
-            modo === "crear" &&
-            !version.trim()
-        ) {
-
-            return (
-                "Debe ingresar la versión."
-            );
-
-        }
-
 
         if (
             preguntas.length === 0
@@ -1172,10 +993,7 @@ export default function AgregarEncuestaPage() {
             // CREAR
             // =============================
 
-            if (
-                modo === "crear"
-            ) {
-
+            if (modo === "crear") {
 
                 const payload = {
 
@@ -1185,21 +1003,15 @@ export default function AgregarEncuestaPage() {
 
                     rol,
 
-                    periodo_id,
-
-                    version,
-
                     preguntas:
                         preguntasPayload
 
                 };
 
-
                 console.log(
                     "Payload crear:",
                     payload
                 );
-
 
                 await crearEncuesta(
 
@@ -1211,11 +1023,9 @@ export default function AgregarEncuestaPage() {
 
                 );
 
-
                 toast.success(
                     "Encuesta creada correctamente"
                 );
-
 
             }
 
@@ -1224,11 +1034,6 @@ export default function AgregarEncuestaPage() {
             // =============================
 
             else {
-
-
-                // =============================
-                // ACTUALIZAR PLANTILLA
-                // =============================
 
                 await actualizarEncuesta(
 
@@ -1239,48 +1044,13 @@ export default function AgregarEncuestaPage() {
                     id,
 
                     {
-
                         titulo,
-
                         descripcion,
-
-                        rol
-
+                        rol,
+                        preguntas: preguntasPayload
                     }
 
                 );
-
-
-                // =============================
-                // ACTUALIZAR PERIODO
-                // =============================
-
-                if (
-                    periodoPlantillaId
-                ) {
-
-
-                    await actualizarPeriodoPlantilla(
-
-                        {
-                            encuestaRepository
-                        },
-
-                        periodoPlantillaId,
-
-                        {
-
-                            version,
-
-                            preguntas:
-                                preguntasPayload
-
-                        }
-
-                    );
-
-                }
-
 
                 toast.success(
                     "Encuesta actualizada correctamente"
@@ -1331,7 +1101,7 @@ export default function AgregarEncuestaPage() {
 
     return (
 
-        <Layout 
+        <Layout
             footerLabel="Director"
         >
 
@@ -1642,400 +1412,6 @@ export default function AgregarEncuestaPage() {
 
             </div>
 
-
-            {/* =============================
-                PERIODO Y VERSION
-            ============================== */}
-
-            <div
-                className="
-                    grid
-                    grid-cols-1
-                    md:grid-cols-2
-                    gap-6
-                    mb-6
-                "
-            >
-
-
-                {/* PERIODO */}
-
-                <div>
-
-                    <label
-                        className="
-                            text-sm
-                            font-bold
-                            text-slate-700
-                            block
-                            mb-2
-                        "
-                    >
-
-                        Periodo
-
-                    </label>
-
-
-                    {
-
-                        modo === "crear"
-
-                            ?
-
-                            <div
-                                className="
-                                    relative
-                                    inline-block
-                                    w-full
-                                "
-                            >
-
-                                <button
-
-                                    type="button"
-
-                                    onClick={() =>
-                                        setMenuPeriodoAbierto(
-                                            v => !v
-                                        )
-                                    }
-
-                                    className="
-                                        w-full
-                                        flex
-                                        items-center
-                                        justify-between
-                                        px-4
-                                        py-3
-                                        rounded-xl
-                                        border
-                                        border-slate-200
-                                        bg-white
-                                        text-sm
-                                        text-slate-700
-                                    "
-                                >
-
-                                    {
-
-                                        periodos.find(
-
-                                            p =>
-                                                String(p.id) ===
-                                                String(periodo_id)
-
-                                        )?.nombre
-
-                                        ||
-
-                                        "Seleccionar periodo"
-
-                                    }
-
-
-                                    <ChevronDown
-                                        size={16}
-                                    />
-
-                                </button>
-
-
-                                {
-
-                                    menuPeriodoAbierto && (
-
-                                        <div
-                                            className="
-                                                absolute
-                                                z-20
-                                                mt-1
-                                                w-full
-                                                bg-white
-                                                border
-                                                border-slate-200
-                                                rounded-xl
-                                                shadow-lg
-                                                overflow-hidden
-                                            "
-                                        >
-
-                                            {
-
-                                                periodos.map(
-
-                                                    periodo => (
-
-                                                        <button
-
-                                                            key={
-                                                                periodo.id
-                                                            }
-
-                                                            type="button"
-
-                                                            onClick={() => {
-
-                                                                setPeriodo_id(
-                                                                    periodo.id
-                                                                );
-
-                                                                setMenuPeriodoAbierto(
-                                                                    false
-                                                                );
-
-                                                            }}
-
-                                                            className="
-                                                                w-full
-                                                                text-left
-                                                                px-4
-                                                                py-3
-                                                                text-sm
-                                                                text-slate-600
-                                                                hover:bg-slate-50
-                                                            "
-                                                        >
-
-                                                            {
-                                                                periodo.nombre
-                                                            }
-
-                                                        </button>
-
-                                                    )
-
-                                                )
-
-                                            }
-
-                                        </div>
-
-                                    )
-
-                                }
-
-                            </div>
-
-                            :
-
-                            <div
-                                className="
-                                    w-full
-                                    px-4
-                                    py-3
-                                    rounded-xl
-                                    bg-slate-100
-                                    text-sm
-                                    text-slate-700
-                                "
-                            >
-
-                                {
-
-                                    periodos.find(
-
-                                        p =>
-                                            String(p.id) ===
-                                            String(periodo_id)
-
-                                    )?.nombre
-
-                                    ||
-
-                                    "Periodo no disponible"
-
-                                }
-
-                            </div>
-
-                    }
-
-                </div>
-
-
-                {/* VERSION */}
-
-                <div>
-
-                    <label
-                        className="
-                            text-sm
-                            font-bold
-                            text-slate-700
-                            block
-                            mb-2
-                        "
-                    >
-
-                        Versión
-
-                    </label>
-
-
-                    <input
-
-                        value={
-                            version
-                        }
-
-                        onChange={e =>
-                            setVersion(
-                                e.target.value
-                            )
-                        }
-
-                        placeholder="Ejemplo: 1.0 "
-
-                        className="
-                            w-full
-                            bg-white
-                            rounded-xl
-                            px-4
-                            py-3
-                            text-sm
-                            focus:outline-none
-                            focus:ring-2
-                            focus:ring-red-200
-                        "
-
-                    />
-
-                </div>
-
-            </div>
-
-
-            {/* =============================
-                SELECTOR DE VERSIONES AL EDITAR
-            ============================== */}
-
-            {
-
-                modo === "editar" &&
-
-                periodosPlantilla.length > 0 && (
-
-                    <div className="mb-6">
-
-                        <label
-                            className="
-                                text-sm
-                                font-bold
-                                text-slate-700
-                                block
-                                mb-2
-                            "
-                        >
-
-                            Versión del periodo a editar
-
-                        </label>
-
-
-                        <select
-
-                            value={
-                                periodoPlantillaId
-                            }
-
-                            onChange={e => {
-
-                                const periodoPlantilla =
-                                    periodosPlantilla.find(
-
-                                        p =>
-                                            String(p.id) ===
-                                            String(e.target.value)
-
-                                    );
-
-
-                                if (
-                                    periodoPlantilla
-                                ) {
-
-                                    handleCambiarPeriodo(
-                                        periodoPlantilla
-                                    );
-
-                                }
-
-                            }}
-
-                            className="
-                                w-full
-                                bg-white
-                                rounded-xl
-                                px-4
-                                py-3
-                                text-sm
-                                border
-                                border-slate-200
-                                focus:outline-none
-                                focus:ring-2
-                                focus:ring-red-200
-                            "
-                        >
-
-                            {
-
-                                periodosPlantilla.map(
-
-                                    periodoPlantilla => (
-
-                                        <option
-
-                                            key={
-                                                periodoPlantilla.id
-                                            }
-
-                                            value={
-                                                periodoPlantilla.id
-                                            }
-                                        >
-
-                                            {
-
-                                                periodos.find(
-
-                                                    p =>
-                                                        String(p.id) ===
-                                                        String(
-                                                            periodoPlantilla.periodo_id
-                                                        )
-
-                                                )?.nombre
-
-                                                ||
-
-                                                `Periodo ${periodoPlantilla.periodo_id}`
-
-                                            }
-
-                                            {" - "}
-
-                                            {
-
-                                                periodoPlantilla.version
-
-                                            }
-
-                                        </option>
-
-                                    )
-
-                                )
-
-                            }
-
-                        </select>
-
-                    </div>
-
-                )
-
-            }
 
 
             {/* =============================

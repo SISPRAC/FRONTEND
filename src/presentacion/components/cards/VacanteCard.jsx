@@ -145,7 +145,7 @@ export default function VacanteCard({
 
         <button
           onClick={() => onPostular(vacante)}
-          disabled={!tieneCupos}
+
           title="Postular candidato"
           aria-label={`Postular candidato a ${empresa?.nombre}`}
           className="

@@ -1,9 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import GenericTable from "../Table/GenericTable";
-import { Trash, X, Plus, Paperclip } from "lucide-react";
+import { Trash, X, Plus, Paperclip, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker?url";
+import InviteModal from "./InviteModal";
+import ConfirmModal from "./ConfirmModal";
+import { candidatoRepository } from "../../../infraestructura/repository/candidatoRepository";
+import { tutorDocenteRepository } from "../../../infraestructura/repository/tutorDocenteRepository";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -16,12 +20,12 @@ export default function GrupoModal({
   mode,
   grupo,
   candidatos = [],
-  periodos = [],   // [{ id, nombre }]
+  practicas = [],   // [{ id, nombre }]
   tutorDocentes = [],   // [{ id, nombre }]
 }) {
   const initialForm = {
     nombre: "",
-    periodo_id: "",
+    practica_id: "",
     tutorDocente_id: "",
   };
 
@@ -39,6 +43,16 @@ export default function GrupoModal({
   const [grupoDetectado, setGrupoDetectado] = useState("");
   const [noEncontrados, setNoEncontrados] = useState([]);
   const [mostrarBusqueda, setMostrarBusqueda] = useState(false);
+
+  const [mostrarInviteModal, setMostrarInviteModal] = useState(false);
+  const [mostrarConfirmarDocente, setMostrarConfirmarDocente] = useState(false);
+  const [correoDocente, setCorreoDocente] = useState("");
+  const [enviandoInvitaciones, setEnviandoInvitaciones] = useState(false);
+  const [progresoInvitaciones, setProgresoInvitaciones] = useState({
+    actual: 0,
+    total: 0
+  });
+  const [invitacionesEnviadas, setInvitacionesEnviadas] = useState(false);
 
   const handleSeleccionarPDF = async (e) => {
 
@@ -162,13 +176,12 @@ export default function GrupoModal({
           }
 
         } else {
-
           candidatosNoRegistrados.push(alumno);
-          setNoEncontrados(candidatosNoRegistrados);
-
         }
 
       });
+
+      setNoEncontrados(candidatosNoRegistrados);
 
       if (encontrados.length > 0) {
 
@@ -194,37 +207,21 @@ export default function GrupoModal({
 
       }
 
-      if (noEncontrados.length > 0) {
-
+      if (candidatosNoRegistrados.length > 0) {
         toast(
-          `${noEncontrados.length} candidato(s) no están registrados.`,
+          `${candidatosNoRegistrados.length} candidato(s) no están registrados.`,
           {
             icon: "⚠️"
           }
         );
-
       }
 
       if (
         encontrados.length === 0 &&
-        noEncontrados.length === 0
+        candidatosNoRegistrados.length === 0
       ) {
-
-        toast.error(
-          "No se encontraron candidatos en el PDF."
-        );
-
+        toast.error("No se encontraron candidatos en el PDF.");
       }
-
-      // ---------------------------------------
-      // AQUÍ QUEDARÁ EL ENVÍO DE CORREOS
-      // ---------------------------------------
-
-      /*
-          await enviarInvitaciones(
-              noEncontrados
-          );
-      */
 
     } catch (error) {
 
@@ -246,7 +243,7 @@ export default function GrupoModal({
       setFormData({
         id: grupo.id,
         nombre: grupo.nombre,
-        periodo_id: grupo.periodo_id ?? "",
+        practica_id: grupo.practica_id ?? "",
         tutorDocente_id: grupo.tutorDocente_id ?? "",
       });
       setPracticantes(grupo.practicantes ?? []);
@@ -255,6 +252,18 @@ export default function GrupoModal({
     if (mode === "create") {
       setFormData(initialForm);
       setPracticantes([]);
+
+      setGrupoDetectado("");
+      setNoEncontrados([]);
+      setDocenteDetectado(null);
+      setDocenteNoRegistrado(null);
+      setMostrarBusqueda(false);
+
+      setInvitacionesEnviadas(false);
+      setProgresoInvitaciones({
+        actual: 0,
+        total: 0
+      });
     }
 
     setErrors({});
@@ -267,10 +276,31 @@ export default function GrupoModal({
     setSearch("");
     setSelectedCandidato(null);
     setErrors({});
+
+    limpiarDatosPDF();
+
+    setMostrarBusqueda(false);
+  };
+
+  const limpiarDatosPDF = () => {
+    setGrupoDetectado("");
+    setNoEncontrados([]);
+    setDocenteDetectado(null);
+    setDocenteNoRegistrado(null);
+    setInvitacionesEnviadas(false);
+    setProgresoInvitaciones({
+      actual: 0,
+      total: 0
+    });
   };
 
   const handleClose = () => {
-    if (mode !== "edit") clearForm();
+    if (mode !== "edit") {
+      clearForm();
+    } else {
+      limpiarDatosPDF();
+    }
+
     setErrors({});
     onClose();
   };
@@ -309,7 +339,7 @@ export default function GrupoModal({
 
     const newErrors = {
       nombre: !formData.nombre.trim(),
-      periodo_id: !formData.periodo_id,
+      practica_id: !formData.practica_id,
       tutorDocente_id: !formData.tutorDocente_id,
     };
     setErrors(newErrors);
@@ -436,20 +466,88 @@ export default function GrupoModal({
 
   const enviarInvitaciones = async (candidatosNoRegistrados) => {
 
-    /*
-        Aquí luego llamaremos un endpoint.
+    if (!candidatosNoRegistrados?.length) {
+      return;
+    }
 
-        Ejemplo:
+    const candidatos = [...candidatosNoRegistrados];
 
-        await enviarCorreosRequest({
+    setEnviandoInvitaciones(true);
 
-            candidatos: candidatosNoRegistrados
+    setProgresoInvitaciones({
+      actual: 0,
+      total: candidatos.length
+    });
 
+    try {
+
+      console.log("CANDIDATOS A INVITAR:", candidatos);
+
+      for (let i = 0; i < candidatos.length; i++) {
+
+        const candidato = candidatos[i];
+
+        console.log("CANDIDATO:", candidato);
+
+        console.log("DATOS QUE SE VAN A ENVIAR:", {
+          nombre: candidato.nombre,
+          correo: candidato.correo,
+          codigo: candidato.codigo
         });
 
-    */
+        await candidatoRepository.invitar({
+          nombre: candidato.nombre,
+          correo: candidato.correo,
+          codigo: candidato.codigo
+        });
 
+        // Actualizar progreso
+        setProgresoInvitaciones({
+          actual: i + 1,
+          total: candidatos.length
+        });
+      }
+
+      toast.success(
+        `${candidatos.length} invitación(es) enviada(s) correctamente.`
+      );
+
+      // Ya fueron enviados
+      setNoEncontrados([]);
+      setInvitacionesEnviadas(true);
+
+    } catch (error) {
+
+      console.error(error);
+
+      toast.error(
+        error.response?.data?.message ||
+        "No fue posible enviar las invitaciones."
+      );
+
+    } finally {
+
+      setEnviandoInvitaciones(false);
+
+    }
   };
+
+  const handleInvitar = () => {
+
+    if (noEncontrados.length === 0 && !docenteNoRegistrado) {
+      toast.error("No hay personas pendientes por invitar.");
+      return;
+    }
+
+    if (docenteNoRegistrado) {
+      setMostrarConfirmarDocente(true);
+      return;
+    }
+
+    enviarInvitaciones(noEncontrados);
+  };
+
+
 
   const filteredCandidatos = candidatos.filter(c =>
     c.nombre.toLowerCase().includes(search.toLowerCase()) &&
@@ -517,17 +615,23 @@ export default function GrupoModal({
               {/* Período y TutorDocente en fila */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block mb-1 font-semibold text-sm">Período</label>
+                  <label className="block mb-1 font-semibold text-sm">
+                    Práctica
+                  </label>
+
                   <select
-                    value={formData.periodo_id}
-                    onChange={handleField("periodo_id")}
-                    className={inputCls("periodo_id")}
+                    value={formData.practica_id}
+                    onChange={handleField("practica_id")}
+                    className={inputCls("practica_id")}
                   >
                     <option value="" disabled>
-                      Seleccione un Período
+                      Seleccione una práctica
                     </option>
-                    {periodos.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nombre}</option>
+
+                    {practicas.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.Periodo.nombre}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -726,7 +830,7 @@ export default function GrupoModal({
               <div className="mb-4 rounded-lg border bg-slate-50 p-4">
 
                 <p className="font-semibold text-green-700">
-                  ✔ Grupo detectado:
+                  <Check /> Grupo detectado:
                   <span className="font-normal ml-2">
                     {grupoDetectado}
                   </span>
@@ -750,118 +854,118 @@ export default function GrupoModal({
 
 
                 <p className="mt-2">
-                  ✔ Practicantes agregados:
+                  <Check /> Practicantes agregados:
                   <strong className="ml-2">
                     {practicantes.length}
                   </strong>
                 </p>
 
 
-                <p className="mt-2 text-orange-600 font-semibold">
+                {invitacionesEnviadas ? (
 
-                  ⚠ No registrados:
-                  <span className="ml-2">
+                  <div className="
+    mt-4
+    rounded-lg
+    border
+    border-green-200
+    bg-green-50
+    p-4
+    text-center
+  ">
 
-                    {noEncontrados.length}
+                    <Check
+                      size={32}
+                      className="mx-auto mb-2 text-green-600"
+                    />
 
-                  </span>
+                    <p className="font-semibold text-green-700">
+                      Invitaciones enviadas correctamente
+                    </p>
 
-                </p>
+                    <p className="text-sm text-green-600 mt-1">
+                      Todos los candidatos pendientes fueron invitados.
+                    </p>
 
-                {
-                  noEncontrados.length > 0 && (
+                  </div>
 
-                    <div className="mt-3">
+                ) : (
 
-                      <div
-                        className="
-                        max-h-36
-                        overflow-y-auto
-                        rounded
-                        border
-                        bg-white
-                        p-2
-                    "
-                      >
+                  <>
+                    <p className="mt-2 text-orange-600 font-semibold">
 
-                        {
+                      ⚠ No registrados:
 
-                          noEncontrados.map((candidato, index) => (
+                      <span className="ml-2">
+                        {noEncontrados.length}
+                      </span>
+
+                    </p>
+
+                    {noEncontrados.length > 0 && (
+
+                      <div className="mt-3">
+
+                        <div className="
+          max-h-36
+          overflow-y-auto
+          rounded
+          border
+          bg-white
+          p-2
+        ">
+
+                          {noEncontrados.map((candidato, index) => (
 
                             <div
                               key={index}
-                              className="
-                                    border-b
-                                    py-1
-                                    text-sm
-                                "
+                              className="border-b py-1 text-sm"
                             >
-
                               {candidato.codigo}
-
                               {" - "}
-
                               {candidato.nombre}
-
+                              {" - "}
+                              {candidato.correo}
                             </div>
 
-                          ))
-
-                        }
-
-                      </div>
-
-                      {docenteNoRegistrado && (
-
-                        <div className="mt-4 rounded border border-orange-300 bg-orange-50 p-3">
-
-                          <p className="font-semibold text-orange-700">
-
-                            ⚠ Tutor docente no registrado
-
-                          </p>
-
-                          <p className="mt-2 text-sm">
-
-                            {docenteNoRegistrado.codigo}
-
-                            {" - "}
-
-                            {docenteNoRegistrado.nombre}
-
-                          </p>
+                          ))}
 
                         </div>
 
-                      )}
+                      </div>
+
+                    )}
+
+                    {(noEncontrados.length > 0 || docenteNoRegistrado) && (
 
                       <button
                         type="button"
-                        className="
-                        mt-3
-                        px-4
-                        py-2
-                        bg-[#e8192c] text-white hover:bg-[#c8111f]
-                        rounded-lg
-                    "
-                        onClick={() =>
-                          enviarInvitaciones({
-
-                            docente: docenteNoRegistrado,
-
-                            candidatos: noEncontrados
-
-                          })
-                        }
+                        disabled={enviandoInvitaciones}
+                        className={`
+          mt-3
+          px-4
+          py-2
+          rounded-lg
+          text-white
+          ${enviandoInvitaciones
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-[#e8192c] hover:bg-[#c8111f]"
+                          }
+        `}
+                        onClick={handleInvitar}
                       >
-                        Enviar invitaciones
+
+                        {enviandoInvitaciones
+                          ? `Enviando... ${progresoInvitaciones.actual}/${progresoInvitaciones.total}`
+                          : "Enviar invitaciones"
+                        }
+
                       </button>
 
-                    </div>
+                    )}
 
-                  )
+                  </>
 
-                }
+                )}
 
               </div>
 
@@ -872,6 +976,59 @@ export default function GrupoModal({
 
         </form>
       </div>
+
+      <ConfirmModal
+        isOpen={mostrarConfirmarDocente}
+        title="Tutor docente no registrado"
+        message={`¿Está seguro de que desea enviar invitaciones a ${noEncontrados.length} candidato(s) y al tutor docente ${docenteNoRegistrado?.nombre}?`}
+        confirmLabel="Sí, invitar docente"
+        cancelLabel="No, solo candidatos"
+        onConfirm={() => {
+          setMostrarConfirmarDocente(false);
+          setMostrarInviteModal(true);
+        }}
+        onCancel={async () => {
+          setMostrarConfirmarDocente(false);
+          await enviarInvitaciones(noEncontrados);
+        }}
+      />
+
+      <InviteModal
+        isOpen={mostrarInviteModal}
+        onClose={() => setMostrarInviteModal(false)}
+        nombre={docenteNoRegistrado?.nombre}
+        onSubmit={async (correo) => {
+
+  try {
+
+    // Invitar tutor docente
+    await tutorDocenteRepository.invitar(correo);
+
+    // Invitar candidatos si existen
+    if (noEncontrados.length > 0) {
+      await enviarInvitaciones(noEncontrados);
+    }
+
+    // Marcar todo como enviado
+    setInvitacionesEnviadas(true);
+
+    setMostrarInviteModal(false);
+
+    toast.success(
+      "Todas las invitaciones fueron enviadas correctamente."
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    throw error;
+  }
+
+}}
+      />
     </div>
+
+
   );
 }

@@ -12,6 +12,18 @@ import { Check, X, MessageSquare, Download } from "lucide-react";
 import ConfirmModal from "../../components/modals/DeleteModal.jsx";
 import toast from "react-hot-toast";
 
+function getUsuarioSesion() {
+  try {
+    const raw = localStorage.getItem("user");
+    if (!raw) return null;
+
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error("No se pudo leer el usuario de localStorage:", error);
+    return null;
+  }
+}
+
 export default function VistaConvenio() {
 
   const location = useLocation();
@@ -30,14 +42,18 @@ export default function VistaConvenio() {
     estadoActual === "APROBADO" ||
     estadoActual === "RECHAZADO";
 
-
+  const usuarioSesion = getUsuarioSesion();
 
   const handleAprobar = async () => {
-
     try {
 
       if (!comentario.trim()) {
         toast.error("Debe ingresar un comentario");
+        return;
+      }
+
+      if (!usuarioSesion?.id) {
+        toast.error("No se encontró el usuario de la sesión");
         return;
       }
 
@@ -49,7 +65,7 @@ export default function VistaConvenio() {
         {
           estado: "APROBADO",
           comentario,
-          usuario_id: 7
+          usuario_id: usuarioSesion.id
         }
       );
 
@@ -61,16 +77,24 @@ export default function VistaConvenio() {
 
       console.error(error);
 
-      toast.error("Error aprobando convenio");
+      toast.error(
+        error.response?.data?.message ||
+        "Error aprobando convenio"
+      );
 
     }
-
   };
 
   const handleRechazar = async () => {
     try {
+
       if (!comentario.trim()) {
         toast.error("Debe ingresar un comentario");
+        return;
+      }
+
+      if (!usuarioSesion?.id) {
+        toast.error("No se encontró el usuario de la sesión");
         return;
       }
 
@@ -82,7 +106,7 @@ export default function VistaConvenio() {
         {
           estado: "RECHAZADO",
           comentario,
-          usuario_id: 7
+          usuario_id: usuarioSesion.id
         }
       );
 
@@ -91,11 +115,16 @@ export default function VistaConvenio() {
       setComentario("");
 
     } catch (error) {
+
       console.error(error);
-      toast.error("Error rechazando convenio");
+
+      toast.error(
+        error.response?.data?.message ||
+        "Error rechazando convenio"
+      );
+
     }
   };
-
   const handleHistorial = async () => {
     try {
 
@@ -104,18 +133,23 @@ export default function VistaConvenio() {
         return;
       }
 
+      if (!usuarioSesion?.id) {
+        toast.error("No se encontró el usuario de la sesión");
+        return;
+      }
+
       const ahora = new Date().toLocaleString("sv-SE", {
         timeZone: "America/Bogota"
-      })
-        .replace("T", " ");
+      }).replace("T", " ");
+
       const historial = {
         convenio_id: convenio.id,
         archivo_id: convenio.idArchivo,
         accion: "OBSERVACION",
         fecha: ahora,
         comentario,
-        usuario_id: 7
-      };// acomodar con el que este iniciado..
+        usuario_id: usuarioSesion.id
+      };
 
       await registrarHistorialConvenio(
         {
@@ -126,7 +160,11 @@ export default function VistaConvenio() {
 
       toast.success("Observación registrada correctamente");
       setComentario("");
+
     } catch (error) {
+
+      console.error(error);
+
       toast.error(
         error.response?.data?.message ||
         "No se pudo registrar la observación"
@@ -165,8 +203,8 @@ export default function VistaConvenio() {
 
   if (!convenio) {
     return (
-      <Layout 
-       
+      <Layout
+
         footerLabel="Director"
       >
         <div className="p-5 text-gray-500">

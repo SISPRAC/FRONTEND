@@ -7,7 +7,7 @@ const staffApi = axios.create({
 
 // Registro
 export const registerStaffRequest = (data, token) => {
-  return staffApi.post(`/registerStaff?token=${token}`, data, {
+  return staffApi.post(`/registerStaff?token=${encodeURIComponent(token)}`, data, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -23,6 +23,9 @@ export const generarInvitacionTutorDocente = () => {
   return staffApi.get("/invitacionTokenTutorDocente");
 };
 
+// Validar invitación
 export const validarInvitacionRequest = (token) => {
-  return staffApi.get(`/verify-invitation?token=${token}`);
+  return axios.get(
+    `http://localhost:3000/api/invitacion/validar?token=${encodeURIComponent(token)}`
+  );
 };
