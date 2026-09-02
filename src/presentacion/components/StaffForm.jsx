@@ -158,8 +158,11 @@ export default function StaffForm({
                     placeholder="Correo de la invitación"
                     value={form.email || ""}
                     disabled
-                    className="bg-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-600 outline-none cursor-not-allowed"
+                    className="bg-white rounded-xl px-4 py-2.5 text-sm text-gray-600 outline-none cursor-not-allowed"
                   />
+                  <span className="text-xs text-gray-500">
+                    Correo asignado mediante invitación
+                  </span>
 
                   {errors?.email && (
                     <span className="text-xs text-red-600">

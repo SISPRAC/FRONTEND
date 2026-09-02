@@ -1,5 +1,6 @@
 import {
     registerEmpresaRequest,
+    invitarEmpresaRequest,
     getMiEmpresaRequest,
     getMisGruposRequest,
     getDetalleGrupoEmpresaRequest,
@@ -9,31 +10,71 @@ import {
 
 export const EmpresaRepository = {
 
-    async register(data) {
+    // =========================================================
+    // REGISTRAR EMPRESA
+    // =========================================================
 
-        return await registerEmpresaRequest(data);
+    async register(data, token) {
+
+        return await registerEmpresaRequest(
+            data,
+            token
+        );
+
     },
 
+
+    // =========================================================
+    // INVITAR EMPRESA
+    // =========================================================
+
+    async invitar(data) {
+
+        return await invitarEmpresaRequest(
+            data
+        );
+
+    },
+
+
+    // =========================================================
+    // OBTENER MI EMPRESA
+    // =========================================================
 
     async obtenerMiEmpresa() {
 
         return await getMiEmpresaRequest();
+
     },
 
+
+    // =========================================================
+    // OBTENER MIS GRUPOS
+    // =========================================================
 
     async obtenerMisGrupos() {
 
         return await getMisGruposRequest();
+
     },
 
+
+    // =========================================================
+    // OBTENER DETALLE DE GRUPO
+    // =========================================================
 
     async obtenerDetalleGrupo(practicaId) {
 
         return await getDetalleGrupoEmpresaRequest(
             practicaId
         );
+
     },
 
+
+    // =========================================================
+    // ACTUALIZAR EMPRESA
+    // =========================================================
 
     async actualizar(id, data) {
 
@@ -41,6 +82,7 @@ export const EmpresaRepository = {
             id,
             data
         );
+
     }
 
 };

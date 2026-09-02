@@ -85,14 +85,21 @@ export default function CandidateForm({
                       onChange={onChange}
                       value={form[name] || ""}
                       readOnly={name === "codigo"}
-                      className={`rounded-xl px-4 py-2.5 text-sm outline-none
-                        ${
-                          errors?.[name]
-                            ? "border border-red-500 bg-red-100"
-                            : name === "codigo"
-                              ? "bg-gray-300 cursor-not-allowed"
-                              : "bg-gray-200 focus:ring-2 focus:ring-red-300 focus:bg-gray-50"
-                        }`}
+                      className={`
+  rounded-xl
+  px-4 py-2.5
+  text-sm
+  text-gray-700
+  bg-white
+  outline-none
+  border border-gray-200
+  ${errors?.[name]
+                          ? "border-red-500 bg-red-100"
+                          : name === "codigo"
+                            ? "cursor-not-allowed"
+                            : "focus:ring-2 focus:ring-red-300 focus:border-red-300"
+                        }
+`}
                     />
 
                     {name === "codigo" && (
@@ -133,10 +140,9 @@ export default function CandidateForm({
                       value={form.tipo_documento}
                       onChange={onChange}
                       className={`rounded-xl px-2 py-2.5 text-sm outline-none w-14
-                        ${
-                          errors?.tipo_documento
-                            ? "border border-red-500 bg-red-100"
-                            : "bg-gray-200 focus:ring-2 focus:ring-red-300 focus:bg-gray-50"
+                        ${errors?.tipo_documento
+                          ? "border border-red-500 bg-red-100"
+                          : "bg-white focus:ring-2 focus:ring-red-300"
                         }`}
                     >
 
@@ -177,12 +183,20 @@ export default function CandidateForm({
                       placeholder="Ingrese su documento"
                       onChange={onChange}
                       value={form.cedula || ""}
-                      className={`w-full rounded-xl px-4 py-2.5 text-sm outline-none
-                        ${
-                          errors?.cedula
-                            ? "border border-red-500 bg-red-100"
-                            : "bg-gray-200 focus:ring-2 focus:ring-red-300 focus:bg-gray-50"
-                        }`}
+                      className={`
+  w-full
+  rounded-xl
+  px-4 py-2.5
+  text-sm
+  text-gray-700
+  bg-white
+  border border-gray-200
+  outline-none
+  ${errors?.cedula
+                          ? "border-red-500 bg-red-100"
+                          : "focus:ring-2 focus:ring-red-300 focus:border-red-300"
+                        }
+`}
                     />
 
                     {(errors?.cedula || errors?.tipo_documento) && (
@@ -211,12 +225,20 @@ export default function CandidateForm({
                     onChange={onChange}
                     value={form.correo || ""}
                     readOnly
-                    className={`rounded-xl px-4 py-2.5 text-sm outline-none
-                      ${
-                        errors?.correo
-                          ? "border border-red-500 bg-red-100"
-                          : "bg-gray-300 cursor-not-allowed"
-                      }`}
+                    className={`
+  rounded-xl
+  px-4 py-2.5
+  text-sm
+  text-gray-700
+  bg-white
+  border border-gray-200
+  outline-none
+  cursor-not-allowed
+  ${errors?.correo
+                        ? "border-red-500 bg-red-100"
+                        : ""
+                      }
+`}
                   />
 
                   <span className="text-xs text-gray-500">
@@ -245,12 +267,19 @@ export default function CandidateForm({
                     name="password"
                     placeholder="Cree una contraseña segura (mínimo 8 caracteres)"
                     onChange={onChange}
-                    className={`rounded-xl px-4 py-2.5 text-sm outline-none
-                      ${
-                        errors?.password
-                          ? "border border-red-500 bg-red-100"
-                          : "bg-gray-200 focus:ring-2 focus:ring-red-300 focus:bg-gray-50"
-                      }`}
+                    className={`
+  rounded-xl
+  px-4 py-2.5
+  text-sm
+  text-gray-700
+  bg-white
+  border border-gray-200
+  outline-none
+  ${errors?.password
+                        ? "border-red-500 bg-red-100"
+                        : "focus:ring-2 focus:ring-red-300 focus:border-red-300"
+                      }
+`}
                   />
 
                   {errors?.password && (

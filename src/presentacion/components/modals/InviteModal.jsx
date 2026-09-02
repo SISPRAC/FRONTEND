@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-// Importa aquí tu servicio cuando corresponda
-// import { invitarTutorEmpresarialService } from "...";
 
-/**
- * Modal simple para invitar a un tutor (docente o empresarial) solo por correo.
- */
-export default function InviteModal({ isOpen, onClose, onSubmit }) {
+export default function InviteModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  tipo = "tutor"
+}) {
   const [correo, setCorreo] = useState("");
   const [error, setError] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -28,34 +28,33 @@ export default function InviteModal({ isOpen, onClose, onSubmit }) {
 
     const correoLimpio = correo.trim();
 
-    // Validar que no esté vacío
     if (!correoLimpio) {
       setError("El correo electrónico es obligatorio.");
       return;
     }
 
-    // Validar formato
     if (!validarCorreo(correoLimpio)) {
       setError("Ingrese un correo electrónico válido.");
       return;
     }
 
-    // Limpiar error si todo está correcto
     setError("");
     setEnviando(true);
 
     try {
-      // Si quieres que el padre haga la petición:
+
       await onSubmit(correoLimpio);
 
       setCorreo("");
       onClose();
 
     } catch (error) {
+
       toast.error(
         error.response?.data?.message ||
         "Error al enviar la invitación"
       );
+
     } finally {
       setEnviando(false);
     }
@@ -63,12 +62,15 @@ export default function InviteModal({ isOpen, onClose, onSubmit }) {
 
   if (!isOpen) return null;
 
+  const esEmpresa = tipo === "empresa";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
 
         <h2 className="text-xl font-bold text-slate-800 mb-1">
-          Invitar tutor
+          {esEmpresa ? "Invitar empresa" : "Invitar tutor"}
         </h2>
 
         <p className="text-sm text-slate-500 mb-5">
@@ -87,7 +89,6 @@ export default function InviteModal({ isOpen, onClose, onSubmit }) {
             onChange={(e) => {
               setCorreo(e.target.value);
 
-              // Quitar el error mientras escribe
               if (error) {
                 setError("");
               }
@@ -144,13 +145,18 @@ export default function InviteModal({ isOpen, onClose, onSubmit }) {
                 disabled:cursor-not-allowed
               "
             >
-              {enviando ? "Enviando..." : "Enviar invitación"}
+              {enviando
+                ? "Enviando..."
+                : "Enviar invitación"
+              }
             </button>
 
           </div>
+
         </form>
+
       </div>
+
     </div>
   );
 }
-

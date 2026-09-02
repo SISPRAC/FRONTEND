@@ -5,7 +5,11 @@ const empresaApi = axios.create({
     withCredentials: true
 });
 
-// Agregar token automáticamente a cada petición
+
+// =========================================================
+// TOKEN DE AUTENTICACIÓN NORMAL
+// =========================================================
+
 empresaApi.interceptors.request.use(
 
     (config) => {
@@ -16,56 +20,100 @@ empresaApi.interceptors.request.use(
 
             config.headers.Authorization =
                 `Bearer ${token}`;
+
         }
 
         return config;
+
     },
 
     (error) => {
 
         return Promise.reject(error);
+
     }
+
 );
 
 
-// Registrar empresa
-export const registerEmpresaRequest = (data) => {
+// =========================================================
+// REGISTRAR EMPRESA
+// =========================================================
+
+export const registerEmpresaRequest = (data, token) => {
 
     return empresaApi.post(
-        "/registrarEmpresa",
-        data
+        `/registrarEmpresa?token=${encodeURIComponent(token)}`,
+        data,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        }
     );
+
 };
 
 
-// Obtener empresa del usuario autenticado
+// =========================================================
+// INVITAR EMPRESA
+// =========================================================
+
+export const invitarEmpresaRequest = (data) => {
+
+    return empresaApi.post(
+        "/invitacion",
+        data
+    );
+
+};
+
+
+// =========================================================
+// OBTENER EMPRESA DEL USUARIO AUTENTICADO
+// =========================================================
+
 export const getMiEmpresaRequest = () => {
 
     return empresaApi.get(
         "/mi-empresa"
     );
+
 };
 
 
-// Obtener grupos de la empresa autenticada
+// =========================================================
+// OBTENER GRUPOS DE LA EMPRESA AUTENTICADA
+// =========================================================
+
 export const getMisGruposRequest = () => {
 
     return empresaApi.get(
         "/mis-grupos"
     );
+
 };
 
 
-// Obtener detalle de un grupo de la empresa autenticada
-export const getDetalleGrupoEmpresaRequest = (practicaId) => {
+// =========================================================
+// OBTENER DETALLE DE UN GRUPO
+// =========================================================
+
+export const getDetalleGrupoEmpresaRequest = (
+    practicaId
+) => {
 
     return empresaApi.get(
         `/mis-grupos/${practicaId}`
     );
+
 };
 
 
-// Actualizar empresa
+// =========================================================
+// ACTUALIZAR EMPRESA
+// =========================================================
+
 export const actualizarEmpresaRequest = (
     id,
     data
@@ -75,4 +123,5 @@ export const actualizarEmpresaRequest = (
         `/${id}`,
         data
     );
+
 };
