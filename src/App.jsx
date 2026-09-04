@@ -31,6 +31,10 @@ import HomeTutorEmpresarial from "./presentacion/pages/TutorEmpresarial/HomeTuto
 // candidato
 import HomeCandidato from "./presentacion/pages/Candidato/HomeCandidato"
 
+
+// Candidato / Practicante
+import ActualizarPerfil from "./presentacion/pages/ActualizarPerfil";
+
 // practicante
 import HomePracticante from "./presentacion/pages/Practicante/HomePracticante"
 
@@ -42,7 +46,7 @@ import CandidatoDetalleEmpresa from "./presentacion/pages/Empresa/CandidatoDetal
 import GruposPractica from "./presentacion/pages/Empresa/GruposPractica"
 import GrupoPracticaDetalle from "./presentacion/pages/Empresa/GrupoPracticaDetalle"
 import VacantesEmpresa from "./presentacion/pages/Empresa/VacantesEmpresa"
-import  ActualizarEmpresa  from "./presentacion/pages/Empresa/ActualizarDatosEmpresa";
+import ActualizarEmpresa from "./presentacion/pages/Empresa/ActualizarDatosEmpresa";
 import TutoresEmpresariales from "./presentacion/pages/Empresa/GestionTutorEmpresa";
 
 // Admin
@@ -88,7 +92,7 @@ export default function App() {
           }
         >
           <Route path="/homeAdmin" element={<HomeAdmin />} />
-           <Route path="/periodos" element={<PeriodosAcademicos />} />
+          <Route path="/periodos" element={<PeriodosAcademicos />} />
           <Route path="/practicas" element={<Practicas />} />
           <Route path="/usuarios" element={<UsersPage />} />
           <Route path="/documentos" element={< PracticaRequisitoDocumentoPage />} />
@@ -156,8 +160,8 @@ export default function App() {
           <Route path="/gruposPractica" element={<GruposPractica />} />
           <Route path="/empresa/grupos/:id" element={<GrupoPracticaDetalle />} />
           <Route path="/vacantesEmpresa" element={<VacantesEmpresa />} />
-           <Route path="/tutorEmpresarial" element={<TutoresEmpresariales />} />
-          <Route path="/miPerfil" element={<ActualizarEmpresa/>} />
+          <Route path="/tutorEmpresarial" element={<TutoresEmpresariales />} />
+          <Route path="/miPerfil" element={<ActualizarEmpresa />} />
 
         </Route>
 
@@ -172,7 +176,26 @@ export default function App() {
           }
         >
           <Route path="/homePracticante" element={<HomePracticante />} />
+
         </Route>
+
+
+        {/* =========================
+        PERFIL CANDIDATO / PRACTICANTE
+    ========================== */}
+        <Route
+          element={
+            <ProtectedRoute
+              roles={["Candidato", "Practicante"]}
+            />
+          }
+        >
+          <Route
+            path="/perfil"
+            element={<ActualizarPerfil />}
+          />
+        </Route>
+
 
         {/* =========================
                 CANDIDATO
@@ -185,6 +208,7 @@ export default function App() {
           }
         >
           <Route path="/homeCandidato" element={<HomeCandidato />} />
+
         </Route>
 
         {/* =========================

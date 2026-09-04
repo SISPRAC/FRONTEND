@@ -1,36 +1,26 @@
 import axios from "axios";
 
 const userApi = axios.create({
-
     baseURL: "http://localhost:3000/api/users",
-
     withCredentials: true
-
 });
 
 userApi.interceptors.request.use(
-
     (config) => {
 
         const token = localStorage.getItem("token");
 
         if (token) {
-
             config.headers.Authorization = `Bearer ${token}`;
-
         }
 
         return config;
-
     },
-
     (error) => {
-
         return Promise.reject(error);
-
     }
-
 );
+
 
 export const getUsersRequest = async () => {
     return await userApi.get("/all");
@@ -54,4 +44,8 @@ export const cambiarEstadoUsuarioRequest = async (id, estado) => {
     return await userApi.patch(`/${id}/estado`, {
         estado
     });
+};
+
+export const actualizarPerfilRequest = async (datos) => {
+    return await userApi.put("/perfil", datos);
 };

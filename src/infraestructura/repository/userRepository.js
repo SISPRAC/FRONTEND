@@ -3,8 +3,10 @@ import {
     getUserRequest,
     updateUserRolesRequest,
     deleteUserRequest,
-    cambiarEstadoUsuarioRequest
+    cambiarEstadoUsuarioRequest,
+    actualizarPerfilRequest
 } from "../api/usuario.api";
+
 
 export const userRepository = {
 
@@ -30,6 +32,11 @@ export const userRepository = {
 
     async cambiarEstado(id, estado) {
         const { data } = await cambiarEstadoUsuarioRequest(id, estado);
+        return data;
+    },
+
+    async actualizarPerfil(datos) {
+        const { data } = await actualizarPerfilRequest(datos);
         return data;
     }
 

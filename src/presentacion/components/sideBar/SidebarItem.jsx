@@ -17,6 +17,8 @@ import {
   User
 } from "lucide-react";
 
+
+
 // ==========================
 // DIRECTOR
 // ==========================
@@ -68,6 +70,7 @@ export const Director_NAV = [
   },
 ];
 
+
 // ==========================
 // EMPRESA
 // ==========================
@@ -112,8 +115,8 @@ export const Empresa_NAV = [
     icon: <User />,
     href: " /miPerfil",
   },
-
 ];
+
 
 // ==========================
 // PRACTICANTE
@@ -135,11 +138,29 @@ export const Practicante_NAV = [
     href: "/protocolos",
   },
   {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
+  },
+  {
     label: "Encuestas",
     icon: <FileUser />,
     href: "/encuestas",
   },
 ];
+
+
+// ==========================
+// PRACTICANTE - PERFIL INCOMPLETO
+// ==========================
+export const PracticantePerfil_NAV = [
+  {
+    label: "Completar perfil",
+    icon: <UserCog />,
+    href: "/perfil",
+  },
+];
+
 
 // ==========================
 // CANDIDATO
@@ -162,6 +183,7 @@ export const Candidato_NAV = [
   },
 ];
 
+
 // ==========================
 // TUTOR DOCENTE
 // ==========================
@@ -183,6 +205,7 @@ export const TutorDocente_NAV = [
   },
 ];
 
+
 // ==========================
 // TUTOR EMPRESARIAL
 // ==========================
@@ -199,10 +222,10 @@ export const TutorEmpresarial_NAV = [
   },
 ];
 
+
 // ==========================
 // ADMINISTRADOR
 // ==========================
-
 export const Admin_NAV = [
   {
     label: "Periodos",
@@ -226,10 +249,10 @@ export const Admin_NAV = [
   },
 ];
 
+
 // ==========================
 // MULTIROL
 // ==========================
-
 
 export const ROLE_NAV = {
   "Director de programa": Director_NAV,
@@ -240,6 +263,7 @@ export const ROLE_NAV = {
   "Tutor Docente": TutorDocente_NAV,
   "Tutor Empresarial": TutorEmpresarial_NAV,
 };
+
 
 export const HOME_ROUTES = {
   "Director de programa": "/dashboard",
