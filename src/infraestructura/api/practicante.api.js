@@ -5,6 +5,31 @@ const practicanteApi = axios.create({
   withCredentials: true
 });
 
+// Agregar token automáticamente a cada petición
+practicanteApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export const getPracticantes = () => {
   return practicanteApi.get("/all");
+};
+
+export const obtenerMiPractica = () => {
+  return practicanteApi.get("/mi-practica");
+};
+
+export const obtenerPracticantesPorPractica = (practicaId) => {
+  return practicanteApi.get(`/practica/${practicaId}`);
 };

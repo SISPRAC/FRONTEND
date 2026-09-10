@@ -24,9 +24,11 @@ import TutoresDocentes from "./presentacion/pages/Director/GestionTutorDocente";
 
 // tutor Docente
 import HomeTutorDocente from "./presentacion/pages/TutorDocente/HomeTutorDocente"
+import MisGrupos from "./presentacion/pages/TutorDocente/MisGrupos"
 
 // tutor Empresarial
 import HomeTutorEmpresarial from "./presentacion/pages/TutorEmpresarial/HomeTutorEmpresarial"
+import MisAperturas from "./presentacion/pages/TutorEmpresarial/MisAperturas"
 
 // candidato
 import HomeCandidato from "./presentacion/pages/Candidato/HomeCandidato"
@@ -54,6 +56,7 @@ import HomeAdmin from "./presentacion/pages/Admin/HomeAdmin"
 import Practicas from "./presentacion/pages/Admin/PracticaAdmin"
 import UsersPage from "./presentacion/pages/Admin/GestionarUsuarios"
 import PracticaRequisitoDocumentoPage from "./presentacion/pages/Admin/GestionDocumentos"
+import TipoDocumentosPage from "./presentacion/pages/Admin/TipoRequisitoDocumentoPage"
 
 import "./index.css";
 import { Toaster } from "react-hot-toast";
@@ -96,6 +99,7 @@ export default function App() {
           <Route path="/practicas" element={<Practicas />} />
           <Route path="/usuarios" element={<UsersPage />} />
           <Route path="/documentos" element={< PracticaRequisitoDocumentoPage />} />
+          <Route path="/tipoDocumentos" element={<TipoDocumentosPage />} />
 
 
         </Route>
@@ -222,6 +226,7 @@ export default function App() {
           }
         >
           <Route path="/homeTutorDocente" element={<HomeTutorDocente />} />
+          <Route path="/misGrupos" element={<MisGrupos />} />
         </Route>
 
         {/* =========================
@@ -238,6 +243,7 @@ export default function App() {
             path="/homeTutorEmpresarial"
             element={<HomeTutorEmpresarial />}
           />
+          <Route path="/mis-aperturas" element={<MisAperturas />} />
         </Route>
       </Routes>
     </>

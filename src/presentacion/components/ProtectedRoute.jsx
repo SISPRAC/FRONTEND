@@ -8,7 +8,6 @@ import { jwtDecode } from "jwt-decode";
 
 import { userRepository } from "../../infraestructura/repository/userRepository";
 
-
 export default function ProtectedRoute({ roles }) {
 
   const token = localStorage.getItem("token");
@@ -136,7 +135,10 @@ export default function ProtectedRoute({ roles }) {
   // ESPERAR VALIDACIÓN
   // =========================
 
-  if (cargandoPerfil) {
+  if (
+    rolActivo === "Practicante" &&
+    (cargandoPerfil || perfilCompletado === null)
+  ) {
 
     return null;
 
@@ -149,7 +151,7 @@ export default function ProtectedRoute({ roles }) {
 
   if (
     rolActivo === "Practicante" &&
-    !perfilCompletado &&
+    perfilCompletado === false &&
     location.pathname !== "/perfil"
   ) {
 
@@ -162,7 +164,7 @@ export default function ProtectedRoute({ roles }) {
 
   }
 
-
   return <Outlet />;
 
 }
+

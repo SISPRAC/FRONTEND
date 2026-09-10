@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import Layout from "../shared/Layouts/Layout";
 import { userRepository } from "../../infraestructura/repository/userRepository";
 import { actualizarPerfil } from "../../aplicacion/usuario/actualizarPerfil";
+import { departamentoMunicipioRepository } from "../../infraestructura/repository/departamentoMunicipioRepository";
 
 
 const tiposDocumento = ["CC", "CE", "PEP", "PA"];
@@ -14,6 +15,8 @@ const generos = [
     "Femenino",
     "Otro"
 ];
+
+
 
 // Campos que siempre son obligatorios
 const CAMPOS_OBLIGATORIOS_BASE = [
@@ -29,8 +32,8 @@ const CAMPOS_OBLIGATORIOS_PRACTICANTE = [
     "eps",
     "fecha_nacimiento",
     "genero",
-    "codigoDepResidencia",
-    "codigoMunResidencia",
+    "departamentoId",
+    "municipioId",
     "direccion"
 ];
 
@@ -53,8 +56,10 @@ function FieldRow({
 
     return (
         <div className="flex flex-col gap-1.5">
+
             <label className="text-sm font-semibold text-gray-700">
                 {label}
+
                 {required && (
                     <span className="ml-0.5 text-red-500">*</span>
                 )}
@@ -75,17 +80,38 @@ function FieldRow({
                         }
                     `}
                 >
+
                     <option value="" disabled>
                         {placeholder || "Seleccione..."}
                     </option>
 
-                    {options.map((option) => (
-                        <option key={option} value={option}>
-                            {option}
-                        </option>
-                    ))}
+                    {options.map((option) => {
+
+                        const valueOption =
+                            typeof option === "object"
+                                ? option.value
+                                : option;
+
+                        const labelOption =
+                            typeof option === "object"
+                                ? option.label
+                                : option;
+
+                        return (
+                            <option
+                                key={valueOption}
+                                value={valueOption}
+                            >
+                                {labelOption}
+                            </option>
+                        );
+
+                    })}
+
                 </select>
+
             ) : (
+
                 <input
                     name={name}
                     type={type}
@@ -102,6 +128,7 @@ function FieldRow({
                         }
                     `}
                 />
+
             )}
 
             {error && !bloqueado && (
@@ -109,6 +136,7 @@ function FieldRow({
                     Este campo es obligatorio
                 </span>
             )}
+
         </div>
     );
 }
@@ -124,10 +152,13 @@ function FieldLarge({
     required = false,
     error = false
 }) {
+
     return (
         <div className="flex flex-col gap-1.5 md:col-span-2">
+
             <label className="text-sm font-semibold text-gray-700">
                 {label}
+
                 {required && (
                     <span className="ml-0.5 text-red-500">*</span>
                 )}
@@ -155,6 +186,7 @@ function FieldLarge({
                     Este campo es obligatorio
                 </span>
             )}
+
         </div>
     );
 }
@@ -165,18 +197,19 @@ export default function ActualizarPerfil() {
     const navigate = useNavigate();
 
     const [form, setForm] = useState({});
-
     const [perfilOriginal, setPerfilOriginal] = useState({});
-
     const [errors, setErrors] = useState({});
-
     const [esPracticante, setEsPracticante] = useState(false);
-
     const [editando, setEditando] = useState(false);
-
     const [loading, setLoading] = useState(true);
-
     const [saving, setSaving] = useState(false);
+
+    const [departamentos, setDepartamentos] = useState([]);
+    const [municipios, setMunicipios] = useState([]);
+    const [cargandoMunicipios, setCargandoMunicipios] = useState(false);
+
+    // NUEVO: controla el modal de confirmación
+    const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
 
 
     useEffect(() => {
@@ -187,6 +220,13 @@ export default function ActualizarPerfil() {
 
                 setLoading(true);
 
+                // 1. CARGAR DEPARTAMENTOS
+                const departamentosData =
+                    await departamentoMunicipioRepository.getDepartamentos();
+
+                setDepartamentos(departamentosData);
+
+                // 2. CARGAR PERFIL
                 const usuario = await userRepository.getMe();
 
                 const candidato = usuario?.candidato;
@@ -194,7 +234,50 @@ export default function ActualizarPerfil() {
 
                 setEsPracticante(!!practicante);
 
+                let departamentoId = "";
+                let municipioId = "";
+                let municipiosData = [];
+
+                // 3. SI ES PRACTICANTE, BUSCAR LOS IDs
+                //    A PARTIR DE LOS CÓDIGOS GUARDADOS
+                if (practicante) {
+
+                    const departamento =
+                        departamentosData.find(
+                            (departamento) =>
+                                String(departamento.codigo) ===
+                                String(practicante.codigoDepResidencia)
+                        );
+
+                    if (departamento) {
+
+                        departamentoId = departamento.id;
+
+                        // 4. CARGAR MUNICIPIOS DEL DEPARTAMENTO
+                        municipiosData =
+                            await departamentoMunicipioRepository
+                                .getMunicipiosPorDepartamento(
+                                    departamento.id
+                                );
+
+                        setMunicipios(municipiosData);
+
+                        // 5. BUSCAR ID DEL MUNICIPIO
+                        const municipio =
+                            municipiosData.find(
+                                (municipio) =>
+                                    String(municipio.codigo) ===
+                                    String(practicante.codigoMunResidencia)
+                            );
+
+                        if (municipio) {
+                            municipioId = municipio.id;
+                        }
+                    }
+                }
+
                 const datosPerfil = {
+
                     nombres: usuario?.nombres || "",
                     apellidos: usuario?.apellidos || "",
                     correo: usuario?.correo || "",
@@ -205,14 +288,19 @@ export default function ActualizarPerfil() {
                     codigo: candidato?.codigo || "",
 
                     eps: practicante?.eps || "",
-                    codigoDepResidencia:
-                        practicante?.codigoDepResidencia || "",
-                    codigoMunResidencia:
-                        practicante?.codigoMunResidencia || "",
+
+                    departamentoId,
+
+                    municipioId,
+
                     fecha_nacimiento:
                         practicante?.fecha_nacimiento || "",
-                    genero: practicante?.genero || "",
-                    direccion: practicante?.direccion || ""
+
+                    genero:
+                        practicante?.genero || "",
+
+                    direccion:
+                        practicante?.direccion || ""
                 };
 
                 setForm(datosPerfil);
@@ -242,23 +330,84 @@ export default function ActualizarPerfil() {
     }, []);
 
 
-    const handleChange = (e) => {
+    const handleChange = async (e) => {
 
         const { name, value } = e.target;
 
+        let nuevoValor = value;
+
+        // EPS siempre en MAYÚSCULAS
+        if (name === "eps") {
+            nuevoValor = value.toUpperCase();
+        }
+
+        // CAMBIO DE DEPARTAMENTO
+        if (name === "departamentoId") {
+
+            setForm((prev) => ({
+                ...prev,
+                departamentoId: value,
+                municipioId: ""
+            }));
+
+            setMunicipios([]);
+
+            setErrors((prev) => ({
+                ...prev,
+                departamentoId: false,
+                municipioId: false
+            }));
+
+            if (!value) {
+                return;
+            }
+
+            try {
+
+                setCargandoMunicipios(true);
+
+                const municipiosData =
+                    await departamentoMunicipioRepository
+                        .getMunicipiosPorDepartamento(value);
+
+                setMunicipios(municipiosData);
+
+            } catch (error) {
+
+                console.error(
+                    "Error cargando municipios:",
+                    error
+                );
+
+                toast.error(
+                    error.response?.data?.message ||
+                    "No se pudieron cargar los municipios"
+                );
+
+            } finally {
+
+                setCargandoMunicipios(false);
+
+            }
+
+            return;
+        }
+
+        // CAMBIOS NORMALES
         setForm((prev) => ({
             ...prev,
-            [name]: value
+            [name]: nuevoValor
         }));
 
-        // Si el campo tenía marca de error y el usuario ya escribió algo, se quita
-        if (errors[name] && value.trim() !== "") {
+        if (
+            errors[name] &&
+            nuevoValor.trim() !== ""
+        ) {
             setErrors((prev) => ({
                 ...prev,
                 [name]: false
             }));
         }
-
     };
 
 
@@ -266,7 +415,9 @@ export default function ActualizarPerfil() {
 
         const camposRequeridos = [
             ...CAMPOS_OBLIGATORIOS_BASE,
-            ...(esPracticante ? CAMPOS_OBLIGATORIOS_PRACTICANTE : [])
+            ...(esPracticante
+                ? CAMPOS_OBLIGATORIOS_PRACTICANTE
+                : [])
         ];
 
         const nuevosErrores = {};
@@ -276,7 +427,10 @@ export default function ActualizarPerfil() {
 
             const valor = form[campo];
 
-            if (!valor || String(valor).trim() === "") {
+            if (
+                !valor ||
+                String(valor).trim() === ""
+            ) {
                 nuevosErrores[campo] = true;
                 hayErrores = true;
             }
@@ -286,7 +440,6 @@ export default function ActualizarPerfil() {
         setErrors(nuevosErrores);
 
         return !hayErrores;
-
     };
 
 
@@ -296,12 +449,15 @@ export default function ActualizarPerfil() {
 
 
     const handleCancelarEdicion = () => {
+
         setForm(perfilOriginal);
         setErrors({});
         setEditando(false);
+
     };
 
 
+    // AHORA SOLO VALIDA Y ABRE EL MODAL
     const handleSubmit = async (e) => {
 
         e.preventDefault();
@@ -309,15 +465,25 @@ export default function ActualizarPerfil() {
         const esValido = validarFormulario();
 
         if (!esValido) {
+
             toast.error(
                 "Completa los campos obligatorios marcados en rojo"
             );
+
             return;
         }
+
+        setMostrarConfirmacion(true);
+    };
+
+
+    // CONFIRMACIÓN REAL DEL GUARDADO
+    const confirmarGuardado = async () => {
 
         try {
 
             setSaving(true);
+            setMostrarConfirmacion(false);
 
             await actualizarPerfil(
                 { userRepository },
@@ -328,14 +494,27 @@ export default function ActualizarPerfil() {
                 "Perfil actualizado correctamente"
             );
 
-            const rolActivo = localStorage.getItem("rolActivo");
-
-            if (rolActivo === "Practicante") {
-                navigate("/homePracticante", { replace: true });
-            } 
-
             setPerfilOriginal(form);
             setEditando(false);
+
+            const rolActivo =
+                localStorage.getItem("rolActivo");
+
+            if (rolActivo === "Practicante") {
+
+                navigate(
+                    "/homePracticante",
+                    { replace: true }
+                );
+
+            } else {
+
+                navigate(
+                    "/homeCandidato",
+                    { replace: true }
+                );
+
+            }
 
         } catch (error) {
 
@@ -358,13 +537,18 @@ export default function ActualizarPerfil() {
 
 
     if (loading) {
+
         return (
             <Layout>
+
                 <div className="flex min-h-[70vh] items-center justify-center">
+
                     <p className="text-sm text-gray-500">
                         Cargando perfil...
                     </p>
+
                 </div>
+
             </Layout>
         );
     }
@@ -386,14 +570,17 @@ export default function ActualizarPerfil() {
                         </h1>
 
                         <p className="mt-1 text-sm text-gray-500">
+
                             {editando
                                 ? "Edita tu información y guarda los cambios."
                                 : "Actualiza tu información personal y los datos asociados a tu perfil."}
+
                         </p>
 
                     </div>
 
                     {!editando && (
+
                         <button
                             type="button"
                             onClick={handleActivarEdicion}
@@ -401,6 +588,7 @@ export default function ActualizarPerfil() {
                         >
                             Editar perfil
                         </button>
+
                     )}
 
                 </div>
@@ -569,7 +757,7 @@ export default function ActualizarPerfil() {
                                     value={form.eps}
                                     onChange={handleChange}
                                     disabled={!editando}
-                                    placeholder="Ej: Sura, Sanitas, Nueva EPS"
+                                    placeholder="Ej: SURA, SANITAS, NUEVA EPS"
                                     required
                                     error={errors.eps}
                                 />
@@ -597,26 +785,52 @@ export default function ActualizarPerfil() {
                                     error={errors.genero}
                                 />
 
-                                <FieldRow
-                                    label="Código departamento de residencia"
-                                    name="codigoDepResidencia"
-                                    value={form.codigoDepResidencia}
-                                    onChange={handleChange}
-                                    disabled={!editando}
-                                    placeholder="Ej: 54"
-                                    required
-                                    error={errors.codigoDepResidencia}
-                                />
+                                {/* DEPARTAMENTO */}
 
                                 <FieldRow
-                                    label="Código municipio de residencia"
-                                    name="codigoMunResidencia"
-                                    value={form.codigoMunResidencia}
+                                    label="Departamento de residencia"
+                                    name="departamentoId"
+                                    value={form.departamentoId}
                                     onChange={handleChange}
                                     disabled={!editando}
-                                    placeholder="Ej: 001"
+                                    options={departamentos.map(
+                                        (departamento) => ({
+                                            value: departamento.id,
+                                            label: departamento.nombre
+                                        })
+                                    )}
+                                    placeholder="Seleccione un departamento"
                                     required
-                                    error={errors.codigoMunResidencia}
+                                    error={errors.departamentoId}
+                                />
+
+                                {/* MUNICIPIO */}
+
+                                <FieldRow
+                                    label="Municipio de residencia"
+                                    name="municipioId"
+                                    value={form.municipioId}
+                                    onChange={handleChange}
+                                    disabled={
+                                        !editando ||
+                                        !form.departamentoId ||
+                                        cargandoMunicipios
+                                    }
+                                    options={municipios.map(
+                                        (municipio) => ({
+                                            value: municipio.id,
+                                            label: municipio.nombre
+                                        })
+                                    )}
+                                    placeholder={
+                                        cargandoMunicipios
+                                            ? "Cargando municipios..."
+                                            : form.departamentoId
+                                                ? "Seleccione un municipio"
+                                                : "Seleccione primero un departamento"
+                                    }
+                                    required
+                                    error={errors.municipioId}
                                 />
 
                                 <FieldLarge
@@ -637,7 +851,7 @@ export default function ActualizarPerfil() {
                     )}
 
 
-                    {/* BOTONES: solo visibles en modo edición */}
+                    {/* BOTONES */}
 
                     {editando && (
 
@@ -669,6 +883,212 @@ export default function ActualizarPerfil() {
                 </form>
 
             </div>
+
+
+            {/* MODAL DE CONFIRMACIÓN */}
+
+            {mostrarConfirmacion && (
+
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+
+                    <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+
+                        {/* ENCABEZADO */}
+
+                        <div className="border-b border-gray-200 px-6 py-5">
+
+                            <h2 className="text-xl font-bold text-gray-800">
+                                Confirmar información
+                            </h2>
+
+                            <p className="mt-1 text-sm text-gray-500">
+                                ¿Está seguro de que la información ingresada
+                                es correcta?
+                            </p>
+
+                        </div>
+
+
+                        {/* INFORMACIÓN */}
+
+                        <div className="max-h-[60vh] overflow-y-auto px-6 py-5">
+
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-400">
+                                        NOMBRES
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-700">
+                                        {form.nombres}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-400">
+                                        APELLIDOS
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-700">
+                                        {form.apellidos}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-400">
+                                        TIPO DE DOCUMENTO
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-700">
+                                        {form.tipo_documento}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-400">
+                                        NÚMERO DE DOCUMENTO
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-700">
+                                        {form.cedula}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-400">
+                                        TELÉFONO
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-700">
+                                        {form.telefono}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-400">
+                                        CORREO
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-700 break-all">
+                                        {form.correo}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <p className="text-xs font-semibold text-gray-400">
+                                        CÓDIGO
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-700">
+                                        {form.codigo}
+                                    </p>
+                                </div>
+
+
+                                {esPracticante && (
+                                    <>
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-400">
+                                                EPS
+                                            </p>
+                                            <p className="text-sm font-medium text-gray-700">
+                                                {form.eps}
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-400">
+                                                FECHA DE NACIMIENTO
+                                            </p>
+                                            <p className="text-sm font-medium text-gray-700">
+                                                {form.fecha_nacimiento}
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-400">
+                                                GÉNERO
+                                            </p>
+                                            <p className="text-sm font-medium text-gray-700">
+                                                {form.genero}
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-400">
+                                                DEPARTAMENTO
+                                            </p>
+
+                                            <p className="text-sm font-medium text-gray-700">
+                                                {
+                                                    departamentos.find(
+                                                        (departamento) =>
+                                                            String(departamento.id) ===
+                                                            String(form.departamentoId)
+                                                    )?.nombre || "No seleccionado"
+                                                }
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-400">
+                                                MUNICIPIO
+                                            </p>
+
+                                            <p className="text-sm font-medium text-gray-700">
+                                                {
+                                                    municipios.find(
+                                                        (municipio) =>
+                                                            String(municipio.id) ===
+                                                            String(form.municipioId)
+                                                    )?.nombre || "No seleccionado"
+                                                }
+                                            </p>
+                                        </div>
+
+                                        <div className="sm:col-span-2">
+                                            <p className="text-xs font-semibold text-gray-400">
+                                                DIRECCIÓN
+                                            </p>
+                                            <p className="text-sm font-medium text-gray-700">
+                                                {form.direccion}
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+
+                            </div>
+
+                        </div>
+
+
+                        {/* BOTONES */}
+
+                        <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setMostrarConfirmacion(false)
+                                }
+                                disabled={saving}
+                                className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                Revisar
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={confirmarGuardado}
+                                disabled={saving}
+                                className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {saving
+                                    ? "Guardando..."
+                                    : "Sí, confirmar"}
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            )}
 
         </Layout>
     );

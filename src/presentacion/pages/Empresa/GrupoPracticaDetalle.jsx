@@ -24,7 +24,7 @@ import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";
 import { aperturaVacanteRepository } from "../../../infraestructura/repository/aperturaVacanteRepository.js";
 
 import { crearAperturaVacante } from "../../../aplicacion/aperturaVacante/crearAperturaVacante.js";
-import { getAperturasVacantes } from "../../../aplicacion/aperturaVacante/getAperturasVacantes.js";
+
 import { actualizarAperturaVacante } from "../../../aplicacion/aperturaVacante/actualizarAperturaVacante.js";
 import { eliminarAperturaVacante } from "../../../aplicacion/aperturaVacante/eliminarAperturaVacante.js";
 import { getTutorEmpresariales } from "../../../aplicacion/tutorEmpresarial/getTutorEmpresarial.js";
@@ -344,13 +344,17 @@ const GrupoPracticaDetalle = () => {
   // ============================================================
 
   const handleGuardarApertura = async (data) => {
+
     try {
 
       if (aperturaModal.mode === "crear") {
 
         await crearAperturaVacante(
           aperturaVacanteRepository,
-          data
+          {
+            ...data,
+            practica_id: grupo.practica.id
+          }
         );
 
         toast.success(
@@ -371,10 +375,8 @@ const GrupoPracticaDetalle = () => {
         );
       }
 
-      // CERRAR INMEDIATAMENTE EL MODAL
       cerrarAperturaModal();
 
-      // Luego actualizamos la información de la pantalla
       await cargarDatosApertura();
       await cargarDetalleGrupo();
 
@@ -391,6 +393,7 @@ const GrupoPracticaDetalle = () => {
       );
 
     }
+
   };
 
   const handleConfirmarEliminar = async () => {

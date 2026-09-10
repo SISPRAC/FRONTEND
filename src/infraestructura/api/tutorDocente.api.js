@@ -20,9 +20,11 @@ tutorDocenteApi.interceptors.request.use(
   }
 );
 
+
 export const getTutorDocentes = () => {
   return tutorDocenteApi.get("/all");
 };
+
 
 export const invitarTutorDocenteRequest = (correo) => {
   return tutorDocenteApi.post("/invitacion", {
@@ -30,3 +32,21 @@ export const invitarTutorDocenteRequest = (correo) => {
   });
 };
 
+
+export const getGruposByPracticaRequest = (
+  practicaId
+) => {
+  return tutorDocenteApi.get(
+    `/practica/${practicaId}/grupos`
+  );
+};
+
+
+export const getPracticantesGrupoRequest = (
+  grupoId,
+  practicaId
+) => {
+  return tutorDocenteApi.get(
+    `/${grupoId}/practica/${practicaId}/practicantes`
+  );
+};

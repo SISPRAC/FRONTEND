@@ -30,12 +30,6 @@ const GruposDirector = () => {
   const [selectedGrupo, setSelectedGrupo] = useState(null);
   const [deleteModal, setDeleteModal] = useState(false);
   const [grupoToDelete, setGrupoToDelete] = useState(null);
-  const [GrupoSeleccionado, setGrupoSeleccionado] = useState(null);
-  const [formData, setFormData] = useState({
-    nombre: "",
-    practicaId: "",
-    docenteId: ""
-  });
   const [practica, setPractica] = useState([]);
   const [tutorDocentes, setTutorDocentes] = useState([]);
   const [candidatos, setCandidatos] = useState([]);

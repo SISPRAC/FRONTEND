@@ -122,10 +122,11 @@ export const Empresa_NAV = [
 // PRACTICANTE
 // ==========================
 export const Practicante_NAV = [
+
   {
-    label: "Dashboard",
-    icon: <ChartNoAxesCombined />,
-    href: "/dashboard",
+    label: "Practica",
+    icon: <BadgeInfo />,
+    href: "/homePracticante",
   },
   {
     label: "Informes",
@@ -189,9 +190,9 @@ export const Candidato_NAV = [
 // ==========================
 export const TutorDocente_NAV = [
   {
-    label: "Cursos",
+    label: "Mis Grupos",
     icon: <GraduationCap />,
-    href: "/cursos",
+    href: "/misGrupos",
   },
   {
     label: "Visitas",
@@ -211,9 +212,9 @@ export const TutorDocente_NAV = [
 // ==========================
 export const TutorEmpresarial_NAV = [
   {
-    label: "Prácticas",
+    label: "Mis Aperturas",
     icon: <Briefcase />,
-    href: "/practicas",
+    href: "/mis-aperturas",
   },
   {
     label: "Visitas",
@@ -246,6 +247,11 @@ export const Admin_NAV = [
     label: "Gestion de Documentos",
     icon: <FileStack />,
     href: "/documentos",
+  },
+  {
+    label: "Gestion de Tipos de Documentos",
+    icon: <FileStack />,
+    href: "/tipoDocumentos",
   },
 ];
 
