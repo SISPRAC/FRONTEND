@@ -1,8 +1,6 @@
 import {
-    getEntregaInformeByIdRequest,
-    getEntregasInformeByPracticaInformeRequest,
-    getEntregasInformeByPracticaPracticanteRequest,
-    getEntregasInformeByPracticaPracticanteAndInformeRequest,
+    getEntregaInformeByPracticanteRequest,
+    getTrazabilidadEntregaInformeRequest,
     createEntregaInformeRequest,
     reviewEntregaInformeTutorDocenteRequest,
     reviewEntregaInformeTutorEmpresarialRequest
@@ -10,6 +8,11 @@ import {
 
 
 export const entregaInformeRepository = {
+
+
+    // =========================================================
+    // OBTENER UNA ENTREGA POR ID
+    // =========================================================
 
     async findById(id) {
 
@@ -23,13 +26,19 @@ export const entregaInformeRepository = {
     },
 
 
-    async findByPracticaInformeId(
-        practica_informe_id
+    // =========================================================
+    // OBTENER ENTREGAS DE UN PRACTICANTE POR TIPO DE DOCUMENTO
+    // =========================================================
+
+    async findByPracticanteAndTipoRequisito(
+        practicante_id,
+        tipo_requisito_documento_id
     ) {
 
         const response =
-            await getEntregasInformeByPracticaInformeRequest(
-                practica_informe_id
+            await getEntregaInformeByPracticanteRequest(
+                practicante_id,
+                tipo_requisito_documento_id
             );
 
         return response.data;
@@ -37,13 +46,19 @@ export const entregaInformeRepository = {
     },
 
 
-    async findByPracticaPracticanteId(
-        practica_practicante_id
+    // =========================================================
+    // OBTENER TRAZABILIDAD DE UN INFORME
+    // =========================================================
+
+    async findTrazabilidadByPracticanteAndTipoRequisito(
+        practicante_id,
+        tipo_requisito_documento_id
     ) {
 
         const response =
-            await getEntregasInformeByPracticaPracticanteRequest(
-                practica_practicante_id
+            await getTrazabilidadEntregaInformeRequest(
+                practicante_id,
+                tipo_requisito_documento_id
             );
 
         return response.data;
@@ -51,21 +66,9 @@ export const entregaInformeRepository = {
     },
 
 
-    async findByPracticaPracticanteAndInforme(
-        practica_practicante_id,
-        practica_informe_id
-    ) {
-
-        const response =
-            await getEntregasInformeByPracticaPracticanteAndInformeRequest(
-                practica_practicante_id,
-                practica_informe_id
-            );
-
-        return response.data;
-
-    },
-
+    // =========================================================
+    // CREAR ENTREGA
+    // =========================================================
 
     async create(data) {
 
@@ -78,6 +81,10 @@ export const entregaInformeRepository = {
 
     },
 
+
+    // =========================================================
+    // REVISAR COMO TUTOR DOCENTE
+    // =========================================================
 
     async reviewTutorDocente(
         id,
@@ -95,6 +102,10 @@ export const entregaInformeRepository = {
     },
 
 
+    // =========================================================
+    // REVISAR COMO TUTOR EMPRESARIAL
+    // =========================================================
+
     async reviewTutorEmpresarial(
         id,
         data
@@ -109,5 +120,6 @@ export const entregaInformeRepository = {
         return response.data;
 
     }
+
 
 };

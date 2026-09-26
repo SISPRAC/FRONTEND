@@ -118,7 +118,11 @@ const GruposTutorDocente = () => {
 
   const handleView = (id) => {
 
-    navigate(`/grupos/${id}/practicantes`);
+    navigate(`/grupos/${id}/practicantes`, {
+      state: {
+        practicaId
+      }
+    });
 
   };
 

@@ -33,3 +33,13 @@ export const obtenerMiPractica = () => {
 export const obtenerPracticantesPorPractica = (practicaId) => {
   return practicanteApi.get(`/practica/${practicaId}`);
 };
+
+export const obtenerPracticantePorId = (id) => {
+  return practicanteApi.get(`/${id}`);
+};
+
+export const obtenerRequisitosDocumentosPracticante = (practicanteId) => {
+  return practicanteApi.get(
+    `/requisitos-documentos/${practicanteId}`
+  );
+};

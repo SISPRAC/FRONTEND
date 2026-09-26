@@ -1,7 +1,9 @@
 import {
   getPracticantes,
   obtenerMiPractica,
-  obtenerPracticantesPorPractica
+  obtenerPracticantesPorPractica,
+  obtenerPracticantePorId,
+  obtenerRequisitosDocumentosPracticante
 } from "../api/practicante.api.js";
 
 export const practicanteRepository = {
@@ -29,7 +31,26 @@ export const practicanteRepository = {
 
     return response.data;
 
+  },
+
+  async obtenerPracticantePorId(id) {
+
+    const response =
+      await obtenerPracticantePorId(id);
+
+    return response.data;
+
+  },
+
+  async obtenerRequisitosDocumentosPracticante(practicanteId) {
+
+    const response =
+      await obtenerRequisitosDocumentosPracticante(
+        practicanteId
+      );
+
+    return response.data;
+
   }
 
 };
-

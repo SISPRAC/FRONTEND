@@ -39,7 +39,10 @@ practicaRequisitoDocumentoApi.interceptors.request.use(
 );
 
 
-// Obtener requisitos documentales de una práctica
+// ============================================================
+// OBTENER REQUISITOS DOCUMENTALES DE UNA PRÁCTICA
+// ============================================================
+
 export const getPracticaRequisitosDocumentoRequest = async (
     practica_id
 ) => {
@@ -51,7 +54,10 @@ export const getPracticaRequisitosDocumentoRequest = async (
 };
 
 
-// Obtener requisitos documentales de una práctica por rol
+// ============================================================
+// OBTENER REQUISITOS DOCUMENTALES DE UNA PRÁCTICA POR ROL
+// ============================================================
+
 export const getPracticaRequisitosDocumentoByRolRequest = async (
     practica_id,
     rol_id
@@ -64,7 +70,36 @@ export const getPracticaRequisitosDocumentoByRolRequest = async (
 };
 
 
-// Crear requisito documental para una práctica
+// ============================================================
+// OBTENER REQUISITOS VIGENTES DEL PRACTICANTE
+// ============================================================
+
+export const getRequisitosPracticanteVigentesRequest = async () => {
+
+    return await practicaRequisitoDocumentoApi.get(
+        "/practicante/vigentes"
+    );
+
+};
+
+
+// ============================================================
+// OBTENER INFORMES VIGENTES DEL PRACTICANTE
+// ============================================================
+
+export const getInformesPracticanteVigentesRequest = async () => {
+
+    return await practicaRequisitoDocumentoApi.get(
+        "/practicante/informes/vigentes"
+    );
+
+};
+
+
+// ============================================================
+// CREAR REQUISITO DOCUMENTAL PARA UNA PRÁCTICA
+// ============================================================
+
 export const createPracticaRequisitoDocumentoRequest = async (
     data
 ) => {
@@ -77,7 +112,10 @@ export const createPracticaRequisitoDocumentoRequest = async (
 };
 
 
-// Eliminar requisito documental
+// ============================================================
+// ELIMINAR REQUISITO DOCUMENTAL
+// ============================================================
+
 export const deletePracticaRequisitoDocumentoRequest = async (
     id
 ) => {
@@ -89,7 +127,10 @@ export const deletePracticaRequisitoDocumentoRequest = async (
 };
 
 
-// Obtener requisito documental por ID
+// ============================================================
+// OBTENER REQUISITO DOCUMENTAL POR ID
+// ============================================================
+
 export const getPracticaRequisitoDocumentoByIdRequest = async (
     id
 ) => {
@@ -101,7 +142,10 @@ export const getPracticaRequisitoDocumentoByIdRequest = async (
 };
 
 
-// Actualizar requisito documental
+// ============================================================
+// ACTUALIZAR REQUISITO DOCUMENTAL
+// ============================================================
+
 export const updatePracticaRequisitoDocumentoRequest = async (
     id,
     data

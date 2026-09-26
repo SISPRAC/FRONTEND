@@ -134,9 +134,9 @@ export const Practicante_NAV = [
     href: "/informes",
   },
   {
-    label: "Protocolos",
+    label: "Documentos Iniciales",
     icon: <ClipboardPlus />,
-    href: "/protocolos",
+    href: "/documentosIniciales",
   },
   {
     label: "Perfil",

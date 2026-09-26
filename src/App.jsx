@@ -25,10 +25,15 @@ import TutoresDocentes from "./presentacion/pages/Director/GestionTutorDocente";
 // tutor Docente
 import HomeTutorDocente from "./presentacion/pages/TutorDocente/HomeTutorDocente"
 import MisGrupos from "./presentacion/pages/TutorDocente/MisGrupos"
+import GrupoVistaTutorDocente from "./presentacion/pages/TutorDocente/MisGruposDetalle"
 
 // tutor Empresarial
 import HomeTutorEmpresarial from "./presentacion/pages/TutorEmpresarial/HomeTutorEmpresarial"
 import MisAperturas from "./presentacion/pages/TutorEmpresarial/MisAperturas"
+import MisAperturasTutorDetalle from "./presentacion/pages/TutorEmpresarial/MisAperturasTutorDetalle"
+
+//tutor Docente y Empresarial
+import VistaInformePracticante from "./presentacion/pages/CalificarInforme"
 
 // candidato
 import HomeCandidato from "./presentacion/pages/Candidato/HomeCandidato"
@@ -39,6 +44,8 @@ import ActualizarPerfil from "./presentacion/pages/ActualizarPerfil";
 
 // practicante
 import HomePracticante from "./presentacion/pages/Practicante/HomePracticante"
+import InformeDocumento from "./presentacion/pages/Practicante/InformeDocumento"
+import DocumentosPracticante from "./presentacion/pages/Practicante/Documentos"
 
 // Empresa
 import HomeEmpresa from "./presentacion/pages/Empresa/HomeEmpresa"
@@ -180,6 +187,8 @@ export default function App() {
           }
         >
           <Route path="/homePracticante" element={<HomePracticante />} />
+          <Route path="/informes" element={<InformeDocumento />} />
+          <Route path="/documentosIniciales" element={<DocumentosPracticante />} />
 
         </Route>
 
@@ -227,6 +236,27 @@ export default function App() {
         >
           <Route path="/homeTutorDocente" element={<HomeTutorDocente />} />
           <Route path="/misGrupos" element={<MisGrupos />} />
+          <Route
+            path="/grupos/:id/practicantes"
+            element={<GrupoVistaTutorDocente />}
+          />
+        </Route>
+
+        {/* =========================
+        CALIFICAR INFORME PRACTICANTE
+    ========================== */}
+        <Route
+          element={
+            <ProtectedRoute
+              roles={["Tutor Docente", "Tutor Empresarial"]}
+            />
+          }
+        >
+          <Route
+            path="/informes/:idPracticante"
+            element={<VistaInformePracticante />}
+
+          />
         </Route>
 
         {/* =========================
@@ -244,6 +274,7 @@ export default function App() {
             element={<HomeTutorEmpresarial />}
           />
           <Route path="/mis-aperturas" element={<MisAperturas />} />
+          <Route path="/mis-aperturas/:practicaId" element={<MisAperturasTutorDetalle />} />
         </Route>
       </Routes>
     </>

@@ -10,21 +10,22 @@ const entregaInformeApi = axios.create({
 });
 
 
-// Agregar token automáticamente a cada petición
+// =========================================================
+// TOKEN DE AUTENTICACIÓN NORMAL
+// =========================================================
+
 entregaInformeApi.interceptors.request.use(
 
     (config) => {
 
         const token = localStorage.getItem("token");
 
-
-        if(token){
+        if (token) {
 
             config.headers.Authorization =
-            `Bearer ${token}`;
+                `Bearer ${token}`;
 
         }
-
 
         return config;
 
@@ -39,52 +40,43 @@ entregaInformeApi.interceptors.request.use(
 );
 
 
-// Obtener una entrega por ID
-export const getEntregaInformeByIdRequest = async (id) => {
 
-    return await entregaInformeApi.get(`/${id}`);
+// =========================================================
+// OBTENER ENTREGAS DE UN PRACTICANTE POR TIPO DE DOCUMENTO
+// =========================================================
 
-};
-
-
-// Obtener entregas de un informe de práctica
-export const getEntregasInformeByPracticaInformeRequest = async (
-    practica_informe_id
+export const getEntregaInformeByPracticanteRequest = async (
+    practicante_id,
+    tipo_requisito_documento_id
 ) => {
 
     return await entregaInformeApi.get(
-        `/practica-informe/${practica_informe_id}`
+        `/practicante/${practicante_id}/tipo/${tipo_requisito_documento_id}`
     );
 
 };
 
 
-// Obtener entregas de un practicante
-export const getEntregasInformeByPracticaPracticanteRequest = async (
-    practica_practicante_id
+// =========================================================
+// OBTENER TRAZABILIDAD DE UN INFORME
+// =========================================================
+
+export const getTrazabilidadEntregaInformeRequest = async (
+    practicante_id,
+    tipo_requisito_documento_id
 ) => {
 
     return await entregaInformeApi.get(
-        `/practica-practicante/${practica_practicante_id}`
+        `/trazabilidad/practicante/${practicante_id}/tipo/${tipo_requisito_documento_id}`
     );
 
 };
 
 
-// Obtener entregas de un practicante para un informe específico
-export const getEntregasInformeByPracticaPracticanteAndInformeRequest = async (
-    practica_practicante_id,
-    practica_informe_id
-) => {
+// =========================================================
+// CREAR ENTREGA DE INFORME
+// =========================================================
 
-    return await entregaInformeApi.get(
-        `/practica-practicante/${practica_practicante_id}/informe/${practica_informe_id}`
-    );
-
-};
-
-
-// Crear entrega de informe
 export const createEntregaInformeRequest = async (data) => {
 
     return await entregaInformeApi.post(
@@ -95,7 +87,10 @@ export const createEntregaInformeRequest = async (data) => {
 };
 
 
-// Revisar entrega como tutor docente
+// =========================================================
+// REVISAR ENTREGA COMO TUTOR DOCENTE
+// =========================================================
+
 export const reviewEntregaInformeTutorDocenteRequest = async (
     id,
     data
@@ -109,7 +104,10 @@ export const reviewEntregaInformeTutorDocenteRequest = async (
 };
 
 
-// Revisar entrega como tutor empresarial
+// =========================================================
+// REVISAR ENTREGA COMO TUTOR EMPRESARIAL
+// =========================================================
+
 export const reviewEntregaInformeTutorEmpresarialRequest = async (
     id,
     data
