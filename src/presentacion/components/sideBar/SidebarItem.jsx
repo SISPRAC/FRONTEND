@@ -14,7 +14,8 @@ import {
   MapPinned,
   BadgeInfo,
   FileStack,
-  User
+  User,
+  Bell
 } from "lucide-react";
 
 
@@ -68,6 +69,11 @@ export const Director_NAV = [
     icon: <FileText />,
     href: "/arl",
   },
+  {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
+  },
 ];
 
 
@@ -111,6 +117,11 @@ export const Empresa_NAV = [
     href: "/tutorEmpresarial",
   },
   {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
+  },
+  {
     label: "Mi perfil",
     icon: <User />,
     href: " /miPerfil",
@@ -148,6 +159,11 @@ export const Practicante_NAV = [
     icon: <FileUser />,
     href: "/encuestas",
   },
+  {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
+  },
 ];
 
 
@@ -182,6 +198,11 @@ export const Candidato_NAV = [
     icon: <BadgeInfo />,
     href: "/situacion",
   },
+  {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
+  },
 ];
 
 
@@ -204,6 +225,11 @@ export const TutorDocente_NAV = [
     icon: <FileUser />,
     href: "/encuestas",
   },
+  {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
+  },
 ];
 
 
@@ -220,6 +246,11 @@ export const TutorEmpresarial_NAV = [
     label: "Visitas",
     icon: <MapPinned />,
     href: "/visitas",
+  },
+  {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
   },
 ];
 
@@ -252,6 +283,11 @@ export const Admin_NAV = [
     label: "Gestion de Tipos de Documentos",
     icon: <FileStack />,
     href: "/tipoDocumentos",
+  },
+  {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
   },
 ];
 

@@ -1,17 +1,49 @@
 import Layout from "../../shared/Layouts/Layout";
 
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, Eye, CalendarDays } from "lucide-react";
 import { getPracticantesGrupo } from "../../../aplicacion/tutorDocente/getPracticantesGrupo.js";
 import { tutorDocenteRepository } from "../../../infraestructura/repository/tutorDocenteRepository.js";
 import GenericTable from "../../components/Table/GenericTable";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     useParams,
     useNavigate,
     useLocation
 } from "react-router-dom";
 import EstadoBadge from "../../components/estadoBadge/EstadoBadge";
+import SolicitudVisitaModal from "../../components/modals/SolicitudVisitaModal.jsx";
 import toast from "react-hot-toast";
+import { crearSolicitudVisita } from "../../../aplicacion/solicitudVisita/crearSolicitudVisita.js";
+import { obtenerSolicitudesVisitaTutorDocente } from "../../../aplicacion/solicitudVisita/obtenerSolicitudesVisitaTutorDocente.js";
+import { solicitudVisitaRepository } from "../../../infraestructura/repository/solicitudVisitaRepository.js";
+
+// Extrae, de la lista de solicitudes ya creadas, los ids de practicante
+// que ya tienen una solicitud registrada (sin filtrar por estado).
+// Si quieres permitir volver a solicitar cuando una solicitud fue
+// rechazada/cancelada, filtra aquí por el campo de estado real de tu
+// modelo SolicitudVisita antes de agregar el id al set.
+const extraerIdsPracticantesConSolicitud = (solicitudes = []) => {
+
+    const ids = new Set();
+
+    solicitudes.forEach(solicitud => {
+
+        (solicitud.practicantes || []).forEach(sv => {
+
+            const idPracticante =
+                sv?.practicaPracticante?.practicante?.id;
+
+            if (idPracticante) {
+                ids.add(idPracticante);
+            }
+
+        });
+
+    });
+
+    return ids;
+
+};
 
 
 const GrupoVistaTutorDocente = () => {
@@ -20,6 +52,14 @@ const GrupoVistaTutorDocente = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [grupo, setGrupo] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    const [mostrarModalSolicitud, setMostrarModalSolicitud] =
+        useState(false);
+
+    const [enviandoSolicitud, setEnviandoSolicitud] =
+        useState(false);
+
+    const [solicitudes, setSolicitudes] = useState([]);
 
     const navigate = useNavigate();
 
@@ -34,7 +74,39 @@ const GrupoVistaTutorDocente = () => {
 
         loadPracticantesGrupo();
 
+        loadSolicitudes();
+
     }, []);
+
+
+    const loadSolicitudes = async () => {
+
+        try {
+
+            const data = await obtenerSolicitudesVisitaTutorDocente(
+                {
+                    solicitudVisitaRepository
+                }
+            );
+
+            setSolicitudes(data || []);
+
+        } catch (error) {
+
+            console.error(
+                "Error al obtener las solicitudes de visita:",
+                error
+            );
+
+        }
+
+    };
+
+
+    const idsConSolicitud = useMemo(
+        () => extraerIdsPracticantesConSolicitud(solicitudes),
+        [solicitudes]
+    );
 
 
     const loadPracticantesGrupo = async () => {
@@ -60,12 +132,6 @@ const GrupoVistaTutorDocente = () => {
                 practicaId
 
             });
-
-
-            console.log(
-                "Practicantes del grupo obtenidos:",
-                data
-            );
 
 
             const formattedData =
@@ -113,16 +179,11 @@ const GrupoVistaTutorDocente = () => {
 
     };
 
+
     const handleView = (id) => {
 
         const practicante =
             rows.find(p => p.id === id);
-
-
-        console.log(
-            "Practicante seleccionado:",
-            practicante
-        );
 
 
         if (!practicante) {
@@ -159,6 +220,51 @@ const GrupoVistaTutorDocente = () => {
         );
 
     };
+
+
+    const handleCrearSolicitud = async ({ practicantes, fechas }) => {
+
+        setEnviandoSolicitud(true);
+
+        try {
+
+            await crearSolicitudVisita(
+                {
+                    solicitudVisitaRepository
+                },
+                {
+                    practicantes,
+                    fechas
+                }
+            );
+
+            toast.success(
+                "Solicitud de visita creada correctamente."
+            );
+
+            setMostrarModalSolicitud(false);
+
+            loadSolicitudes();
+
+        } catch (error) {
+
+            console.error(
+                "Error al crear solicitud:",
+                error
+            );
+
+            toast.error(
+                error.response?.data?.message ||
+                "Error al crear la solicitud de visita."
+            );
+
+        } finally {
+
+            setEnviandoSolicitud(false);
+
+        }
+    };
+
 
     return (
 
@@ -423,6 +529,55 @@ const GrupoVistaTutorDocente = () => {
                 emptyMessage="No hay Practicantes registrados."
 
                 pageSize={7}
+
+            />
+
+
+            {/* ── Solicitar visita ── */}
+
+            <div className="flex justify-end mt-4">
+
+                <button
+
+                    onClick={() => setMostrarModalSolicitud(true)}
+
+                    disabled={rows.length === 0}
+
+                    className="
+                        flex
+                        items-center
+                        gap-2
+                        px-4
+                        py-2
+                        rounded-lg
+                        bg-[#e8192c]
+                        text-white
+                        font-semibold
+                        text-sm
+                        hover:opacity-90
+                        disabled:opacity-40
+                        disabled:cursor-not-allowed
+                        transition
+                    "
+                >
+
+                    <CalendarDays size={18} />
+
+                    Solicitar visita
+
+                </button>
+
+            </div>
+
+
+            <SolicitudVisitaModal
+
+                open={mostrarModalSolicitud}
+                onClose={() => setMostrarModalSolicitud(false)}
+                practicantes={rows}
+                onSubmit={handleCrearSolicitud}
+                enviando={enviandoSolicitud}
+                idsConSolicitud={idsConSolicitud}
 
             />
 

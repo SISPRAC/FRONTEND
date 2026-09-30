@@ -65,6 +65,9 @@ import UsersPage from "./presentacion/pages/Admin/GestionarUsuarios"
 import PracticaRequisitoDocumentoPage from "./presentacion/pages/Admin/GestionDocumentos"
 import TipoDocumentosPage from "./presentacion/pages/Admin/TipoRequisitoDocumentoPage"
 
+// Notificaciones (todos los roles)
+import NotificacionesView from "./presentacion/pages/Notificaciones"
+
 import "./index.css";
 import { Toaster } from "react-hot-toast";
 
@@ -276,8 +279,28 @@ export default function App() {
           <Route path="/mis-aperturas" element={<MisAperturas />} />
           <Route path="/mis-aperturas/:practicaId" element={<MisAperturasTutorDetalle />} />
         </Route>
+
+        {/* =========================
+                NOTIFICACIONES (TODOS LOS ROLES)
+            ========================== */}
+        <Route
+          element={
+            <ProtectedRoute
+              roles={[
+                "Administrador",
+                "Director de programa",
+                "Empresa",
+                "Practicante",
+                "Candidato",
+                "Tutor Docente",
+                "Tutor Empresarial",
+              ]}
+            />
+          }
+        >
+          <Route path="/notificaciones" element={<NotificacionesView />} />
+        </Route>
       </Routes>
     </>
   );
 }
-
