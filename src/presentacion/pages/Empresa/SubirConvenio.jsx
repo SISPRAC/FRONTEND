@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import Layout from "../../shared/Layouts/Layout";
 
 import { convenioRepository } from "../../../infraestructura/repository/convenioRepository";
 import { getConveniosByEmpresa } from "../../../aplicacion/convenio/getConveniosByEmpresa";
@@ -968,7 +967,7 @@ export default function CargarConvenio() {
   };
 
   return (
-    <Layout footerLabel="Director">
+    <div>
       <h1 className="text-[24px] font-extrabold text-slate-800 text-center mb-5 tracking-tight">
         Convenio
       </h1>
@@ -1573,7 +1572,7 @@ export default function CargarConvenio() {
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 }
 

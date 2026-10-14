@@ -6,6 +6,12 @@ export const ESTADOS_CONFIG = {
         dot: "bg-green-500"
     },
 
+    Aceptada: {
+        bg: "bg-green-100",
+        text: "text-green-700",
+        dot: "bg-green-500"
+    },
+
     Activo: {
         bg: "bg-green-100",
         text: "text-green-700",
@@ -43,6 +49,17 @@ export const ESTADOS_CONFIG = {
     },
 
     Rechazado: {
+        bg: "bg-red-100",
+        text: "text-red-600",
+        dot: "bg-red-500"
+    },
+
+    Rechazada: {
+        bg: "bg-red-100",
+        text: "text-red-600",
+        dot: "bg-red-500"
+    },
+    Cancelada: {
         bg: "bg-red-100",
         text: "text-red-600",
         dot: "bg-red-500"

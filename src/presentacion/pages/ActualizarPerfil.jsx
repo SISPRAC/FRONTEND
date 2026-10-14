@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-import Layout from "../shared/Layouts/Layout";
 import { userRepository } from "../../infraestructura/repository/userRepository";
 import { actualizarPerfil } from "../../aplicacion/usuario/actualizarPerfil";
 import { departamentoMunicipioRepository } from "../../infraestructura/repository/departamentoMunicipioRepository";
@@ -539,24 +538,24 @@ export default function ActualizarPerfil() {
     if (loading) {
 
         return (
-            <Layout>
 
-                <div className="flex min-h-[70vh] items-center justify-center">
 
-                    <p className="text-sm text-gray-500">
-                        Cargando perfil...
-                    </p>
+            <div className="flex min-h-[70vh] items-center justify-center">
 
-                </div>
+                <p className="text-sm text-gray-500">
+                    Cargando perfil...
+                </p>
 
-            </Layout>
+            </div>
+
+
         );
     }
 
 
     return (
-        <Layout>
 
+        <div>
             <div className="mx-auto w-full max-w-5xl px-4 py-8">
 
                 {/* ENCABEZADO */}
@@ -1090,6 +1089,6 @@ export default function ActualizarPerfil() {
 
             )}
 
-        </Layout>
+        </div>
     );
 }

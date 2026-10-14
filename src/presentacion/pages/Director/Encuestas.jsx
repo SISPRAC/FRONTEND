@@ -1,4 +1,3 @@
-import Layout from "../../shared/Layouts/Layout";
 import {
     Trash,
     SquarePen,
@@ -325,9 +324,7 @@ const EncuestasDirector = () => {
 
     return (
 
-        <Layout
-            footerLabel="Director"
-        >
+        <div>
 
             <h1
                 className="
@@ -569,7 +566,7 @@ const EncuestasDirector = () => {
 
             />
 
-        </Layout>
+        </div>
 
     );
 

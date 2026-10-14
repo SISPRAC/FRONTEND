@@ -1,27 +1,34 @@
-import Layout from "../../shared/Layouts/Layout";
-
 import { ArrowLeft, Eye, CalendarDays } from "lucide-react";
+
 import { getPracticantesGrupo } from "../../../aplicacion/tutorDocente/getPracticantesGrupo.js";
 import { tutorDocenteRepository } from "../../../infraestructura/repository/tutorDocenteRepository.js";
+
 import GenericTable from "../../components/Table/GenericTable";
+
 import { useState, useEffect, useMemo } from "react";
+
 import {
     useParams,
     useNavigate,
     useLocation
 } from "react-router-dom";
-import EstadoBadge from "../../components/estadoBadge/EstadoBadge";
-import SolicitudVisitaModal from "../../components/modals/SolicitudVisitaModal.jsx";
-import toast from "react-hot-toast";
-import { crearSolicitudVisita } from "../../../aplicacion/solicitudVisita/crearSolicitudVisita.js";
-import { obtenerSolicitudesVisitaTutorDocente } from "../../../aplicacion/solicitudVisita/obtenerSolicitudesVisitaTutorDocente.js";
-import { solicitudVisitaRepository } from "../../../infraestructura/repository/solicitudVisitaRepository.js";
 
-// Extrae, de la lista de solicitudes ya creadas, los ids de practicante
-// que ya tienen una solicitud registrada (sin filtrar por estado).
-// Si quieres permitir volver a solicitar cuando una solicitud fue
-// rechazada/cancelada, filtra aquí por el campo de estado real de tu
-// modelo SolicitudVisita antes de agregar el id al set.
+import EstadoBadge from "../../components/estadoBadge/EstadoBadge";
+
+import SolicitudVisitaModal from "../../components/modals/SolicitudVisitaModal.jsx";
+
+import toast from "react-hot-toast";
+
+import { crearSolicitudVisita } from "../../../aplicacion/solicitudVisita/crearSolicitudVisita.js";
+import { editarSolicitudVisita } from "../../../aplicacion/solicitudVisita/editarSolicitudVisita.js";
+import { obtenerSolicitudesVisitaTutorDocente } from "../../../aplicacion/solicitudVisita/obtenerSolicitudesVisitaTutorDocente.js";
+
+import { solicitudVisitaRepository } from "../../../infraestructura/repository/solicitudVisitaRepository.js";
+import { cancelarSolicitudVisita } from "../../../aplicacion/solicitudVisita/cancelarSolicitudVisita.js";
+import { obtenerSolicitudParaGestionar } from "../../../aplicacion/solicitudVisita/obtenerSolicitudParaGestionar.js";
+
+
+// Extrae los ids de practicantes que tienen alguna solicitud registrada.
 const extraerIdsPracticantesConSolicitud = (solicitudes = []) => {
 
     const ids = new Set();
@@ -42,6 +49,31 @@ const extraerIdsPracticantesConSolicitud = (solicitudes = []) => {
     });
 
     return ids;
+
+};
+
+
+// Obtiene la última solicitud registrada para un practicante.
+const obtenerUltimaSolicitudPorPracticante = (
+    solicitudes = [],
+    practicanteId
+) => {
+
+    for (const solicitud of solicitudes) {
+
+        const pertenece = (solicitud.practicantes || []).some(
+            sv =>
+                sv?.practicaPracticante?.practicante?.id ===
+                practicanteId
+        );
+
+        if (pertenece) {
+            return solicitud;
+        }
+
+    }
+
+    return null;
 
 };
 
@@ -70,46 +102,20 @@ const GrupoVistaTutorDocente = () => {
     const practicaId = location.state?.practicaId;
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Cargar todos los datos
+    |--------------------------------------------------------------------------
+    */
+
     useEffect(() => {
 
-        loadPracticantesGrupo();
-
-        loadSolicitudes();
+        cargarDatos();
 
     }, []);
 
 
-    const loadSolicitudes = async () => {
-
-        try {
-
-            const data = await obtenerSolicitudesVisitaTutorDocente(
-                {
-                    solicitudVisitaRepository
-                }
-            );
-
-            setSolicitudes(data || []);
-
-        } catch (error) {
-
-            console.error(
-                "Error al obtener las solicitudes de visita:",
-                error
-            );
-
-        }
-
-    };
-
-
-    const idsConSolicitud = useMemo(
-        () => extraerIdsPracticantesConSolicitud(solicitudes),
-        [solicitudes]
-    );
-
-
-    const loadPracticantesGrupo = async () => {
+    const cargarDatos = async () => {
 
         try {
 
@@ -124,35 +130,126 @@ const GrupoVistaTutorDocente = () => {
 
             setLoading(true);
 
+            const [
+                dataPracticantes,
+                dataSolicitudes
+            ] = await Promise.all([
 
-            const data = await getPracticantesGrupo({
+                getPracticantesGrupo({
 
-                tutorDocenteRepository,
-                grupoId: id,
-                practicaId
+                    tutorDocenteRepository,
+                    grupoId: id,
+                    practicaId
 
-            });
+                }),
 
+                obtenerSolicitudesVisitaTutorDocente({
+
+                    solicitudVisitaRepository
+
+                })
+
+            ]);
+
+
+            const solicitudesData =
+                dataSolicitudes || [];
+
+
+            setSolicitudes(
+                solicitudesData
+            );
+
+
+            console.log(
+                "========== SOLICITUDES VISITA BACKEND =========="
+            );
+
+            console.log(
+                JSON.parse(
+                    JSON.stringify(
+                        solicitudesData
+                    )
+                )
+            );
+
+            console.log(
+                "==============================================="
+            );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Formatear practicantes
+            |--------------------------------------------------------------------------
+            */
 
             const formattedData =
-                data.practicantes.map(practicante => ({
+                dataPracticantes.practicantes.map(
+                    practicante => {
 
-                    id: practicante.id_practicante,
+                        const solicitud =
+                            obtenerUltimaSolicitudPorPracticante(
+                                solicitudesData,
+                                practicante.id_practicante
+                            );
 
-                    codigo: practicante.codigo,
+                        return {
 
-                    practicante: practicante.nombre,
+                            id:
+                                practicante.id_practicante,
 
-                    empresa: practicante.empresa,
+                            codigo:
+                                practicante.codigo,
 
-                    estado: practicante.estado
+                            practicante:
+                                practicante.nombre,
 
-                }));
+                            empresa:
+                                practicante.empresa,
+
+                            estado:
+                                practicante.estado,
+
+                            /*
+                            |--------------------------------------------------------------------------
+                            | Datos de la solicitud de visita
+                            |--------------------------------------------------------------------------
+                            */
+
+                            solicitudVisitaId:
+                                solicitud?.id ||
+                                null,
+
+                            estadoSolicitudVisita:
+                                solicitud?.estado ||
+                                null,
+
+                            motivoSolicitudVisita:
+                                solicitud?.observacion ||
+                                null,
+                            fechaRealizada:
+                                solicitud?.visita?.fecha_realizada || null,
+
+                            fechasPropuestas:
+                                solicitud?.fechasPropuestas ||
+                                []
+
+                        };
+
+                    }
+                );
 
 
-            setGrupo(data);
+            setGrupo(
+                dataPracticantes
+            );
 
-            setRows(formattedData);
+
+            setRows(
+                formattedData
+            );
+
 
             setCurrentPage(1);
 
@@ -160,16 +257,19 @@ const GrupoVistaTutorDocente = () => {
         } catch (error) {
 
             console.error(
-                "Error al obtener los practicantes del grupo:",
+                "Error al cargar los datos del grupo:",
                 error
             );
 
+
             toast.error(
                 error.response?.data?.message ||
-                "Error al cargar los practicantes del grupo."
+                "Error al cargar los datos."
             );
 
+
             setRows([]);
+
 
         } finally {
 
@@ -180,10 +280,36 @@ const GrupoVistaTutorDocente = () => {
     };
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | IDs de practicantes que tienen alguna solicitud
+    |--------------------------------------------------------------------------
+    */
+
+    const idsConSolicitud = useMemo(
+
+        () =>
+            extraerIdsPracticantesConSolicitud(
+                solicitudes
+            ),
+
+        [solicitudes]
+
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ver informes del practicante
+    |--------------------------------------------------------------------------
+    */
+
     const handleView = (id) => {
 
         const practicante =
-            rows.find(p => p.id === id);
+            rows.find(
+                p => p.id === id
+            );
 
 
         if (!practicante) {
@@ -211,9 +337,16 @@ const GrupoVistaTutorDocente = () => {
             {
                 state: {
                     practicante: {
-                        id: practicante.id,
-                        nombre: practicante.practicante,
-                        empresa: practicante.empresa
+
+                        id:
+                            practicante.id,
+
+                        nombre:
+                            practicante.practicante,
+
+                        empresa:
+                            practicante.empresa
+
                     }
                 }
             }
@@ -222,64 +355,295 @@ const GrupoVistaTutorDocente = () => {
     };
 
 
-    const handleCrearSolicitud = async ({ practicantes, fechas }) => {
+    /*
+    |--------------------------------------------------------------------------
+    | Gestionar visita de una solicitud aprobada
+    |--------------------------------------------------------------------------
+    */
 
-        setEnviandoSolicitud(true);
+    const handleGestionarVisita = async ({
+        solicitudId
+    }) => {
+
+        if (!solicitudId) {
+
+            toast.error(
+                "No se encontró el ID de la solicitud de visita."
+            );
+
+            return;
+        }
 
         try {
 
-            await crearSolicitudVisita(
+            const solicitud =
+                await obtenerSolicitudParaGestionar(
+
+                    {
+                        solicitudVisitaRepository
+                    },
+
+                    solicitudId
+
+                );
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | La consulta ya validó en backend que la solicitud
+            | pertenece al tutor docente autenticado.
+            |--------------------------------------------------------------------------
+            */
+
+            navigate(
+                `/gestionar-visita/${solicitudId}`,
                 {
-                    solicitudVisitaRepository
-                },
-                {
-                    practicantes,
-                    fechas
+                    state: {
+                        solicitud
+                    }
                 }
             );
 
-            toast.success(
-                "Solicitud de visita creada correctamente."
-            );
-
-            setMostrarModalSolicitud(false);
-
-            loadSolicitudes();
 
         } catch (error) {
 
             console.error(
-                "Error al crear solicitud:",
+                "Error al obtener la solicitud para gestionar:",
                 error
             );
 
+
             toast.error(
                 error.response?.data?.message ||
-                "Error al crear la solicitud de visita."
+                "No fue posible obtener la solicitud de visita."
             );
+
+        }
+
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cancelar solicitud
+    |--------------------------------------------------------------------------
+    */
+
+    const handleCancelarSolicitud = async ({
+        solicitudId,
+        motivo
+    }) => {
+
+        if (!solicitudId) {
+
+            toast.error(
+                "No se encontró el ID de la solicitud."
+            );
+
+            return;
+        }
+
+
+        if (!motivo?.trim()) {
+
+            toast.error(
+                "Debes indicar el motivo de la cancelación."
+            );
+
+            return;
+        }
+
+
+        setEnviandoSolicitud(true);
+
+
+        try {
+
+            await cancelarSolicitudVisita(
+
+                {
+                    solicitudVisitaRepository
+                },
+
+                solicitudId,
+
+                motivo.trim()
+
+            );
+
+
+            toast.success(
+                "Solicitud de visita cancelada correctamente."
+            );
+
+
+            setMostrarModalSolicitud(false);
+
+
+            await cargarDatos();
+
+
+        } catch (error) {
+
+            console.error(
+                "Error al cancelar solicitud:",
+                error
+            );
+
+
+            toast.error(
+                error.response?.data?.message ||
+                "Error al cancelar la solicitud de visita."
+            );
+
 
         } finally {
 
             setEnviandoSolicitud(false);
 
         }
+
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Crear o editar solicitud
+    |--------------------------------------------------------------------------
+    */
+
+    const handleCrearSolicitud = async ({
+        solicitudId,
+        editar,
+        practicantes,
+        fechas
+    }) => {
+
+        setEnviandoSolicitud(true);
+
+
+        try {
+
+            /*
+            |--------------------------------------------------------------------------
+            | EDITAR SOLICITUD RECHAZADA
+            |--------------------------------------------------------------------------
+            */
+
+            if (editar) {
+
+                if (!solicitudId) {
+
+                    toast.error(
+                        "No se encontró el ID de la solicitud que se desea editar."
+                    );
+
+                    return;
+                }
+
+
+                await editarSolicitudVisita(
+
+                    {
+                        solicitudVisitaRepository
+                    },
+
+                    solicitudId,
+
+                    {
+                        practicantes,
+                        fechas
+                    }
+
+                );
+
+
+                toast.success(
+                    "Solicitud de visita actualizada correctamente."
+                );
+
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | CREAR NUEVA SOLICITUD
+            |--------------------------------------------------------------------------
+            */
+
+            else {
+
+                await crearSolicitudVisita(
+
+                    {
+                        solicitudVisitaRepository
+                    },
+
+                    {
+                        practicantes,
+                        fechas
+                    }
+
+                );
+
+
+                toast.success(
+                    "Solicitud de visita creada correctamente."
+                );
+
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | Cerrar modal y volver a cargar datos
+            |--------------------------------------------------------------------------
+            */
+
+            setMostrarModalSolicitud(false);
+
+            await cargarDatos();
+
+
+        } catch (error) {
+
+            console.error(
+                "Error al procesar solicitud de visita:",
+                error
+            );
+
+
+            toast.error(
+                error.response?.data?.message ||
+                "Error al procesar la solicitud de visita."
+            );
+
+
+        } finally {
+
+            setEnviandoSolicitud(false);
+
+        }
+
     };
 
 
     return (
 
-        <Layout footerLabel="Tutor Docente">
+        <div>
 
 
             {/* ── Volver ── */}
 
-            <div className="
-                relative
-                flex
-                items-center
-                justify-center
-                mb-8
-            ">
+            <div
+                className="
+                    relative
+                    flex
+                    items-center
+                    justify-center
+                    mb-8
+                "
+            >
 
                 <button
 
@@ -314,36 +678,39 @@ const GrupoVistaTutorDocente = () => {
 
             {/* ── Header ── */}
 
-            <div className="
-                flex
-                justify-between
-                items-start
-                mb-6
-                px-1
-            ">
-
-
-                {/* Periodo */}
+            <div
+                className="
+                    flex
+                    justify-between
+                    items-start
+                    mb-6
+                    px-1
+                "
+            >
 
                 <div>
 
-                    <p className="
-                        text-xs
-                        font-medium
-                        text-slate-500
-                        uppercase
-                        tracking-widest
-                        mb-0.5
-                    ">
+                    <p
+                        className="
+                            text-xs
+                            font-medium
+                            text-slate-500
+                            uppercase
+                            tracking-widest
+                            mb-0.5
+                        "
+                    >
                         Periodo Lectivo
                     </p>
 
 
-                    <p className="
-                        text-2xl
-                        font-extrabold
-                        text-slate-800
-                    ">
+                    <p
+                        className="
+                            text-2xl
+                            font-extrabold
+                            text-slate-800
+                        "
+                    >
 
                         {grupo?.practica?.periodo?.nombre || "—"}
 
@@ -352,27 +719,29 @@ const GrupoVistaTutorDocente = () => {
                 </div>
 
 
-                {/* Estado práctica */}
-
                 <div className="text-right">
 
-                    <p className="
-                        text-xs
-                        font-medium
-                        text-slate-500
-                        uppercase
-                        tracking-widest
-                        mb-0.5
-                    ">
+                    <p
+                        className="
+                            text-xs
+                            font-medium
+                            text-slate-500
+                            uppercase
+                            tracking-widest
+                            mb-0.5
+                        "
+                    >
                         Estado de la Práctica
                     </p>
 
 
-                    <p className="
-                        text-2xl
-                        font-extrabold
-                        text-slate-800
-                    ">
+                    <p
+                        className="
+                            text-2xl
+                            font-extrabold
+                            text-slate-800
+                        "
+                    >
 
                         {grupo?.practica?.estado || "—"}
 
@@ -380,38 +749,44 @@ const GrupoVistaTutorDocente = () => {
 
                 </div>
 
-
             </div>
 
 
             {/* ── Fechas de la práctica ── */}
 
-            <div className="
-                flex
-                justify-center
-                gap-10
-                mb-6
-                px-1
-            ">
+            <div
+                className="
+                    flex
+                    justify-center
+                    gap-10
+                    mb-6
+                    px-1
+                "
+            >
 
                 <div className="text-center">
 
-                    <p className="
-                        text-xs
-                        font-medium
-                        text-slate-500
-                        uppercase
-                        tracking-widest
-                        mb-0.5
-                    ">
+                    <p
+                        className="
+                            text-xs
+                            font-medium
+                            text-slate-500
+                            uppercase
+                            tracking-widest
+                            mb-0.5
+                        "
+                    >
                         Fecha de inicio
                     </p>
 
-                    <p className="
-                        text-lg
-                        font-bold
-                        text-slate-800
-                    ">
+
+                    <p
+                        className="
+                            text-lg
+                            font-bold
+                            text-slate-800
+                        "
+                    >
 
                         {grupo?.practica?.fecha_inicio || "—"}
 
@@ -422,22 +797,27 @@ const GrupoVistaTutorDocente = () => {
 
                 <div className="text-center">
 
-                    <p className="
-                        text-xs
-                        font-medium
-                        text-slate-500
-                        uppercase
-                        tracking-widest
-                        mb-0.5
-                    ">
+                    <p
+                        className="
+                            text-xs
+                            font-medium
+                            text-slate-500
+                            uppercase
+                            tracking-widest
+                            mb-0.5
+                        "
+                    >
                         Fecha de fin
                     </p>
 
-                    <p className="
-                        text-lg
-                        font-bold
-                        text-slate-800
-                    ">
+
+                    <p
+                        className="
+                            text-lg
+                            font-bold
+                            text-slate-800
+                        "
+                    >
 
                         {grupo?.practica?.fecha_fin || "—"}
 
@@ -450,14 +830,16 @@ const GrupoVistaTutorDocente = () => {
 
             {/* ── Título ── */}
 
-            <h1 className="
-                text-[30px]
-                font-extrabold
-                text-slate-800
-                text-center
-                mb-7
-                tracking-tight
-            ">
+            <h1
+                className="
+                    text-[30px]
+                    font-extrabold
+                    text-slate-800
+                    text-center
+                    mb-7
+                    tracking-tight
+                "
+            >
 
                 {grupo?.nombre || "Grupo"}
 
@@ -481,22 +863,30 @@ const GrupoVistaTutorDocente = () => {
 
                     {
                         key: "codigo",
+
                         label: "Código",
+
                         primary: true
+
                     },
 
                     {
                         key: "practicante",
+
                         label: "Practicante"
+
                     },
 
                     {
                         key: "empresa",
+
                         label: "Empresa"
+
                     },
 
                     {
                         key: "estado",
+
                         label: "Estado",
 
                         render: (row) => (
@@ -515,12 +905,16 @@ const GrupoVistaTutorDocente = () => {
                 actions={[
 
                     {
-                        icon: <Eye size={18} />,
+
+                        icon:
+                            <Eye size={18} />,
 
                         className:
                             "hover:bg-blue-100 text-blue-500",
 
-                        onClick: handleView
+                        onClick:
+                            handleView
+
                     }
 
                 ]}
@@ -535,13 +929,23 @@ const GrupoVistaTutorDocente = () => {
 
             {/* ── Solicitar visita ── */}
 
-            <div className="flex justify-end mt-4">
+            <div
+                className="
+                    flex
+                    justify-end
+                    mt-4
+                "
+            >
 
                 <button
 
-                    onClick={() => setMostrarModalSolicitud(true)}
+                    onClick={() =>
+                        setMostrarModalSolicitud(true)
+                    }
 
-                    disabled={rows.length === 0}
+                    disabled={
+                        rows.length === 0
+                    }
 
                     className="
                         flex
@@ -570,19 +974,46 @@ const GrupoVistaTutorDocente = () => {
             </div>
 
 
+            {/* ── Modal solicitud de visita ── */}
+
             <SolicitudVisitaModal
 
-                open={mostrarModalSolicitud}
-                onClose={() => setMostrarModalSolicitud(false)}
-                practicantes={rows}
-                onSubmit={handleCrearSolicitud}
-                enviando={enviandoSolicitud}
-                idsConSolicitud={idsConSolicitud}
+                open={
+                    mostrarModalSolicitud
+                }
+
+                onClose={() =>
+                    setMostrarModalSolicitud(false)
+                }
+
+                practicantes={
+                    rows
+                }
+
+                onSubmit={
+                    handleCrearSolicitud
+                }
+
+                enviando={
+                    enviandoSolicitud
+                }
+
+                idsConSolicitud={
+                    idsConSolicitud
+                }
+
+                onGestionarVisita={
+                    handleGestionarVisita
+                }
+
+                onCancelarSolicitud={
+                    handleCancelarSolicitud
+                }
 
             />
 
 
-        </Layout>
+        </div>
 
     );
 

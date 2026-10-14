@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Layout from "../../shared/Layouts/Layout";
 
 import { Building2 } from "lucide-react";
 import PostularCandidatoModal from "./PostularCandidatoModal";
@@ -108,7 +107,7 @@ export default function VacantesDirector() {
   };
 
   return (
-    <Layout footerLabel="Director">
+    <div>
       <h1 className="text-[26px] font-extrabold text-slate-800 text-center mb-6 tracking-tight">
         Vacantes en empresas
       </h1>
@@ -181,6 +180,6 @@ export default function VacantesDirector() {
           onSuccess={() => { cargarDatos(); setPostularModalOpen(false); }}
         />
       )}
-    </Layout >
+    </div >
   );
 }

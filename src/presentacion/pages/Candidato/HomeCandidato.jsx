@@ -1,15 +1,10 @@
-import React from "react";
-import Layout from "../../shared/Layouts/Layout";
-
 const HomeCandidato = () => {
   return (
-    <Layout
-      footerLabel="Candidato"
-    >
+
       <div>
         Holi Candidato
       </div>
-    </Layout>
+   
   );
 };
 

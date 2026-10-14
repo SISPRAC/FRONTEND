@@ -11,7 +11,6 @@ import {
   ChevronRight
 } from "lucide-react";
 
-import Layout from "../../shared/Layouts/Layout";
 import ConfirmModal from "../../components/modals/ConfirmModal";
 import AperturaVacanteModal from "../../components/modals/AperturaVacanteModal.jsx";
 
@@ -440,15 +439,14 @@ const GrupoPracticaDetalle = () => {
 
   if (loadingGrupo) {
 
+
     return (
-      <Layout footerLabel="Empresa">
-
-        <div className="text-center py-10 text-slate-500">
-          Cargando detalle del grupo...
-        </div>
-
-      </Layout>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-slate-400 text-sm">
+        <div className="w-6 h-6 border-2 border-slate-300 border-t-[#e8192c] rounded-full animate-spin" />
+        <span>Cargando...</span>
+      </div>
     );
+
 
   }
 
@@ -456,13 +454,11 @@ const GrupoPracticaDetalle = () => {
   if (errorGrupo) {
 
     return (
-      <Layout footerLabel="Empresa">
 
-        <div className="text-center py-10 text-red-500 font-medium">
-          {errorGrupo}
-        </div>
+      <div className="text-center py-10 text-red-500 font-medium">
+        {errorGrupo}
+      </div>
 
-      </Layout>
     );
 
   }
@@ -471,13 +467,11 @@ const GrupoPracticaDetalle = () => {
   if (!grupo) {
 
     return (
-      <Layout footerLabel="Empresa">
 
-        <div className="text-center py-10 text-slate-500">
-          No se encontró el grupo.
-        </div>
+      <div className="text-center py-10 text-slate-500">
+        No se encontró el grupo.
+      </div>
 
-      </Layout>
     );
 
   }
@@ -485,7 +479,7 @@ const GrupoPracticaDetalle = () => {
 
   return (
 
-    <Layout footerLabel="Director de programa">
+    <div>
 
 
       {/* ======================================================
@@ -925,7 +919,7 @@ const GrupoPracticaDetalle = () => {
         onConfirm={handleConfirmarEliminar}
       />
 
-    </Layout>
+    </div>
 
   );
 

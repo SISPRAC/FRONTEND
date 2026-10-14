@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Layout from "../../shared/Layouts/Layout";
+
 import { convenioRepository } from "../../../infraestructura/repository/convenioRepository";
 import { getConvenios } from "../../../aplicacion/convenio/getConvenios";
 import GenericTable from "../../components/Table/GenericTable";
@@ -108,7 +108,7 @@ export default function Convenios() {
 
   return (
 
-    <Layout footerLabel="Director">
+    <div>
 
       <h1 className="
         text-[26px]
@@ -194,6 +194,6 @@ export default function Convenios() {
         tipo="empresa"
       />
 
-    </Layout>
+    </div>
   );
 }

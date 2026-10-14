@@ -50,6 +50,26 @@ export const obtenerSolicitudesVisitaTutorDocenteRequest =
 
 
 // ============================================================
+// OBTENER SOLICITUD PARA GESTIONAR
+// TUTOR DOCENTE AUTENTICADO
+// ============================================================
+
+export const obtenerSolicitudParaGestionarRequest =
+    async (id) => {
+
+        return await solicitudVisitaApi.get(
+            `/${id}/gestionar`,
+            {
+                headers: {
+                    Authorization: `Bearer ${getToken()}`
+                }
+            }
+        );
+
+    };
+
+
+// ============================================================
 // OBTENER SOLICITUDES POR PRÁCTICA
 // TUTOR EMPRESARIAL
 // ============================================================
@@ -149,4 +169,3 @@ export const rechazarSolicitudVisitaRequest =
         );
 
     };
-

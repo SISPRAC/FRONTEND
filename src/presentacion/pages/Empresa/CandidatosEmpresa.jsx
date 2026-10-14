@@ -1,4 +1,3 @@
-import Layout from "../../shared/Layouts/Layout";
 import { Eye } from "lucide-react";
 import GenericTable from "../../components/Table/GenericTable";
 import { useEffect, useMemo, useState } from "react";
@@ -100,7 +99,7 @@ const CandidatosEmpresa = () => {
 
 
   return (
-    <Layout footerLabel="Empresa">
+    <div>
 
       <h1
         className="
@@ -238,7 +237,7 @@ const CandidatosEmpresa = () => {
         pageSize={6}
       />
 
-    </Layout>
+    </div>
   );
 };
 

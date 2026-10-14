@@ -1,4 +1,3 @@
-import Layout from "../../shared/Layouts/Layout";
 import GenericTable from "../../components/Table/GenericTable";
 
 import {
@@ -335,7 +334,7 @@ const VacantesEmpresa = () => {
 
   return (
 
-    <Layout footerLabel="Empresa">
+    <div>
 
       <h1
         className="
@@ -983,7 +982,7 @@ const VacantesEmpresa = () => {
 
       )}
 
-    </Layout>
+    </div>
   );
 };
 

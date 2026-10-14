@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Trash, SquarePen } from "lucide-react";
 
-import Layout from "../../shared/Layouts/Layout";
 
 import GenericTable from "../../components/Table/GenericTable";
 import AddButton from "../../components/buttons/AddButton";
@@ -300,8 +299,7 @@ export default function PracticaRequisitoDocumentoPage() {
 
     return (
 
-        <Layout
-            footerLabel="Administrador"
+        <div
         >
 
             <h1
@@ -501,7 +499,7 @@ export default function PracticaRequisitoDocumentoPage() {
                 }
             />
 
-        </Layout>
+        </div>
 
     );
 

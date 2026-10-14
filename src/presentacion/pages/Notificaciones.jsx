@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import Layout from "../shared/Layouts/Layout";
 
 // Casos de uso
 import { marcarTodasNotificacionesLeidas } from "../../aplicacion/notificacion/marcarTodasNotificacionesLeidas.js";
@@ -121,7 +120,6 @@ export default function NotificacionesView() {
     };
 
     return (
-        <Layout footerLabel="Tutor Docente">
             <div className="mx-auto w-full max-w-2xl px-4 py-6">
                 {/* Encabezado */}
                 <div className="mb-5 flex items-center justify-between">
@@ -297,7 +295,6 @@ export default function NotificacionesView() {
                     </ul>
                 )}
             </div>
-        </Layout>
     );
 }
 

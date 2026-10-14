@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Layout from "../../shared/Layouts/Layout";
 
 import AddButton from "../../components/buttons/AddButton";
 import GenericTable from "../../components/Table/GenericTable";
@@ -172,10 +171,7 @@ export default function PracticasPage() {
 
   return (
 
-    <Layout
-
-      footerLabel="Administrador"
-    >
+    <div>
 
       <h1
         className="
@@ -293,7 +289,7 @@ export default function PracticasPage() {
         message={`¿Desea eliminar la práctica del período "${practicaToDelete?.Periodo?.nombre}"?`}
       />
 
-    </Layout>
+    </div>
 
   );
 

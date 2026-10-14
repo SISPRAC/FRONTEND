@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Layout from "../shared/Layouts/Layout";
 
 import GenericTable from "../components/Table/GenericTable";
 import DeleteModal from "../components/modals/DeleteModal"; // reutilizado como modal de confirmación genérico
@@ -138,7 +137,7 @@ export default function GestionTutores({
     };
 
     return (
-        <Layout footerLabel={footerLabel}>
+        <div >
             <h1
                 className="
           text-[26px]
@@ -263,6 +262,6 @@ export default function GestionTutores({
                 message={`¿Desea ${tutorSeleccionado?.estado === "ACTIVO" ? "INHABLITAR" : "HABILITAR"
                     } a ${tutorSeleccionado?.nombre}?`}
             />
-        </Layout>
+        </div>
     );
 }

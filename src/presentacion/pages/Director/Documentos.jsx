@@ -7,7 +7,6 @@ import {
     FileText,
 } from "lucide-react";
 
-import Layout from "../../shared/Layouts/Layout";
 import GenericTable from "../../components/Table/GenericTable";
 
 // -----------------------------------------------------------------------
@@ -414,7 +413,7 @@ export default function ProtocolosPage({
     };
 
     return (
-        <Layout footerLabel="Director">
+        <div>
             <div className="p-6">
                 {/* Encabezado */}
                 <div className="mb-6">
@@ -530,6 +529,6 @@ export default function ProtocolosPage({
                     candidatoActivo?.documentos || []
                 }
             />
-        </Layout >
+        </div >
     );
 }

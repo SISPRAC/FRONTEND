@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import Layout from "../../shared/Layouts/Layout";
 
 import { practicaRequisitoDocumentoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoRepository.js";
 import { entregaInformeRepository } from "../../../infraestructura/repository/entregaInformeRepository.js";
@@ -1144,7 +1143,7 @@ export default function InformeDocumento() {
 
     return (
 
-        <Layout footerLabel="Practicante">
+        <div>
 
             {/* Ocultar completamente la barra de scroll
                 de la trazabilidad */}
@@ -1755,7 +1754,7 @@ export default function InformeDocumento() {
 
             </div>
 
-        </Layout>
+        </div>
 
     );
 

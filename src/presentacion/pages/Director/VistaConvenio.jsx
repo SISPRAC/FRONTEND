@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Layout from "../../shared/Layouts/Layout";
 
 import { useLocation } from "react-router-dom";
 import { getConvenio } from "../../../aplicacion/convenio/getConvenio";
@@ -202,20 +201,18 @@ export default function VistaConvenio() {
   };
 
   if (!convenio) {
+   
     return (
-      <Layout
-
-        footerLabel="Director"
-      >
-        <div className="p-5 text-gray-500">
-          Cargando convenio...
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-slate-400 text-sm">
+            <div className="w-6 h-6 border-2 border-slate-300 border-t-[#e8192c] rounded-full animate-spin" />
+            <span>Cargando...</span>
         </div>
-      </Layout >
     );
+
   }
 
   return (
-    <Layout footerLabel="Director">
+    <div>
       {/* Contenedor que llena el alto del Layout  sin scroll de página */}
       <div className="flex flex-col h-full overflow-hidden p-5 gap-4">
 
@@ -414,6 +411,6 @@ export default function VistaConvenio() {
         }}
 
       />
-    </Layout >
+    </div >
   );
 }

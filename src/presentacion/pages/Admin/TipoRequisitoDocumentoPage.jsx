@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Trash, SquarePen } from "lucide-react";
 
-import Layout from "../../shared/Layouts/Layout";
-
 import GenericTable from "../../components/Table/GenericTable";
 import AddButton from "../../components/buttons/AddButton";
 import DeleteModal from "../../components/modals/DeleteModal";
@@ -365,9 +363,7 @@ export default function TipoRequisitoDocumentoPage() {
 
     return (
 
-        <Layout
-            footerLabel="Administrador"
-        >
+        <div>
 
             <h1
                 className="
@@ -561,7 +557,7 @@ export default function TipoRequisitoDocumentoPage() {
                 }
             />
 
-        </Layout>
+        </div>
 
     );
 

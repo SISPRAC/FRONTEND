@@ -11,7 +11,6 @@ import { obtenerPracticantePorId } from "../../aplicacion/practicante/getPractic
 import { obtenerRequisitosDocumentosPracticante } from "../../aplicacion/practicante/obtenerRequisitosDocumentosPracticante.js";
 import { practicanteRepository } from "../../infraestructura/repository/practicanteRepository.js";
 
-import Layout from "../shared/Layouts/Layout.jsx";
 import ConfirmModal from "../components/modals/ConfirmModal.jsx";
 
 import {
@@ -1082,12 +1081,7 @@ export default function VistaInformePracticante() {
 
     return (
 
-        <Layout
-            footerLabel={
-                esTutorDocente
-                    ? "Tutor Docente"
-                    : "Tutor Empresarial"
-            }
+        <div
         >
 
             <>
@@ -1667,7 +1661,7 @@ export default function VistaInformePracticante() {
 
             </>
 
-        </Layout>
+        </div>
 
     );
 

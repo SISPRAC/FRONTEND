@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import Layout from "../../shared/Layouts/Layout";
+import { useEffect, useState } from "react";
+
 
 import { obtenerMiPractica } from "../../../aplicacion/practicante/obtenerMiPractica.js";
 import { practicanteRepository } from "../../../infraestructura/repository/practicanteRepository.js";
@@ -61,7 +61,7 @@ const HomePracticante = () => {
     "bg-gray-100 text-gray-600";
 
   return (
-    <Layout footerLabel="Practicante">
+    <div>
       <div className="h-full flex flex-col p-6">
 
         {/* ===== Barra superior: duración + estado ===== */}
@@ -262,7 +262,7 @@ const HomePracticante = () => {
           </button>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 

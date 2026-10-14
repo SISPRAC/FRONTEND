@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 
 import GenericTable from "../../components/Table/GenericTable";
-import Layout from "../../shared/Layouts/Layout";
 
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -1080,7 +1079,7 @@ export default function DatosArl() {
 
     return (
 
-        <Layout footerLabel="Director">
+        <div>
 
             <div className="mx-auto max-w-6xl px-4 py-8">
 
@@ -1362,7 +1361,7 @@ export default function DatosArl() {
 
             </div>
 
-        </Layout>
+        </div>
 
     );
 

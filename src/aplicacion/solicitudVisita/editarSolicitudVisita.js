@@ -3,7 +3,6 @@ export const editarSolicitudVisita = async (
     id,
     data
 ) => {
-    console.log("entre a editar ojito..");
 
     return await solicitudVisitaRepository.editar(
         id,

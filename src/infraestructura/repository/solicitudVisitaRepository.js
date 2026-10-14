@@ -1,6 +1,7 @@
 import {
     crearSolicitudVisitaRequest,
     obtenerSolicitudesVisitaTutorDocenteRequest,
+    obtenerSolicitudParaGestionarRequest,
     obtenerSolicitudesVisitaPorPracticaRequest,
     editarSolicitudVisitaRequest,
     cancelarSolicitudVisitaRequest,
@@ -34,6 +35,22 @@ export const solicitudVisitaRepository = {
 
         const response =
             await obtenerSolicitudesVisitaTutorDocenteRequest();
+
+        return response.data;
+    },
+
+
+    // ============================================================
+    // OBTENER SOLICITUD PARA GESTIONAR
+    // TUTOR DOCENTE AUTENTICADO
+    // ============================================================
+
+    async getSolicitudParaGestionar(id) {
+
+        const response =
+            await obtenerSolicitudParaGestionarRequest(
+                id
+            );
 
         return response.data;
     },
@@ -117,4 +134,3 @@ export const solicitudVisitaRepository = {
     }
 
 };
-

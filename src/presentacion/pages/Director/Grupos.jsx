@@ -1,4 +1,3 @@
-import Layout from "../../shared/Layouts/Layout";
 import { Trash, SquarePen, Eye } from "lucide-react";
 import GenericTable from "../../components/Table/GenericTable";
 import { useEffect, useState } from "react";
@@ -197,10 +196,7 @@ const GruposDirector = () => {
   };
   return (
 
-    <Layout
-
-      footerLabel="Director"
-    >
+    <div>
 
       <h1 className="
         text-[26px]
@@ -288,7 +284,7 @@ const GruposDirector = () => {
         }
       />
 
-    </Layout >
+    </div >
   );
 }
 

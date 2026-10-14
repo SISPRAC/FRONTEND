@@ -6,7 +6,6 @@ import {
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
-import Layout from "../../shared/Layouts/Layout";
 
 
 // -----------------------------------------------------------------------
@@ -122,7 +121,7 @@ export default function PracticasDashboard() {
   const data = useMemo(() => DATA_POR_PERIODO[periodo], [periodo]);
 
   return (
-    <Layout footerLabel="Director">
+    <div>
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Practicas</h1>
@@ -258,6 +257,6 @@ export default function PracticasDashboard() {
           </div>
         </div>
       </div>
-    </Layout >
+    </div >
   );
 }

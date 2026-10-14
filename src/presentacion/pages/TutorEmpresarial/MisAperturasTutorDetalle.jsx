@@ -11,7 +11,6 @@ import {
     ChevronDown
 } from "lucide-react";
 
-import Layout from "../../shared/Layouts/Layout";
 import EstadoBadge from "../../components/estadoBadge/EstadoBadge.jsx";
 import ConfirmModal from "../../components/modals/ConfirmModal";
 import SolicitudesVisitaModal2 from "../../components/modals/SolicitudvisitaModalDocente.jsx";
@@ -19,9 +18,12 @@ import SeleccionarFechaVisitaModal from "../../components/modals/SeleccionarFech
 
 import { tutorEmpresarialRepository } from "../../../infraestructura/repository/tutorEmpresarialRepository.js";
 import { solicitudVisitaRepository } from "../../../infraestructura/repository/solicitudVisitaRepository.js";
+import { visitaRepository } from "../../../infraestructura/repository/visitaRepository.js";
+
 import { getAperturasByPractica } from "../../../aplicacion/tutorEmpresarial/getAperturasByPractica.js";
 import { obtenerSolicitudesVisitaPorPractica } from "../../../aplicacion/solicitudVisita/obtenerSolicitudesVisitaPorPractica.js";
-// TODO: crear estos dos casos de uso
+import { obtenerVisitaPorSolicitud } from "../../../aplicacion/visita/obtenerVisitaPorSolicitud.js";
+
 import { aceptarSolicitudVisita } from "../../../aplicacion/solicitudVisita/aceptarSolicitudVisita.js";
 import { rechazarSolicitudVisita } from "../../../aplicacion/solicitudVisita/rechazarSolicitudVisita.js";
 
@@ -129,7 +131,10 @@ const AperturaCard = ({ apertura, expandido, onToggle, navigate }) => {
 
                                     <button
                                         onClick={() =>
-                                            console.log("Encuestas:", p.id_practicante)
+                                            console.log(
+                                                "Encuestas:",
+                                                p.id_practicante
+                                            )
                                         }
                                         className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                                     >
@@ -175,6 +180,11 @@ const MisAperturasTutorEmpresarial = () => {
 
     const [procesando, setProcesando] = useState(false);
 
+    // Visita seleccionada
+    const [visitaSeleccionada, setVisitaSeleccionada] = useState(null);
+    const [mostrarModalVisita, setMostrarModalVisita] = useState(false);
+    const [loadingVisita, setLoadingVisita] = useState(false);
+
 
     // ---------------- Cargar aperturas ----------------
 
@@ -218,6 +228,8 @@ const MisAperturasTutorEmpresarial = () => {
                 practicaId
             );
 
+            console.log("Solicitudes de visita:", data);
+
             setSolicitudesVisita(data || []);
         } catch (error) {
             console.error("Error cargando las solicitudes de visita:", error);
@@ -236,7 +248,8 @@ const MisAperturasTutorEmpresarial = () => {
 
     // ---------------- Aceptar ----------------
 
-    // SeleccionarFechaVisitaModal entrega { solicitudId, rangoId, fecha, hora }
+    // SeleccionarFechaVisitaModal entrega:
+    // { solicitudId, rangoId, fecha, hora }
     const onFechaElegida = (data) => {
         setVisitaPendiente(data);
         setSolicitudSeleccionFecha(null);
@@ -251,17 +264,10 @@ const MisAperturasTutorEmpresarial = () => {
             await aceptarSolicitudVisita(
                 { solicitudVisitaRepository },
                 {
-                    solicitud_visita_id:
-                        visitaPendiente.solicitudId,
-
-                    solicitud_visita_fecha_id:
-                        visitaPendiente.rangoId,
-
-                    fecha_visita:
-                        visitaPendiente.fecha,
-
-                    hora_visita:
-                        visitaPendiente.hora
+                    solicitud_visita_id: visitaPendiente.solicitudId,
+                    solicitud_visita_fecha_id: visitaPendiente.rangoId,
+                    fecha_visita: visitaPendiente.fecha,
+                    hora_visita: visitaPendiente.hora
                 }
             );
 
@@ -270,20 +276,19 @@ const MisAperturasTutorEmpresarial = () => {
             setVisitaPendiente(null);
 
             await cargarSolicitudes();
-
         } catch (error) {
-
             console.error(error);
 
             toast.error(
                 error?.response?.data?.message ||
+                error?.message ||
                 "No se pudo aceptar la visita"
             );
-
         } finally {
             setProcesando(false);
         }
     };
+
 
     // ---------------- Rechazar ----------------
 
@@ -298,9 +303,7 @@ const MisAperturasTutorEmpresarial = () => {
         const motivo = motivoRechazo.trim();
 
         if (motivo.length < 10) {
-            toast.error(
-                "Escribe un motivo de al menos 10 caracteres"
-            );
+            toast.error("Escribe un motivo de al menos 10 caracteres");
             return;
         }
 
@@ -310,9 +313,7 @@ const MisAperturasTutorEmpresarial = () => {
             await rechazarSolicitudVisita(
                 { solicitudVisitaRepository },
                 {
-                    solicitud_visita_id:
-                        solicitudRechazar.id,
-
+                    solicitud_visita_id: solicitudRechazar.id,
                     motivo
                 }
             );
@@ -322,30 +323,80 @@ const MisAperturasTutorEmpresarial = () => {
             cerrarRechazo();
 
             await cargarSolicitudes();
-
         } catch (error) {
-
             console.error(error);
 
             toast.error(
                 error?.response?.data?.message ||
+                error?.message ||
                 "No se pudo rechazar la solicitud"
             );
-
         } finally {
             setProcesando(false);
         }
     };
 
+
+    // ---------------- Consultar visita por solicitud ----------------
+
+
+    const handleVerVisita = async (solicitud) => {
+        if (!solicitud?.id) {
+            toast.error("No se encontró el ID de la solicitud de visita.");
+            return;
+        }
+
+        try {
+            setLoadingVisita(true);
+
+            const resultado = await obtenerVisitaPorSolicitud(
+                { visitaRepository },
+                solicitud.id
+            );
+
+            console.log("Resultado de obtenerVisitaPorSolicitud:", resultado);
+
+            // El caso de uso devuelve { data: visita }.
+            const visita = resultado?.data ?? resultado;
+
+            console.log("Visita obtenida:", visita);
+
+            if (!visita?.id) {
+                toast.error("No se encontró una visita para esta solicitud.");
+                return;
+            }
+
+            // Navegar a la página de consulta de la visita.
+            navigate(`/visita-empresarial/${solicitud.id}`, {
+                state: {
+                    solicitud,
+                    visita
+                }
+            });
+
+        } catch (error) {
+            console.error("Error al consultar la visita:", error);
+
+            toast.error(
+                error?.response?.data?.message ||
+                error?.message ||
+                "No se pudo cargar la visita."
+            );
+        } finally {
+            setLoadingVisita(false);
+        }
+    };
+
+
+
     // ---------------- Render ----------------
 
     if (loading) {
         return (
-            <Layout>
-                <div className="flex justify-center items-center py-20">
-                    <p className="text-gray-500">Cargando información...</p>
-                </div>
-            </Layout>
+            <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-slate-400 text-sm">
+                <div className="w-6 h-6 border-2 border-slate-300 border-t-[#e8192c] rounded-full animate-spin" />
+                <span>Cargando...</span>
+            </div>
         );
     }
 
@@ -353,11 +404,12 @@ const MisAperturasTutorEmpresarial = () => {
 
     const aperturasOrdenadas = [...aperturas].sort(
         (a, b) =>
-            (b.practicantes?.length || 0) - (a.practicantes?.length || 0)
+            (b.practicantes?.length || 0) -
+            (a.practicantes?.length || 0)
     );
 
     return (
-        <Layout>
+        <div>
             <div className="p-6">
 
                 {/* Encabezado */}
@@ -434,6 +486,7 @@ const MisAperturasTutorEmpresarial = () => {
                 onCerrar={() => setMostrarModalVisitas(false)}
                 onAceptar={setSolicitudSeleccionFecha}
                 onRechazar={setSolicitudRechazar}
+                onVerVisita={handleVerVisita}
             />
 
             {/* 1. Elegir fecha */}
@@ -455,7 +508,7 @@ const MisAperturasTutorEmpresarial = () => {
                 onCancel={() => !procesando && setVisitaPendiente(null)}
             />
 
-            {/* Rechazar (mismo ConfirmModal, con textarea) */}
+            {/* 3. Rechazar */}
             <ConfirmModal
                 isOpen={!!solicitudRechazar}
                 title="Rechazar solicitud"
@@ -468,7 +521,7 @@ const MisAperturasTutorEmpresarial = () => {
                 onConfirm={confirmarRechazar}
                 onCancel={() => !procesando && cerrarRechazo()}
             />
-        </Layout>
+        </div>
     );
 };
 

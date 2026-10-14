@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Download, FileSpreadsheet, FileText } from "lucide-react";
 import GenericTable from "../../components/Table/GenericTable"; 
-import Layout from "../../shared/Layouts/Layout";
 
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -158,7 +157,7 @@ export default function ReportesPage({
   };
 
   return (
-    <Layout footerLabel="Director">
+    <div>
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
@@ -217,6 +216,6 @@ export default function ReportesPage({
           />
         </div>
       </div>
-    </Layout >
+    </div>
   );
 }

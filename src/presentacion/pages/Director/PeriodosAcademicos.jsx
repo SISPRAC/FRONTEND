@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Layout from "../../shared/Layouts/Layout";
 
 import AddButton from "../../components/buttons/AddButton";
 import { periodoRepository } from "../../../infraestructura/repository/periodoRepository";
@@ -131,10 +130,7 @@ export default function PeriodosAcademicos() {
 
   return (
 
-    <Layout 
-     
-      footerLabel="Director"
-    >
+    <div>
 
       <h1 className="
         text-[26px]
@@ -211,6 +207,6 @@ export default function PeriodosAcademicos() {
         message={`¿Desea eliminar el período "${periodoToDelete?.nombre}"?`}
       />
 
-    </Layout >
+    </div >
   );
 }

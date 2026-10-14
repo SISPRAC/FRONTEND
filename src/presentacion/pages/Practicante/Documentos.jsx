@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Eye, Upload, Pencil } from "lucide-react";
-import Layout from "../../shared/Layouts/Layout";
-// TODO: ajustar la ruta según dónde vivas GenericTable en tu proyecto.
+
 import GenericTable from "../../components/Table/GenericTable";
 import {practicaRequisitoDocumentoRepository} from "../../../infraestructura/repository/practicaRequisitoDocumentoRepository";
 
@@ -161,7 +160,7 @@ const Documentos = () => {
   ];
 
   return (
-    <Layout footerLabel="Documentos">
+    <div>
       <div className="p-6">
         <h1 className="text-2xl font-bold text-slate-800 mb-6">Documentos a subir</h1>
 
@@ -191,7 +190,7 @@ const Documentos = () => {
       {modalConfirmacion && (
         <ModalConfirmacion documento={documentoSeleccionado} onClose={cerrarModales} />
       )}
-    </Layout>
+    </div>
   );
 };
 

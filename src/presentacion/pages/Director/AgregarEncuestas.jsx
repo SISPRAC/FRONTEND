@@ -9,8 +9,6 @@ import {
     ArrowLeft
 } from "lucide-react";
 
-import Layout from "../../shared/Layouts/Layout";
-
 import { getEncuesta } from "../../../aplicacion/encuesta/getEncuesta";
 import { crearEncuesta } from "../../../aplicacion/encuesta/crearEncuesta";
 import { actualizarEncuesta } from "../../../aplicacion/encuesta/editarEncuesta";
@@ -1101,9 +1099,7 @@ export default function AgregarEncuestaPage() {
 
     return (
 
-        <Layout
-            footerLabel="Director"
-        >
+        <div>
 
             < button
 
@@ -1799,7 +1795,7 @@ export default function AgregarEncuestaPage() {
             </div>
 
 
-        </Layout >
+        </div >
 
     );
 

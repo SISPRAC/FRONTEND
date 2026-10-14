@@ -10,7 +10,6 @@ import {
   FileText,
   Download,
 } from "lucide-react";
-import Layout from "../../shared/Layouts/Layout";
 import ConfirmModal from "../../components/modals/ConfirmModal";
 
 import { aceptarPostulacion } from "../../../aplicacion/postulacion/aceptarPostulacion";
@@ -99,7 +98,7 @@ const CandidatoDetalleEmpresa = () => {
     ESTADO_STYLES[estado] ?? ESTADO_STYLES.pendiente;
 
   return (
-    <Layout footerLabel="Empresa">
+    <div>
 
       {/* CONTENEDOR PRINCIPAL */}
       <div
@@ -442,7 +441,7 @@ const CandidatoDetalleEmpresa = () => {
         onTextareaChange={setComentarioRechazo}
         textareaPlaceholder="Indique el motivo por el cual se rechaza al candidato..."
       />
-    </Layout>
+    </div>
   );
 };
 

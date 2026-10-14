@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Layout from "../../shared/Layouts/Layout";
 
 import GenericTable from "../../components/Table/GenericTable";
 import UserRolesModal from "../../components/modals/UserRolesModal";
@@ -223,7 +222,7 @@ export default function UsersPage() {
 
     return (
 
-        <Layout footerLabel="Administrador">
+        <div>
 
             <h1
                 className="
@@ -461,7 +460,7 @@ export default function UsersPage() {
 
             />
 
-        </Layout>
+        </div>
 
     );
 
