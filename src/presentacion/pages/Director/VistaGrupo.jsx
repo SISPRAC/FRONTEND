@@ -1,4 +1,10 @@
-import { ArrowLeft, UserX, Building2 } from "lucide-react";
+import {
+  ArrowLeft,
+  UserX,
+  Building2,
+  LoaderCircle,
+  Eye,
+} from "lucide-react";
 import { getCandidatosGrupo } from "../../../aplicacion/grupos/getCandidatosGrupo";
 import { grupoRepository } from "../../../infraestructura/repository/grupoRepository";
 import GenericTable from "../../components/Table/GenericTable";
@@ -140,8 +146,13 @@ const GrupoVistaDirector = () => {
       return;
     }
 
-    // Mostrar toast de carga mientras se consultan las visitas
-    const toastId = toast.loading("Cargando visitas del practicante...");
+    // Activar indicador de carga en el botón
+    setLoadingVisitasId(id);
+
+    // Mostrar toast de carga
+    const toastId = toast.loading(
+      "Cargando visitas del practicante..."
+    );
 
     try {
       const respuesta = await obtenerVisitasPorPracticante(
@@ -155,7 +166,9 @@ const GrupoVistaDirector = () => {
 
       if (!Array.isArray(visitas) || visitas.length === 0) {
         toast.dismiss(toastId);
-        toast.error("Este practicante no tiene visitas registradas.");
+        toast.error(
+          "Este practicante no tiene visitas registradas."
+        );
         return;
       }
 
@@ -170,7 +183,7 @@ const GrupoVistaDirector = () => {
         return;
       }
 
-      // Cerrar el toast de carga antes de navegar
+      // Cerrar el toast antes de navegar
       toast.dismiss(toastId);
 
       navigate(
@@ -184,7 +197,10 @@ const GrupoVistaDirector = () => {
       );
 
     } catch (error) {
-      console.error("Error al consultar las visitas:", error);
+      console.error(
+        "Error al consultar las visitas:",
+        error
+      );
 
       toast.dismiss(toastId);
 
@@ -193,6 +209,9 @@ const GrupoVistaDirector = () => {
         error.message ||
         "No se pudieron consultar las visitas del practicante."
       );
+    } finally {
+      // Quitar el indicador de carga siempre
+      setLoadingVisitasId(null);
     }
   };
 
@@ -241,36 +260,39 @@ const GrupoVistaDirector = () => {
 
   const handleRetirar = async ({ motivo, archivo }) => {
     if (!practicanteSeleccionado?.empresa) {
-      toast.error(
-        "No se puede retirar un practicante sin empresa asignada."
-      );
+      toast.error("No se puede retirar un practicante sin empresa asignada.");
       return;
     }
 
     try {
       await crearRetiroPracticante(
-        retiroPracticanteRepository,
+        { retiroPracticanteRepository },
         {
           motivo,
           practicante_id: practicanteSeleccionado.id,
-          cv: archivo,
+          archivo,
         }
       );
-
-      toast.success("El practicante fue retirado correctamente.");
-
-      setOpenRetiroModal(false);
-      setPracticanteSeleccionado(null);
-
-      // Actualizar los datos después del retiro.
-      await loadCandidatosGrupos();
     } catch (error) {
       console.error(error);
 
       toast.error(
-        error.response?.data?.message ||
-        "Error al retirar al practicante."
+        error.response?.data?.message || "Error al retirar al practicante."
       );
+      return; // el modal se queda abierto para que puedan reintentar
+    }
+
+    toast.success("El practicante fue retirado correctamente.");
+
+    setOpenRetiroModal(false);
+    setPracticanteSeleccionado(null);
+
+    // Si esto falla, el retiro ya se hizo; no lo mostramos como error de retiro.
+    try {
+      await loadCandidatosGrupos();
+    } catch (error) {
+      console.error(error);
+      toast.error("El retiro se hizo, pero no se pudo actualizar la lista.");
     }
   };
 
@@ -382,16 +404,60 @@ const GrupoVistaDirector = () => {
           },
         ]}
         actions={[
+
+          {
+            icon: <Eye size={18} />,
+            className: "text-slate-600 hover:bg-blue-100",
+            title: "Ver informes",
+            onClick: (id) => {
+              const practicante = rows.find((p) => p.id === id);
+
+              if (!practicante) {
+                toast.error("No se encontró el practicante.");
+                return;
+              }
+
+              navigate(`/informes/${practicante.id}/consulta`, {
+                state: {
+                  practicante: {
+                    id: practicante.id,
+                    nombre: practicante.candidatos,
+                    codigo: practicante.codigo,
+                    empresa: practicante.empresa,
+                    estado: practicante.estado,
+                  },
+                },
+              });
+            },
+            disabled: (row) =>
+              row.estado === "Retirado" ||
+              row.estado === "RECHAZADO" ||
+              row.estado === "POSTULADO",
+            disabledTitle: "No disponible para este estado",
+          },
           {
             icon: <UserX size={18} />,
             className: "hover:bg-red-100 text-red-500",
             onClick: verDetalle,
+            disabled: (row) =>
+              row.estado === "Retirado" ||
+              row.estado === "Finalizada" ||
+              loadingVisitasId !== null,
+            disabledTitle: "No se puede retirar un practicante en este estado",
           },
           {
-            icon: <Building2 size={18} />,
+            icon:
+              loadingVisitasId !== null ? (
+                <LoaderCircle size={18} className="animate-spin" />
+              ) : (
+                <Building2 size={18} />
+              ),
             className: "hover:bg-blue-100 text-blue-500",
             onClick: verVisitasPracticante,
-            disabled: loadingVisitasId !== null,
+            disabled: (row) =>
+              row.estado === "Retirado" ||
+              loadingVisitasId !== null,
+            disabledTitle: "No disponible para practicantes retirados",
           },
         ]}
         emptyMessage="No hay Practicantes registrados."

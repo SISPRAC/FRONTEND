@@ -41,7 +41,12 @@ export const crearRetiroPracticanteRequest = (data) => {
 
     return retiroPracticanteApi.post(
         "/",
-        data
+        data,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        }
     );
 
 };

@@ -10,7 +10,8 @@ const SolicitudesVisitaModal2 = ({
     onCerrar,
     onAceptar,
     onRechazar,
-    onVerVisita
+    onVerVisita,
+    estadosPracticantes
 }) => {
     const [visitaCargandoId, setVisitaCargandoId] = useState(null);
 
@@ -95,12 +96,9 @@ const SolicitudesVisitaModal2 = ({
                                     onAceptar={onAceptar}
                                     onRechazar={onRechazar}
                                     onVerVisita={() => handleVerVisita(solicitud)}
-                                    visitaCargando={
-                                        visitaCargandoId === solicitud.id
-                                    }
-                                    bloquearAcciones={
-                                        visitaCargandoId !== null
-                                    }
+                                    visitaCargando={visitaCargandoId === solicitud.id}
+                                    bloquearAcciones={visitaCargandoId !== null}
+                                    estadosPracticantes={estadosPracticantes}
                                 />
                             ))}
                         </div>

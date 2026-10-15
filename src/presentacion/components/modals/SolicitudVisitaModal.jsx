@@ -40,10 +40,11 @@ const formatearHora = (hora) => {
 const SolicitudVisitaModal = ({
     open,
     onClose,
-    practicantes = [],
+    practicantes,
     onSubmit,
-    enviando = false,
-    idsConSolicitud = new Set(),
+    enviando,
+    idsConSolicitud,
+    idsPracticantesNoSeleccionables,
     onGestionarVisita,
     onCancelarSolicitud
 }) => {
@@ -56,6 +57,7 @@ const SolicitudVisitaModal = ({
     const [fechas, setFechas] = useState([
         { ...FECHA_VACIA }
     ]);
+
 
 
     const [fechasExistentes, setFechasExistentes] = useState([]);
@@ -214,6 +216,22 @@ const SolicitudVisitaModal = ({
 
     };
 
+    const obtenerMotivoNoDisponible = (practicante) => {
+        switch (practicante.estado) {
+            case "Retirado":
+                return "No disponible: el practicante fue retirado de la práctica.";
+
+            case "Finalizada":
+                return "No disponible: la práctica del estudiante ya finalizó.";
+
+            case "Cancelado":
+                return "No disponible: la participación del practicante fue cancelada.";
+
+            default:
+                return "";
+        }
+    };
+
 
     /*
      * ============================================================
@@ -222,83 +240,50 @@ const SolicitudVisitaModal = ({
      */
 
     const handleToggle = (practicante) => {
+        const { id, empresa } = practicante;
 
-        const {
-            id,
-            empresa
-        } = practicante;
-
-
-        /*
-         * Aceptada no puede seleccionarse.
-         */
-
+        // No permitir seleccionar practicantes retirados o finalizados.
         if (
-            esAceptada(practicante)
+            idsPracticantesNoSeleccionables?.has(id) ||
+            practicante.estado === "Retirado" ||
+            practicante.estado === "Finalizada"
         ) {
-
             return;
-
         }
 
+        // Aceptada no puede seleccionarse.
+        if (esAceptada(practicante)) {
+            return;
+        }
 
-        /*
-         * Si existe una solicitud sin estado,
-         * tampoco permitimos crear otra.
-         */
-
+        // Si existe una solicitud sin estado, tampoco permitimos crear otra.
         if (
             !practicante.estadoSolicitudVisita &&
             idsConSolicitud.has(id)
         ) {
-
             return;
-
         }
 
-
-        /*
-         * Si ya está seleccionado, quitarlo.
-         */
-
-        if (
-            seleccionados.includes(id)
-        ) {
-
+        // Si ya está seleccionado, quitarlo.
+        if (seleccionados.includes(id)) {
             setSeleccionados((prev) =>
-                prev.filter(
-                    (x) => x !== id
-                )
+                prev.filter((x) => x !== id)
             );
-
             return;
-
         }
 
-
-        /*
-         * Solo una empresa por solicitud.
-         */
-
+        // Solo una empresa por solicitud.
         if (
             empresaSeleccionada &&
             empresaSeleccionada !== empresa
         ) {
-
             toast.error(
                 "Solo puede seleccionar practicantes de una empresa por solicitud."
             );
-
             return;
-
         }
 
-
-        setSeleccionados((prev) => [
-            ...prev,
-            id
-        ]);
-
+        setSeleccionados((prev) => [...prev, id]);
     };
 
 
@@ -927,10 +912,12 @@ const SolicitudVisitaModal = ({
                                                     practicante
                                                 ) => {
 
-                                                    const seleccionado =
-                                                        seleccionados.includes(
-                                                            practicante.id
-                                                        );
+                                                    const seleccionado = seleccionados.includes(practicante.id);
+
+                                                    const motivoNoDisponible =
+                                                        obtenerMotivoNoDisponible(practicante);
+
+                                                    const noSeleccionable = Boolean(motivoNoDisponible);
 
 
                                                     const solicitudPendiente =
@@ -994,55 +981,46 @@ const SolicitudVisitaModal = ({
                                                             "
                                                         >
 
-                                                            {/* CHECKBOX */}
 
+                                                            {/* CHECKBOX */}
                                                             <input
                                                                 type="checkbox"
-                                                                checked={
-                                                                    seleccionado
-                                                                }
-                                                                disabled={
-                                                                    solicitudActiva
-                                                                }
-                                                                onChange={() =>
-                                                                    handleToggle(
-                                                                        practicante
-                                                                    )
+                                                                checked={seleccionado}
+                                                                disabled={solicitudActiva || noSeleccionable}
+                                                                onChange={() => handleToggle(practicante)}
+                                                                title={
+                                                                    noSeleccionable
+                                                                        ? motivoNoDisponible
+                                                                        : solicitudActiva
+                                                                            ? "Ya existe una solicitud de visita activa."
+                                                                            : undefined
                                                                 }
                                                                 className={`
-                                                                    w-4
-                                                                    h-4
-                                                                    mt-1
-                                                                    accent-red-600
-                                                                    ${solicitudActiva
-                                                                        ? "cursor-not-allowed"
+        h-4
+        w-4
+        shrink-0
+        mt-1
+        accent-red-600
+        ${solicitudActiva || noSeleccionable
+                                                                        ? "cursor-not-allowed opacity-50"
                                                                         : "cursor-pointer"
                                                                     }
-                                                                `}
+    `}
                                                             />
-
 
                                                             <div
                                                                 className={`
-                                                                    flex-1
-                                                                    min-w-0
-                                                                    ${solicitudActiva
-                                                                        ? "cursor-default"
+        flex-1
+        min-w-0
+        ${solicitudActiva || noSeleccionable
+                                                                        ? "cursor-not-allowed opacity-60"
                                                                         : "cursor-pointer"
                                                                     }
-                                                                `}
+    `}
                                                                 onClick={() => {
-
-                                                                    if (
-                                                                        !solicitudActiva
-                                                                    ) {
-
-                                                                        handleToggle(
-                                                                            practicante
-                                                                        );
-
+                                                                    if (!solicitudActiva && !noSeleccionable) {
+                                                                        handleToggle(practicante);
                                                                     }
-
                                                                 }}
                                                             >
 
@@ -1242,7 +1220,17 @@ const SolicitudVisitaModal = ({
                                                                                     e.stopPropagation();
                                                                                     handleGestionarVisita(practicante);
                                                                                 }}
-                                                                                disabled={gestionandoVisitaId !== null}
+                                                                                disabled={
+                                                                                    gestionandoVisitaId !== null ||
+                                                                                    noSeleccionable
+                                                                                }
+                                                                                title={
+                                                                                    noSeleccionable
+                                                                                        ? motivoNoDisponible
+                                                                                        : gestionandoVisitaId !== null
+                                                                                            ? "Hay otra visita cargándose."
+                                                                                            : "Gestionar visita"
+                                                                                }
                                                                                 className="
         inline-flex
         items-center
@@ -1257,8 +1245,9 @@ const SolicitudVisitaModal = ({
         rounded-lg
         hover:bg-red-700
         transition-colors
-        disabled:opacity-70
+        disabled:opacity-40
         disabled:cursor-not-allowed
+        disabled:hover:bg-red-600
     "
                                                                             >
                                                                                 {gestionandoVisitaId === practicante.solicitudVisitaId ? (
@@ -1284,32 +1273,35 @@ const SolicitudVisitaModal = ({
                                                                             {!visitaRealizada && (
                                                                                 <button
                                                                                     type="button"
+                                                                                    disabled={noSeleccionable}
+                                                                                    title={
+                                                                                        noSeleccionable
+                                                                                            ? motivoNoDisponible
+                                                                                            : "Cancelar solicitud de visita"
+                                                                                    }
                                                                                     onClick={(e) => {
-
                                                                                         e.stopPropagation();
-
-                                                                                        handleMostrarCancelacion(
-                                                                                            practicante
-                                                                                        );
-
+                                                                                        handleMostrarCancelacion(practicante);
                                                                                     }}
                                                                                     className="
-                                                                                        inline-flex
-                                                                                        items-center
-                                                                                        gap-2
-                                                                                        px-3
-                                                                                        py-1.5
-                                                                                        text-xs
-                                                                                        font-medium
-                                                                                        text-red-600
-                                                                                        border
-                                                                                        border-red-200
-                                                                                        rounded-lg
-                                                                                        hover:bg-red-50
-                                                                                        transition-colors
-                                                                                    "
+            inline-flex
+            items-center
+            gap-2
+            px-3
+            py-1.5
+            text-xs
+            font-medium
+            text-red-600
+            border
+            border-red-200
+            rounded-lg
+            hover:bg-red-50
+            transition-colors
+            disabled:opacity-40
+            disabled:cursor-not-allowed
+            disabled:hover:bg-transparent
+        "
                                                                                 >
-
                                                                                     <Ban size={14} />
                                                                                     Cancelar solicitud
                                                                                 </button>

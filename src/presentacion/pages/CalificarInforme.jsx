@@ -1081,8 +1081,7 @@ export default function VistaInformePracticante() {
 
     return (
 
-        <div
-        >
+        <div className="flex flex-col h-full min-h-0">
 
             <>
 
@@ -1106,7 +1105,7 @@ export default function VistaInformePracticante() {
 
                 ) : (
 
-                    <div className="flex flex-col h-full lg:overflow-hidden overflow-y-auto gap-4">
+                    <div className="flex flex-col flex-1 min-h-0 lg:overflow-hidden overflow-y-auto gap-4">
 
 
                         {/* ─────────────────────────────────────────
@@ -1345,7 +1344,7 @@ export default function VistaInformePracticante() {
 
                                 {/* PDF */}
 
-                                <div className="flex-1 overflow-y-auto bg-gray-100 p-4 min-h-0">
+                                <div className="flex-1 overflow-y-auto bg-gray-100 min-h-0">
 
                                     {cargandoEntrega ? (
 
@@ -1360,7 +1359,7 @@ export default function VistaInformePracticante() {
                                         <iframe
                                             src={archivoUrl}
                                             title="Informe PDF"
-                                            className="w-full h-full rounded border border-gray-200"
+                                            className="w-full h-full border-0"
                                             style={{
                                                 minHeight: "100%"
                                             }}

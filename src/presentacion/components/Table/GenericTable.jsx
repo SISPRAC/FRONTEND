@@ -93,15 +93,28 @@ export default function GenericTable({
                       <td className="px-4 py-3.5">
                         <div className="flex items-center gap-2 justify-center">
 
-                          {actions.map((action, index) => (
-                            <button
-                              key={index}
-                              onClick={() => action.onClick(row[rowKey])}
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${action.className}`}
-                            >
-                              {action.icon}
-                            </button>
-                          ))}
+                          {actions.map((action, index) => {
+                            const disabled =
+                              typeof action.disabled === "function"
+                                ? action.disabled(row)
+                                : Boolean(action.disabled);
+
+                            return (
+                              <button
+                                key={index}
+                                onClick={() => action.onClick(row[rowKey])}
+                                disabled={disabled}
+                                title={disabled ? (action.disabledTitle || "Acción no disponible") : undefined}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${action.className
+                                  } ${disabled
+                                    ? "opacity-40 cursor-not-allowed pointer-events-none"
+                                    : ""
+                                  }`}
+                              >
+                                {action.icon}
+                              </button>
+                            );
+                          })}
 
                         </div>
                       </td>

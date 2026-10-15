@@ -463,6 +463,28 @@ export default function App() {
 
           </Route>
 
+          {/* =====================================================
+              Ver informe practicante
+              Empresa + Director de programa
+              ===================================================== */}
+          <Route
+            element={
+              <ProtectedRoute
+                roles={[
+                  "Empresa",
+                  "Director de programa",
+                ]}
+              />
+            }
+          >
+
+            <Route
+              path="/informes/:idPracticante/consulta"
+              element={<VistaInformePracticante soloLectura />}
+            />
+          </Route>
+
+
 
           {/* =====================================================
               TUTOR EMPRESARIAL
@@ -524,7 +546,7 @@ export default function App() {
 
         </Route>
 
-      </Routes>
+      </Routes >
     </>
   );
 }

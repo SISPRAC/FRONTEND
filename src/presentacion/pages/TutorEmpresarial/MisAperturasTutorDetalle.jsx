@@ -32,6 +32,35 @@ import { rechazarSolicitudVisita } from "../../../aplicacion/solicitudVisita/rec
 // Tarjeta de apertura
 // ------------------------------------------------------------
 
+const normalizarEstado = (estado) =>
+    estado?.trim().toLowerCase();
+
+const esPracticanteNoDisponible = (estado) => {
+    const estadoNormalizado = normalizarEstado(estado);
+
+    return [
+        "retirado",
+        "cancelado",
+        "finalizada"
+    ].includes(estadoNormalizado);
+};
+
+const obtenerMotivoNoDisponible = (estado) => {
+    switch (normalizarEstado(estado)) {
+        case "retirado":
+            return "No disponible: el practicante fue retirado de la práctica.";
+
+        case "cancelado":
+            return "No disponible: la participación del practicante fue cancelada.";
+
+        case "finalizada":
+            return "No disponible: la práctica del estudiante ya finalizó.";
+
+        default:
+            return "";
+    }
+};
+
 const AperturaCard = ({ apertura, expandido, onToggle, navigate }) => {
     const practicantes = apertura.practicantes || [];
     const cantidad = practicantes.length;
@@ -123,7 +152,17 @@ const AperturaCard = ({ apertura, expandido, onToggle, navigate }) => {
                                                 }
                                             )
                                         }
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                        disabled={esPracticanteNoDisponible(p.estado)}
+                                        title={obtenerMotivoNoDisponible(p.estado) || undefined}
+                                        className={`
+        flex items-center gap-1.5
+        px-3 py-1.5 text-sm rounded-lg
+        transition-colors
+        ${esPracticanteNoDisponible(p.estado)
+                                                ? "bg-gray-200 text-gray-500 cursor-not-allowed opacity-60"
+                                                : "bg-red-600 text-white hover:bg-red-700"
+                                            }
+    `}
                                     >
                                         <FileText size={15} />
                                         Informes
@@ -136,7 +175,17 @@ const AperturaCard = ({ apertura, expandido, onToggle, navigate }) => {
                                                 p.id_practicante
                                             )
                                         }
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                                        disabled={esPracticanteNoDisponible(p.estado)}
+                                        title={obtenerMotivoNoDisponible(p.estado) || undefined}
+                                        className={`
+        flex items-center gap-1.5
+        px-3 py-1.5 text-sm rounded-lg
+        border transition-colors
+        ${esPracticanteNoDisponible(p.estado)
+                                                ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60"
+                                                : "border-gray-300 text-gray-700 hover:bg-gray-100"
+                                            }
+    `}
                                     >
                                         <ClipboardCheck size={15} />
                                         Encuestas
@@ -185,6 +234,32 @@ const MisAperturasTutorEmpresarial = () => {
     const [mostrarModalVisita, setMostrarModalVisita] = useState(false);
     const [loadingVisita, setLoadingVisita] = useState(false);
 
+    const normalizarNombre = (nombre) =>
+        nombre
+            ?.trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ");
+
+    const obtenerEstadosPracticantes = () => {
+        const estados = new Map();
+
+        aperturas.forEach((apertura) => {
+            (apertura.practicantes || []).forEach((practicante) => {
+                const nombre = normalizarNombre(practicante.nombre);
+
+                if (!nombre) return;
+
+                estados.set(nombre, {
+                    estado: practicante.estado,
+                    noDisponible: esPracticanteNoDisponible(
+                        practicante.estado
+                    )
+                });
+            });
+        });
+
+        return estados;
+    };
 
     // ---------------- Cargar aperturas ----------------
 
@@ -487,6 +562,7 @@ const MisAperturasTutorEmpresarial = () => {
                 onAceptar={setSolicitudSeleccionFecha}
                 onRechazar={setSolicitudRechazar}
                 onVerVisita={handleVerVisita}
+                estadosPracticantes={obtenerEstadosPracticantes()}
             />
 
             {/* 1. Elegir fecha */}

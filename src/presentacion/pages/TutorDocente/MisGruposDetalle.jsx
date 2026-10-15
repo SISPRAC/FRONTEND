@@ -627,6 +627,20 @@ const GrupoVistaTutorDocente = () => {
 
     };
 
+    const idsPracticantesNoSeleccionables = useMemo(
+        () =>
+            new Set(
+                rows
+                    .filter(
+                        (row) =>
+                            row.estado === "Retirado" ||
+                            row.estado === "Finalizada"
+                    )
+                    .map((row) => row.id)
+            ),
+        [rows]
+    );
+
 
     return (
 
@@ -720,33 +734,26 @@ const GrupoVistaTutorDocente = () => {
 
 
                 <div className="text-right">
-
                     <p
                         className="
-                            text-xs
-                            font-medium
-                            text-slate-500
-                            uppercase
-                            tracking-widest
-                            mb-0.5
-                        "
+            text-xs
+            font-medium
+            text-slate-500
+            uppercase
+            tracking-widest
+            mb-0.5
+        "
                     >
                         Estado de la Práctica
                     </p>
 
-
-                    <p
-                        className="
-                            text-2xl
-                            font-extrabold
-                            text-slate-800
-                        "
-                    >
-
-                        {grupo?.practica?.estado || "—"}
-
-                    </p>
-
+                    <div className="flex justify-end mt-2">
+                        <div className="scale-125 origin-right">
+                            <EstadoBadge
+                                estado={grupo?.practica?.estado || "Sin estado"}
+                            />
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -903,20 +910,15 @@ const GrupoVistaTutorDocente = () => {
 
 
                 actions={[
-
                     {
-
-                        icon:
-                            <Eye size={18} />,
-
-                        className:
-                            "hover:bg-blue-100 text-blue-500",
-
-                        onClick:
-                            handleView
-
-                    }
-
+                        icon: <Eye size={18} />,
+                        className: "hover:bg-blue-100 text-blue-500",
+                        onClick: handleView,
+                        disabled: (row) =>
+                            row.estado === "Retirado" ||
+                            row.estado === "Finalizada",
+                        disabledTitle: "No disponible para este estado",
+                    },
                 ]}
 
 
@@ -977,39 +979,15 @@ const GrupoVistaTutorDocente = () => {
             {/* ── Modal solicitud de visita ── */}
 
             <SolicitudVisitaModal
-
-                open={
-                    mostrarModalSolicitud
-                }
-
-                onClose={() =>
-                    setMostrarModalSolicitud(false)
-                }
-
-                practicantes={
-                    rows
-                }
-
-                onSubmit={
-                    handleCrearSolicitud
-                }
-
-                enviando={
-                    enviandoSolicitud
-                }
-
-                idsConSolicitud={
-                    idsConSolicitud
-                }
-
-                onGestionarVisita={
-                    handleGestionarVisita
-                }
-
-                onCancelarSolicitud={
-                    handleCancelarSolicitud
-                }
-
+                open={mostrarModalSolicitud}
+                onClose={() => setMostrarModalSolicitud(false)}
+                practicantes={rows}
+                onSubmit={handleCrearSolicitud}
+                enviando={enviandoSolicitud}
+                idsConSolicitud={idsConSolicitud}
+                idsPracticantesNoSeleccionables={idsPracticantesNoSeleccionables}
+                onGestionarVisita={handleGestionarVisita}
+                onCancelarSolicitud={handleCancelarSolicitud}
             />
 
 

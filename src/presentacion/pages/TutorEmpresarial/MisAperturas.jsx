@@ -3,6 +3,7 @@ import GenericTable from "../../components/Table/GenericTable";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import EstadoBadge from "../../components/estadoBadge/EstadoBadge";
 
 import { obtenerAperturasByTutorEmpresa } from "../../../aplicacion/tutorEmpresarial/obtenerAperturasByTutorEmpresa.js";
 import { tutorEmpresarialRepository } from "../../../infraestructura/repository/tutorEmpresarialRepository.js";
@@ -254,7 +255,10 @@ const AperturasTutorEmpresarial = () => {
           },
           {
             key: "estado",
-            label: "Estado"
+            label: "Estado",
+            render: (row) => (
+              <EstadoBadge estado={row.estado} />
+            )
           }
         ]}
 

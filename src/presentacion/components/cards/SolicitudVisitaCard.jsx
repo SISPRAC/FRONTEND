@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CalendarDays, Check, X, Users, MapPin, LoaderCircle} from "lucide-react";
+import { CalendarDays, Check, X, Users, MapPin, LoaderCircle } from "lucide-react";
 import EstadoBadge from "../estadoBadge/EstadoBadge";
 
 const MAX_VISIBLES = 3;
@@ -47,12 +47,34 @@ const SolicitudVisitaCard = ({
     onRechazar,
     onVerVisita,
     visitaCargando = false,
-    bloquearAcciones = false
+    bloquearAcciones = false,
+    estadosPracticantes = new Map()
 }) => {
     const [verTodos, setVerTodos] = useState(false);
 
     const fechas = solicitud.fechasPropuestas || [];
     const practicantes = solicitud.practicantes || [];
+
+    const normalizarNombre = (nombre) =>
+        nombre
+            ?.trim()
+            .toLowerCase()
+            .replace(/\s+/g, " ");
+
+    const practicantesNoDisponibles = practicantes.filter((p) => {
+        const nombre = normalizarNombre(
+            [p.nombres, p.apellidos].filter(Boolean).join(" ")
+        );
+
+        return estadosPracticantes.get(nombre)?.noDisponible;
+    });
+
+    const tienePracticantesNoDisponibles =
+        practicantesNoDisponibles.length > 0;
+
+
+    const motivoAccionesDeshabilitadas =
+        "Esta solicitud incluye practicantes retirados, cancelados o con la práctica finalizada.";
 
     const visibles = verTodos
         ? practicantes
@@ -162,6 +184,14 @@ const SolicitudVisitaCard = ({
                     <>
                         <button
                             onClick={() => onRechazar(solicitud)}
+                            disabled={
+                                bloquearAcciones || tienePracticantesNoDisponibles
+                            }
+                            title={
+                                tienePracticantesNoDisponibles
+                                    ? motivoAccionesDeshabilitadas
+                                    : undefined
+                            }
                             className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
                         >
                             <X size={15} />
@@ -170,7 +200,15 @@ const SolicitudVisitaCard = ({
 
                         <button
                             onClick={() => onAceptar(solicitud)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            disabled={
+                                bloquearAcciones || tienePracticantesNoDisponibles
+                            }
+                            title={
+                                tienePracticantesNoDisponibles
+                                    ? motivoAccionesDeshabilitadas
+                                    : undefined
+                            }
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Check size={15} />
                             Aceptar
@@ -204,7 +242,14 @@ const SolicitudVisitaCard = ({
                     <button
                         type="button"
                         onClick={onVerVisita}
-                        disabled={bloquearAcciones}
+                        disabled={
+                            bloquearAcciones || tienePracticantesNoDisponibles
+                        }
+                        title={
+                            tienePracticantesNoDisponibles
+                                ? motivoAccionesDeshabilitadas
+                                : undefined
+                        }
                         className="flex items-center justify-center gap-2 rounded-lg bg-[#e8192c] px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-70"
                     >
                         {visitaCargando ? (
