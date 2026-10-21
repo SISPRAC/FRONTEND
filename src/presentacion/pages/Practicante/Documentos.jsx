@@ -1,29 +1,29 @@
-import React, { useEffect, useState } from "react";
-import { Eye, Upload, Pencil } from "lucide-react";
+
+import React, { useCallback, useEffect, useState } from "react";
+import { Eye, Upload, Pencil, Download, X, FileText } from "lucide-react";
+import toast from "react-hot-toast";
 
 import GenericTable from "../../components/Table/GenericTable";
-import {practicaRequisitoDocumentoRepository} from "../../../infraestructura/repository/practicaRequisitoDocumentoRepository";
+
+import { practicaRequisitoDocumentoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoRepository";
+import { practicaRequisitoDocumentoSubidoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoSubidoRepository";
 
 import { obtenerRequisitosPracticanteVigentes } from "../../../aplicacion/practicaRequisitoDocumento/obtenerRequisitosPracticanteVigentes";
+import { obtenerRequisitosEmpresaVigentes } from "../../../aplicacion/practicaRequisitoDocumento/obtenerRequisitosEmpresaVigentes";
 
-/**
- * TODO: Reemplazar por el caso de uso real que trae los documentos.
- * El backend ya resuelve qué documentos corresponden según el rol
- * (practicante / empresa), así que este componente solo pinta lo
- * que le llegue, sin filtrar nada por rol acá.
- *
- * const { documentos, isLoading, error } = useObtenerDocumentos();
- */
+import { obtenerMisDocumentosRequisitos } from "../../../aplicacion/practicaRequisitoDocumentoSubido/obtenerMisDocumentosRequisitos";
+import { subirPracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumentoSubido/subirPracticaRequisitoDocumento";
+import { editarPracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumentoSubido/editarPracticaRequisitoDocumento";
 
 const ESTADOS = {
-  PENDIENTE: "pendiente",
-  ENVIADO: "enviado",
+  PENDIENTE: "PENDIENTE",
+  APROBADO: "APROBADO",
+  RECHAZADO: "RECHAZADO",
 };
-
 
 const PAGE_SIZE = 6;
 
-const Documentos = () => {
+const Documentos = ({ rol = "Practicante" }) => {
   const [documentos, setDocumentos] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -31,7 +31,87 @@ const Documentos = () => {
   const [documentoSeleccionado, setDocumentoSeleccionado] = useState(null);
   const [modalVer, setModalVer] = useState(false);
   const [modalSubir, setModalSubir] = useState(false);
+  const [modalEditar, setModalEditar] = useState(false);
   const [modalConfirmacion, setModalConfirmacion] = useState(false);
+  const [accionConfirmacion, setAccionConfirmacion] = useState("enviado");
+
+  // =========================================================
+  // CARGAR REQUISITOS Y ESTADOS REALES
+  // =========================================================
+
+  const cargarDocumentos = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const obtenerRequisitos =
+        rol === "Empresa"
+          ? obtenerRequisitosEmpresaVigentes
+          : obtenerRequisitosPracticanteVigentes;
+
+      const [respuestaRequisitos, documentosSubidos] = await Promise.all([
+        obtenerRequisitos({ practicaRequisitoDocumentoRepository }),
+        obtenerMisDocumentosRequisitos({
+          practicaRequisitoDocumentoSubidoRepository,
+        }),
+      ]);
+
+      const requisitos = Array.isArray(respuestaRequisitos)
+        ? respuestaRequisitos
+        : respuestaRequisitos?.data || [];
+
+      const subidos = Array.isArray(documentosSubidos)
+        ? documentosSubidos
+        : documentosSubidos?.data || [];
+
+      // Del más reciente al más antiguo.
+      const documentosOrdenados = [...subidos].sort(
+        (a, b) =>
+          new Date(b.fecha_subida || 0) - new Date(a.fecha_subida || 0)
+      );
+
+      const documentosFormateados = requisitos.map((requisito) => {
+        // Última entrega de este requisito.
+        const documentoSubido = documentosOrdenados.find(
+          (documento) =>
+            String(documento.practica_requisito_documento_id) ===
+            String(requisito.id)
+        );
+
+        return {
+          id: requisito.id,
+          nombre: requisito.tipoRequisitoDocumento?.nombre || "Documento",
+          estado: documentoSubido?.estado || ESTADOS.PENDIENTE,
+          archivoUrl: documentoSubido?.archivo?.url || null,
+          formatoUrl:
+            requisito.tipoRequisitoDocumento?.plantilla?.url || null,
+          observacion: documentoSubido?.observacion || null,
+          documentoSubido,
+          requisito,
+        };
+      });
+
+      setDocumentos(documentosFormateados);
+    } catch (error) {
+      console.error("Error al cargar documentos:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          "No fue posible cargar los documentos."
+      );
+
+      setDocumentos([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [rol]);
+
+  useEffect(() => {
+    cargarDocumentos();
+  }, [cargarDocumentos]);
+
+  // =========================================================
+  // MODALES
+  // =========================================================
 
   const abrirVer = (doc) => {
     setDocumentoSeleccionado(doc);
@@ -43,78 +123,148 @@ const Documentos = () => {
     setModalSubir(true);
   };
 
+  const abrirEditar = (doc) => {
+    setDocumentoSeleccionado(doc);
+    setModalEditar(true);
+  };
+
   const cerrarModales = () => {
     setModalVer(false);
     setModalSubir(false);
+    setModalEditar(false);
     setModalConfirmacion(false);
     setDocumentoSeleccionado(null);
   };
 
-  /**
-   * TODO: acá va la llamada real al caso de uso de subida.
-   * Dejo la firma pensada para recibir el archivo y el id del documento:
-   *
-   * await subirDocumentoCasoDeUso.ejecutar(documentoSeleccionado.id, archivo);
-   */
-  const handleConfirmarSubida = async (archivo) => {
-    // Optimista por ahora: cuando esté el caso de uso, esto se actualiza
-    // con la respuesta real del backend (o se revierte si falla).
-    setDocumentos((prev) =>
-      prev.map((d) =>
-        d.id === documentoSeleccionado.id ? { ...d, estado: ESTADOS.ENVIADO } : d
-      )
-    );
-    setModalSubir(false);
-    setModalConfirmacion(true);
+  // =========================================================
+  // DESCARGAR FORMATO
+  // =========================================================
+
+  const descargarFormato = (row) => {
+    if (!row.formatoUrl) {
+      toast.error("Este requisito no tiene un formato disponible.");
+      return;
+    }
+
+    window.open(row.formatoUrl, "_blank", "noopener,noreferrer");
   };
 
-  useEffect(() => {
-    const cargarDocumentos = async () => {
-      try {
-        setLoading(true);
+  // =========================================================
+  // SUBIR DOCUMENTO POR PRIMERA VEZ
+  // =========================================================
 
-        const respuesta =
-          await obtenerRequisitosPracticanteVigentes({practicaRequisitoDocumentoRepository});
-
-        console.log("RESPUESTA DOCUMENTOS:", respuesta);
-
-        const requisitos = Array.isArray(respuesta)
-          ? respuesta
-          : respuesta?.data || [];
-
-        console.log("REQUISITOS:", requisitos);
-
-        const documentosFormateados = requisitos.map((requisito) => ({
-          id: requisito.id,
-          nombre:
-            requisito.tipoRequisitoDocumento?.nombre ||
-            "Documento",
-          estado: ESTADOS.PENDIENTE,
-          archivoUrl: null,
-          requisito,
-        }));
-
-        setDocumentos(documentosFormateados);
-
-      } catch (error) {
-        console.error(
-          "Error al cargar documentos:",
-          error
-        );
-
-        setDocumentos([]);
-      } finally {
-        setLoading(false);
+  const handleConfirmarSubida = async (archivo) => {
+    try {
+      if (!documentoSeleccionado) {
+        toast.error("No se ha seleccionado un requisito.");
+        return false;
       }
-    };
 
-    cargarDocumentos();
-  }, []);
+      if (!archivo) {
+        toast.error("Debes seleccionar un archivo.");
+        return false;
+      }
 
-  // GenericTable pinta un botón por cada item de "actions" con el mismo
-  // ícono para todas las filas, pero acá el botón depende del estado
-  // de cada documento, así que se resuelve con una columna propia en
-  // vez de usar la prop `actions`.
+      const formData = new FormData();
+
+      formData.append(
+        "practica_requisito_documento_id",
+        documentoSeleccionado.requisito.id
+      );
+      formData.append("archivo", archivo);
+
+      await subirPracticaRequisitoDocumento({
+        practicaRequisitoDocumentoSubidoRepository,
+        formData,
+      });
+
+      await cargarDocumentos();
+
+      setModalSubir(false);
+      setAccionConfirmacion("enviado");
+      setModalConfirmacion(true);
+
+      toast.success("Documento enviado correctamente.");
+
+      return true;
+    } catch (error) {
+      console.error("Error al subir el documento:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "No fue posible subir el documento."
+      );
+
+      return false;
+    }
+  };
+
+  // =========================================================
+  // EDITAR / REEMPLAZAR DOCUMENTO EXISTENTE
+  // =========================================================
+
+  const handleConfirmarEdicion = async (archivo) => {
+    try {
+      if (!documentoSeleccionado) {
+        toast.error("No se ha seleccionado un requisito.");
+        return false;
+      }
+
+      if (!documentoSeleccionado.documentoSubido) {
+        toast.error("No se encontró el documento que deseas editar.");
+        return false;
+      }
+
+      if (documentoSeleccionado.estado === ESTADOS.APROBADO) {
+        toast.error("No puedes editar un documento que ya fue aprobado.");
+        return false;
+      }
+
+      if (!archivo) {
+        toast.error("Debes seleccionar un archivo.");
+        return false;
+      }
+
+      const formData = new FormData();
+
+      formData.append(
+        "practica_requisito_documento_id",
+        documentoSeleccionado.requisito.id
+      );
+      formData.append("archivo", archivo);
+
+      await editarPracticaRequisitoDocumento({
+        practicaRequisitoDocumentoSubidoRepository,
+        formData,
+      });
+
+      await cargarDocumentos();
+
+      setModalEditar(false);
+      setAccionConfirmacion("actualizado");
+      setModalConfirmacion(true);
+
+      toast.success("Documento actualizado correctamente.");
+
+      return true;
+    } catch (error) {
+      console.error("Error al editar el documento:", error);
+
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "No fue posible actualizar el documento."
+      );
+
+      return false;
+    }
+  };
+
+  // =========================================================
+  // COLUMNAS DE LA TABLA
+  // =========================================================
+
   const columns = [
     {
       key: "nombre",
@@ -129,40 +279,60 @@ const Documentos = () => {
     {
       key: "acciones",
       label: "Acciones",
-      render: (row) =>
-        row.estado === ESTADOS.PENDIENTE ? (
-          <button
-            onClick={() => abrirSubir(row)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e8192c] text-white text-xs font-bold hover:bg-[#c91525] transition-colors"
-          >
-            <Upload size={14} />
-            Subir
-          </button>
-        ) : (
+      render: (row) => {
+        const tieneDocumento = Boolean(row.documentoSubido);
+        const puedeSubir = row.estado !== ESTADOS.APROBADO;
+
+        return (
           <div className="flex items-center gap-2 justify-center">
+            {tieneDocumento && (
+              <button
+                type="button"
+                onClick={() => abrirVer(row)}
+                title="Ver documento enviado"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#e8192c] hover:bg-slate-100 transition-colors"
+              >
+                <Eye size={16} />
+              </button>
+            )}
+
             <button
-              onClick={() => abrirVer(row)}
-              title="Ver documento"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#e8192c] hover:bg-slate-100 transition-colors"
+              type="button"
+              onClick={() => descargarFormato(row)}
+              title="Descargar formato"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
             >
-              <Eye size={16} />
+              <Download size={16} />
             </button>
-            <button
-              onClick={() => abrirSubir(row)}
-              title="Editar documento"
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-colors"
-            >
-              <Pencil size={16} />
-            </button>
+
+            {puedeSubir && (
+              <button
+                type="button"
+                onClick={() =>
+                  tieneDocumento ? abrirEditar(row) : abrirSubir(row)
+                }
+                title={tieneDocumento ? "Editar documento" : "Subir documento"}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                  tieneDocumento
+                    ? "text-blue-600 hover:bg-blue-50"
+                    : "text-[#e8192c] hover:bg-red-50"
+                }`}
+              >
+                {tieneDocumento ? <Pencil size={16} /> : <Upload size={16} />}
+              </button>
+            )}
           </div>
-        ),
+        );
+      },
     },
   ];
 
   return (
     <div>
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6">Documentos a subir</h1>
+        <h1 className="text-2xl font-bold text-slate-800 mb-6">
+          Documentos a subir
+        </h1>
 
         <GenericTable
           rows={documentos}
@@ -176,125 +346,300 @@ const Documentos = () => {
       </div>
 
       {modalVer && (
-        <ModalVerDocumento documento={documentoSeleccionado} onClose={cerrarModales} />
+        <ModalVerDocumento
+          documento={documentoSeleccionado}
+          onClose={cerrarModales}
+        />
       )}
 
       {modalSubir && (
-        <ModalSubirDocumento
+        <ModalFormularioDocumento
+          titulo="Subir documento"
           documento={documentoSeleccionado}
+          textoConfirmar="Enviar documento"
           onClose={cerrarModales}
           onConfirmar={handleConfirmarSubida}
         />
       )}
 
+      {modalEditar && (
+        <ModalFormularioDocumento
+          titulo="Editar documento"
+          documento={documentoSeleccionado}
+          textoConfirmar="Guardar cambios"
+          onClose={cerrarModales}
+          onConfirmar={handleConfirmarEdicion}
+        />
+      )}
+
       {modalConfirmacion && (
-        <ModalConfirmacion documento={documentoSeleccionado} onClose={cerrarModales} />
+        <ModalConfirmacion
+          documento={documentoSeleccionado}
+          accion={accionConfirmacion}
+          onClose={cerrarModales}
+        />
       )}
     </div>
   );
 };
 
+// =============================================================
+// ESTADO
+// =============================================================
+
 const EstadoBadge = ({ estado }) => {
-  const esEnviado = estado === ESTADOS.ENVIADO;
+  const configuracion = {
+    PENDIENTE: {
+      texto: "Pendiente",
+      clase: "text-amber-600",
+      punto: "bg-amber-500",
+    },
+    APROBADO: {
+      texto: "Aprobado",
+      clase: "text-emerald-600",
+      punto: "bg-emerald-500",
+    },
+    RECHAZADO: {
+      texto: "Rechazado",
+      clase: "text-red-600",
+      punto: "bg-red-600",
+    },
+  };
+
+  const estadoActual = configuracion[estado] || configuracion.PENDIENTE;
+
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-xs font-bold ${esEnviado ? "text-emerald-600" : "text-slate-400"
-        }`}
+      className={`inline-flex items-center gap-1.5 text-xs font-bold ${estadoActual.clase}`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${esEnviado ? "bg-emerald-500" : "bg-slate-400"}`} />
-      {esEnviado ? "Enviado" : "Pendiente"}
+      <span className={`w-1.5 h-1.5 rounded-full ${estadoActual.punto}`} />
+      {estadoActual.texto}
     </span>
   );
 };
 
-// Modal simple, sin librerías externas, para no salir de la página.
-const ModalBase = ({ titulo, onClose, children }) => (
+// =============================================================
+// MODAL BASE
+// =============================================================
+
+const ModalBase = ({
+  titulo,
+  subtitulo,
+  onClose,
+  children,
+  footer,
+  ancho = "max-w-lg",
+}) => (
   <div
-    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+    className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50"
     onClick={onClose}
   >
     <div
-      className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col"
+      className={`bg-white rounded-xl shadow-xl w-full ${ancho} max-h-[90vh] flex flex-col`}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <h2 className="text-base font-bold text-slate-800">{titulo}</h2>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-          ✕
+      <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-slate-100">
+        <div>
+          <h2 className="text-base font-bold text-slate-800">{titulo}</h2>
+          {subtitulo && (
+            <p className="text-sm text-slate-500 mt-0.5">{subtitulo}</p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <X size={18} />
         </button>
       </div>
-      <div className="p-5 overflow-y-auto">{children}</div>
+
+      <div className="px-6 py-5 overflow-y-auto">{children}</div>
+
+      {footer && (
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100">
+          {footer}
+        </div>
+      )}
     </div>
   </div>
 );
 
+const BotonSecundario = ({ children, ...props }) => (
+  <button
+    type="button"
+    className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+    {...props}
+  >
+    {children}
+  </button>
+);
+
+const BotonPrimario = ({ children, ...props }) => (
+  <button
+    type="button"
+    className="px-4 py-2 rounded-lg bg-[#e8192c] text-white text-sm font-bold hover:bg-[#c91525] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+    {...props}
+  >
+    {children}
+  </button>
+);
+
+// =============================================================
+// MOTIVO DE RECHAZO
+// =============================================================
+
+const MotivoRechazo = ({ motivo }) => (
+  <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3">
+    <p className="text-xs font-bold text-red-600 mb-1">Motivo del rechazo</p>
+    <p className="text-sm text-red-600">
+      {motivo || "No se indicó un motivo."}
+    </p>
+  </div>
+);
+
+// =============================================================
+// MODAL VER DOCUMENTO
+// =============================================================
+
 const ModalVerDocumento = ({ documento, onClose }) => (
-  <ModalBase titulo={documento?.nombre} onClose={onClose}>
-    {documento?.archivoUrl ? (
-      // TODO: acá va la URL real del PDF que devuelva el backend.
-      <iframe
-        src={documento.archivoUrl}
-        title={documento.nombre}
-        className="w-full h-[65vh] border border-slate-200 rounded-lg"
-      />
-    ) : (
-      <p className="text-sm text-slate-500">
-        Aún no hay una vista previa disponible para este documento.
-      </p>
-    )}
+  <ModalBase
+    titulo={documento?.nombre}
+    subtitulo="Documento enviado"
+    onClose={onClose}
+    ancho="max-w-2xl"
+    footer={<BotonSecundario onClick={onClose}>Cerrar</BotonSecundario>}
+  >
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-slate-500">Estado</span>
+        <EstadoBadge estado={documento?.estado} />
+      </div>
+
+      {documento?.archivoUrl ? (
+        <iframe
+          src={documento.archivoUrl}
+          title={documento.nombre}
+          className="w-full h-[55vh] border border-slate-200 rounded-lg"
+        />
+      ) : (
+        <p className="text-sm text-slate-500">
+          No hay una vista previa disponible para este documento.
+        </p>
+      )}
+
+      {documento?.estado === ESTADOS.RECHAZADO && (
+        <MotivoRechazo motivo={documento.observacion} />
+      )}
+    </div>
   </ModalBase>
 );
 
-const ModalSubirDocumento = ({ documento, onClose, onConfirmar }) => {
+// =============================================================
+// MODAL FORMULARIO (SUBIR / EDITAR)
+// =============================================================
+
+const ModalFormularioDocumento = ({
+  titulo,
+  documento,
+  textoConfirmar,
+  onClose,
+  onConfirmar,
+}) => {
   const [archivo, setArchivo] = useState(null);
   const [enviando, setEnviando] = useState(false);
 
   const handleConfirmar = async () => {
+    if (!archivo || enviando) return;
+
     setEnviando(true);
-    await onConfirmar(archivo);
-    setEnviando(false);
+
+    try {
+      await onConfirmar(archivo);
+    } finally {
+      setEnviando(false);
+    }
   };
 
   return (
-    <ModalBase titulo={`Subir: ${documento?.nombre}`} onClose={onClose}>
-      <div className="space-y-4">
-        <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl p-8 text-center cursor-pointer hover:border-[#e8192c]/50 transition-colors">
-          <span className="text-sm text-slate-500">
-            {archivo ? archivo.name : "Arrastra el archivo aquí o haz clic para seleccionarlo"}
-          </span>
-          <input
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
-          />
-        </label>
+    <ModalBase
+      titulo={titulo}
+      subtitulo={documento?.nombre}
+      onClose={onClose}
+      footer={
+        <>
+          <BotonSecundario onClick={onClose} disabled={enviando}>
+            Cancelar
+          </BotonSecundario>
 
-        {/* TODO: reemplazar por la llamada real al caso de uso de subida */}
-        <button
-          disabled={!archivo || enviando}
-          onClick={handleConfirmar}
-          className="w-full py-2 rounded-lg bg-[#e8192c] text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#c91525] transition-colors"
-        >
-          {enviando ? "Enviando..." : "Confirmar envío"}
-        </button>
+          <BotonPrimario
+            onClick={handleConfirmar}
+            disabled={!archivo || enviando}
+          >
+            {enviando ? "Enviando..." : textoConfirmar}
+          </BotonPrimario>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {documento?.estado === ESTADOS.RECHAZADO && (
+          <MotivoRechazo motivo={documento.observacion} />
+        )}
+
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+            Archivo (PDF)
+          </label>
+
+          <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-200 rounded-xl p-6 text-center cursor-pointer hover:border-[#e8192c]/50 transition-colors">
+            {archivo ? (
+              <FileText size={24} className="text-[#e8192c]" />
+            ) : (
+              <Upload size={24} className="text-[#e8192c]" />
+            )}
+
+            <span className="text-sm text-slate-500">
+              {archivo
+                ? archivo.name
+                : "Haz clic para seleccionar un archivo PDF"}
+            </span>
+
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+            />
+          </label>
+        </div>
       </div>
     </ModalBase>
   );
 };
 
-const ModalConfirmacion = ({ documento, onClose }) => (
-  <ModalBase titulo="Documento enviado" onClose={onClose}>
-    <p className="text-sm text-slate-600 mb-4">
-      El documento {documento?.nombre} se envió correctamente y quedará pendiente de revisión.
-    </p>
-    <button
-      onClick={onClose}
-      className="px-4 py-2 rounded-lg bg-[#e8192c] text-white text-sm font-bold hover:bg-[#c91525] transition-colors"
+// =============================================================
+// MODAL CONFIRMACIÓN
+// =============================================================
+
+const ModalConfirmacion = ({ documento, accion, onClose }) => {
+  const esEdicion = accion === "actualizado";
+
+  return (
+    <ModalBase
+      titulo={esEdicion ? "Documento actualizado" : "Documento enviado"}
+      onClose={onClose}
+      footer={<BotonPrimario onClick={onClose}>Entendido</BotonPrimario>}
     >
-      Entendido
-    </button>
-  </ModalBase>
-);
+      <p className="text-sm text-slate-600">
+        El documento{" "}
+        <span className="font-semibold">{documento?.nombre}</span>{" "}
+        {esEdicion
+          ? "se actualizó correctamente y quedó pendiente de revisión."
+          : "se envió correctamente y quedó pendiente de revisión."}
+      </p>
+    </ModalBase>
+  );
+};
 
 export default Documentos;

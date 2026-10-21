@@ -3,9 +3,11 @@ import {
     getPracticaRequisitosDocumentoByRolRequest,
     getRequisitosPracticanteVigentesRequest,
     getInformesPracticanteVigentesRequest,
+    getRequisitosEmpresaVigentesRequest,
     createPracticaRequisitoDocumentoRequest,
     deletePracticaRequisitoDocumentoRequest,
-    updatePracticaRequisitoDocumentoRequest
+    updatePracticaRequisitoDocumentoRequest,
+    getPracticaRequisitoDocumentoByIdRequest
 } from "../api/practicaRequisitoDocumento.api.js";
 
 
@@ -76,6 +78,20 @@ export const practicaRequisitoDocumentoRepository = {
 
 
     // ============================================================
+    // REQUISITOS VIGENTES DE LA EMPRESA
+    // ============================================================
+
+    async findRequisitosEmpresaVigentes() {
+
+        const response =
+            await getRequisitosEmpresaVigentesRequest();
+
+        return response.data;
+
+    },
+
+
+    // ============================================================
     // CREAR
     // ============================================================
 
@@ -85,6 +101,20 @@ export const practicaRequisitoDocumentoRepository = {
             await createPracticaRequisitoDocumentoRequest(
                 data
             );
+
+        return response.data;
+
+    },
+
+
+    // ============================================================
+    // OBTENER REQUISITO DOCUMENTAL POR ID
+    // ============================================================
+
+    async findById(id) {
+
+        const response =
+            await getPracticaRequisitoDocumentoByIdRequest(id);
 
         return response.data;
 
@@ -105,6 +135,7 @@ export const practicaRequisitoDocumentoRepository = {
         return response.data;
 
     },
+
 
     // ============================================================
     // ACTUALIZAR

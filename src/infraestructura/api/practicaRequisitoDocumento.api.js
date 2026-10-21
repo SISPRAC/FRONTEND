@@ -1,6 +1,5 @@
 import axios from "axios";
 
-
 const practicaRequisitoDocumentoApi = axios.create({
 
     baseURL: "http://localhost:3000/api/practicaRequisitoDocumento",
@@ -9,7 +8,6 @@ const practicaRequisitoDocumentoApi = axios.create({
 
 });
 
-
 // Agregar token automáticamente a cada petición
 practicaRequisitoDocumentoApi.interceptors.request.use(
 
@@ -17,14 +15,12 @@ practicaRequisitoDocumentoApi.interceptors.request.use(
 
         const token = localStorage.getItem("token");
 
-
-        if(token){
+        if (token) {
 
             config.headers.Authorization =
-            `Bearer ${token}`;
+                `Bearer ${token}`;
 
         }
-
 
         return config;
 
@@ -37,7 +33,6 @@ practicaRequisitoDocumentoApi.interceptors.request.use(
     }
 
 );
-
 
 // ============================================================
 // OBTENER REQUISITOS DOCUMENTALES DE UNA PRÁCTICA
@@ -52,7 +47,6 @@ export const getPracticaRequisitosDocumentoRequest = async (
     );
 
 };
-
 
 // ============================================================
 // OBTENER REQUISITOS DOCUMENTALES DE UNA PRÁCTICA POR ROL
@@ -69,7 +63,6 @@ export const getPracticaRequisitosDocumentoByRolRequest = async (
 
 };
 
-
 // ============================================================
 // OBTENER REQUISITOS VIGENTES DEL PRACTICANTE
 // ============================================================
@@ -81,7 +74,6 @@ export const getRequisitosPracticanteVigentesRequest = async () => {
     );
 
 };
-
 
 // ============================================================
 // OBTENER INFORMES VIGENTES DEL PRACTICANTE
@@ -95,6 +87,17 @@ export const getInformesPracticanteVigentesRequest = async () => {
 
 };
 
+// ============================================================
+// OBTENER REQUISITOS VIGENTES DE LA EMPRESA
+// ============================================================
+
+export const getRequisitosEmpresaVigentesRequest = async () => {
+
+    return await practicaRequisitoDocumentoApi.get(
+        "/empresa/vigentes"
+    );
+
+};
 
 // ============================================================
 // CREAR REQUISITO DOCUMENTAL PARA UNA PRÁCTICA
@@ -111,7 +114,6 @@ export const createPracticaRequisitoDocumentoRequest = async (
 
 };
 
-
 // ============================================================
 // ELIMINAR REQUISITO DOCUMENTAL
 // ============================================================
@@ -126,7 +128,6 @@ export const deletePracticaRequisitoDocumentoRequest = async (
 
 };
 
-
 // ============================================================
 // OBTENER REQUISITO DOCUMENTAL POR ID
 // ============================================================
@@ -140,7 +141,6 @@ export const getPracticaRequisitoDocumentoByIdRequest = async (
     );
 
 };
-
 
 // ============================================================
 // ACTUALIZAR REQUISITO DOCUMENTAL

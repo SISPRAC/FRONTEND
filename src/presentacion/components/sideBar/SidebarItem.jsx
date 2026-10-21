@@ -99,7 +99,7 @@ export const Empresa_NAV = [
   {
     label: "Protocolos",
     icon: <ClipboardPlus />,
-    href: "/protocolos",
+    href: "/protocolosEmpresa",
   },
   {
     label: "Encuestas",

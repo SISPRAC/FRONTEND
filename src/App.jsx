@@ -17,7 +17,7 @@ import Encuestas from "./presentacion/pages/Director/Encuestas";
 import ARL from "./presentacion/pages/Director/ARL";
 import ReportesPage from "./presentacion/pages/Director/ReportesPage";
 import VistaVisita from "./presentacion/pages/Director/VistaVisita";
-import Documentos from "./presentacion/pages/Director/Documentos";
+import ProtocolosPage from "./presentacion/pages/Director/ProtocolosPage";
 import DashboardDirector from "./presentacion/pages/Director/DashboardDirector";
 import TutoresDocentes from "./presentacion/pages/Director/GestionTutorDocente";
 
@@ -50,7 +50,10 @@ import ActualizarPerfil from "./presentacion/pages/ActualizarPerfil";
 // Practicante
 import HomePracticante from "./presentacion/pages/Practicante/HomePracticante";
 import InformeDocumento from "./presentacion/pages/Practicante/InformeDocumento";
-import DocumentosPracticante from "./presentacion/pages/Practicante/Documentos";
+
+//empresa / Practicante
+import Documentos from "./presentacion/pages/Practicante/Documentos";
+
 
 // Empresa
 import HomeEmpresa from "./presentacion/pages/Empresa/HomeEmpresa";
@@ -240,7 +243,7 @@ export default function App() {
 
             <Route
               path="/protocolos"
-              element={<Documentos />}
+              element={<ProtocolosPage />}
             />
 
             <Route
@@ -300,6 +303,11 @@ export default function App() {
             />
 
             <Route
+              path="/protocolosEmpresa"
+              element={<Documentos rol="Empresa" />}
+            />
+
+            <Route
               path="/empresa/candidatos/:id"
               element={<CandidatoDetalleEmpresa />}
             />
@@ -356,7 +364,7 @@ export default function App() {
 
             <Route
               path="/documentosIniciales"
-              element={<DocumentosPracticante />}
+              element={<Documentos />}
             />
 
           </Route>
