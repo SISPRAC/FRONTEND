@@ -38,6 +38,8 @@ import { tutorEmpresarialRepository } from "../../../infraestructura/repository/
 import { EmpresaRepository } from "../../../infraestructura/repository/empresaRepository.js";
 import { obtenerDetalleGrupoEmpresa } from "../../../aplicacion/empresa/obtenerDetalleGrupoEmpresa.js";
 
+import EncuestaTutorEmpresarialModal from "../../components/modals/EncuestaTutorEmpresarialModal";
+
 import toast from "react-hot-toast";
 
 import GenericTable from "../../components/Table/GenericTable.jsx";
@@ -67,6 +69,11 @@ const GrupoPracticaDetalle = () => {
   const [openRetiroModal, setOpenRetiroModal] = useState(false);
   const [practicanteSeleccionado, setPracticanteSeleccionado] = useState(null);
   const [retirandoPracticante, setRetirandoPracticante] = useState(false);
+
+  const [encuestaModal, setEncuestaModal] = useState({
+    isOpen: false,
+    practicante: null,
+  });
 
   const checkOverflow = () => {
     const el = scrollRef.current;
@@ -264,11 +271,17 @@ const GrupoPracticaDetalle = () => {
   // ============================================================
 
   const handleEncuesta = (practicante) => {
+    setEncuestaModal({
+      isOpen: true,
+      practicante: {
+        id_practicante: practicante.practicante_id,
+        nombre: `${practicante.nombres ?? ""} ${practicante.apellidos ?? ""}`.trim(),
+      },
+    });
+  };
 
-    alert(
-      `Encuesta pendiente de implementar para: ${practicante.nombres}`
-    );
-
+  const handleCerrarEncuesta = () => {
+    setEncuestaModal({ isOpen: false, practicante: null });
   };
 
   // ============================================================
@@ -985,6 +998,13 @@ const GrupoPracticaDetalle = () => {
         cancelLabel="Cancelar"
         onCancel={() => setAperturaAEliminar(null)}
         onConfirm={handleConfirmarEliminar}
+      />
+
+      <EncuestaTutorEmpresarialModal
+        mostrar={encuestaModal.isOpen}
+        practicante={encuestaModal.practicante}
+        rolEncuesta="Empresa"
+        onCerrar={handleCerrarEncuesta}
       />
 
 

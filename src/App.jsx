@@ -43,6 +43,7 @@ import VistaInformePracticante from "./presentacion/pages/CalificarInforme";
 
 // Candidato
 import HomeCandidato from "./presentacion/pages/Candidato/HomeCandidato";
+import ResponderEncuestasPage from "./presentacion/pages/Practicante/ResponderEncuestasPage"
 
 // Candidato / Practicante
 import ActualizarPerfil from "./presentacion/pages/ActualizarPerfil";
@@ -366,6 +367,10 @@ export default function App() {
               path="/documentosIniciales"
               element={<Documentos />}
             />
+
+            <Route
+            path="/EncuestaPracticante"
+            element={<ResponderEncuestasPage/>}/>
 
           </Route>
 

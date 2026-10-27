@@ -10,8 +10,6 @@ export default function AsignarEncuestaModal({
     practicas = []
 }) {
 
-    console.log("Encuesta en AsignarEncuestaModal:", encuesta);
-
     const [
         practicasSeleccionadas,
         setPracticasSeleccionadas

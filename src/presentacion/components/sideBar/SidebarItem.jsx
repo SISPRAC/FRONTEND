@@ -157,7 +157,7 @@ export const Practicante_NAV = [
   {
     label: "Encuestas",
     icon: <FileUser />,
-    href: "/encuestas",
+    href: "/EncuestaPracticante",
   },
   {
     label: "Notificaciones",

@@ -27,6 +27,8 @@ import { obtenerVisitaPorSolicitud } from "../../../aplicacion/visita/obtenerVis
 import { aceptarSolicitudVisita } from "../../../aplicacion/solicitudVisita/aceptarSolicitudVisita.js";
 import { rechazarSolicitudVisita } from "../../../aplicacion/solicitudVisita/rechazarSolicitudVisita.js";
 
+import EncuestaTutorEmpresarialModal from "../../components/modals/EncuestaTutorEmpresarialModal.jsx";
+
 
 // ------------------------------------------------------------
 // Tarjeta de apertura
@@ -61,7 +63,13 @@ const obtenerMotivoNoDisponible = (estado) => {
     }
 };
 
-const AperturaCard = ({ apertura, expandido, onToggle, navigate }) => {
+const AperturaCard = ({
+    apertura,
+    expandido,
+    onToggle,
+    navigate,
+    onEncuesta,
+}) => {
     const practicantes = apertura.practicantes || [];
     const cantidad = practicantes.length;
 
@@ -169,12 +177,7 @@ const AperturaCard = ({ apertura, expandido, onToggle, navigate }) => {
                                     </button>
 
                                     <button
-                                        onClick={() =>
-                                            console.log(
-                                                "Encuestas:",
-                                                p.id_practicante
-                                            )
-                                        }
+                                        onClick={() => onEncuesta(p)}
                                         disabled={esPracticanteNoDisponible(p.estado)}
                                         title={obtenerMotivoNoDisponible(p.estado) || undefined}
                                         className={`
@@ -188,7 +191,7 @@ const AperturaCard = ({ apertura, expandido, onToggle, navigate }) => {
     `}
                                     >
                                         <ClipboardCheck size={15} />
-                                        Encuestas
+                                        Encuesta
                                     </button>
                                 </div>
                             </div>
@@ -213,6 +216,8 @@ const MisAperturasTutorEmpresarial = () => {
     const [aperturas, setAperturas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [expandido, setExpandido] = useState({});
+
+    const [practicanteEncuesta, setPracticanteEncuesta] = useState(null);
 
     // Solicitudes de visita
     const [solicitudesVisita, setSolicitudesVisita] = useState([]);
@@ -547,6 +552,7 @@ const MisAperturasTutorEmpresarial = () => {
                                 }))
                             }
                             navigate={navigate}
+                            onEncuesta={setPracticanteEncuesta}
                         />
                     ))}
                 </div>
@@ -596,6 +602,13 @@ const MisAperturasTutorEmpresarial = () => {
                 onTextareaChange={setMotivoRechazo}
                 onConfirm={confirmarRechazar}
                 onCancel={() => !procesando && cerrarRechazo()}
+            />
+
+            <EncuestaTutorEmpresarialModal
+                mostrar={!!practicanteEncuesta}
+                practicante={practicanteEncuesta}
+                rolEncuesta="Tutor Empresarial"
+                onCerrar={() => setPracticanteEncuesta(null)}
             />
         </div>
     );

@@ -4,7 +4,15 @@ import {
   Building2,
   LoaderCircle,
   Eye,
+  ClipboardList,
 } from "lucide-react";
+
+import { obtenerRespuestasEncuestasPracticante } from "../../../aplicacion/encuesta/obtenerRespuestasEncuestasPracticante";
+import { encuestaRepository } from "../../../infraestructura/repository/encuestaRepository";
+
+import EncuestasPracticanteDirectorModal from "../../components/modals/EncuestasPracticanteDirectorModal";
+import EncuestaTutorEmpresarialModal from "../../components/modals/EncuestaTutorEmpresarialModal";
+
 import { getCandidatosGrupo } from "../../../aplicacion/grupos/getCandidatosGrupo";
 import { grupoRepository } from "../../../infraestructura/repository/grupoRepository";
 import GenericTable from "../../components/Table/GenericTable";
@@ -98,6 +106,13 @@ const GrupoVistaDirector = () => {
   const [openRetiroModal, setOpenRetiroModal] = useState(false);
   const [practicanteSeleccionado, setPracticanteSeleccionado] = useState(null);
   const [loadingVisitasId, setLoadingVisitasId] = useState(null);
+
+  const [mostrarEncuestas, setMostrarEncuestas] = useState(false);
+  const [mostrarDetalleEncuesta, setMostrarDetalleEncuesta] = useState(false);
+  const [encuestasPracticante, setEncuestasPracticante] = useState([]);
+  const [practicanteEncuestasSeleccionado, setPracticanteEncuestasSeleccionado] = useState(null);
+  const [encuestaSeleccionada, setEncuestaSeleccionada] = useState(null);
+  const [loadingEncuestasId, setLoadingEncuestasId] = useState(null);
 
   useEffect(() => {
     loadCandidatosGrupos();
@@ -212,6 +227,67 @@ const GrupoVistaDirector = () => {
     } finally {
       // Quitar el indicador de carga siempre
       setLoadingVisitasId(null);
+    }
+  };
+
+  const verEncuestasPracticante = async (id) => {
+    const practicante = rows.find((p) => p.id === id);
+
+    if (!practicante) {
+      toast.error("No se encontró el practicante.");
+      return;
+    }
+
+    setLoadingEncuestasId(id);
+
+    const toastId = toast.loading("Consultando encuestas del practicante...");
+
+    try {
+      const respuesta = await obtenerRespuestasEncuestasPracticante(
+        { encuestaRepository },
+        practicante.id
+      );
+
+      const practicas = respuesta?.data ?? respuesta;
+
+      if (!Array.isArray(practicas) || practicas.length === 0) {
+        toast.dismiss(toastId);
+        toast.error("No hay encuestas de prácticas en curso o finalizadas.");
+        return;
+      }
+
+      const tieneEncuestas = practicas.some(
+        (practica) =>
+          Array.isArray(practica.encuestas) && practica.encuestas.length > 0
+      );
+
+      if (!tieneEncuestas) {
+        toast.dismiss(toastId);
+        toast.error("Este practicante no tiene encuestas asignadas.");
+        return;
+      }
+
+      setPracticanteEncuestasSeleccionado({
+        id_practicante: practicante.id,
+        nombre: practicante.candidatos,
+        codigo: practicante.codigo,
+        empresa: practicante.empresa,
+      });
+
+      setEncuestasPracticante(practicas);
+      setMostrarEncuestas(true);
+
+      toast.dismiss(toastId);
+    } catch (error) {
+      console.error("Error al consultar las encuestas:", error);
+
+      toast.dismiss(toastId);
+      toast.error(
+        error.response?.data?.message ||
+        "No se pudieron consultar las encuestas del practicante."
+      );
+    } finally {
+      setLoadingEncuestasId(null);
     }
   };
 
@@ -447,6 +523,24 @@ const GrupoVistaDirector = () => {
           },
           {
             icon:
+              loadingEncuestasId !== null ? (
+                <LoaderCircle size={18} className="animate-spin" />
+              ) : (
+                <ClipboardList size={18} />
+              ),
+            className: "text-purple-600 hover:bg-purple-100",
+            title: "Ver encuestas",
+            onClick: verEncuestasPracticante,
+            disabled: (row) =>
+              row.estado === "Retirado" ||
+              row.estado === "Cancelado" ||
+              row.estado === "RECHAZADO" ||
+              row.estado === "POSTULADO" ||
+              loadingEncuestasId !== null,
+            disabledTitle: "No disponible para este estado",
+          },
+          {
+            icon:
               loadingVisitasId !== null ? (
                 <LoaderCircle size={18} className="animate-spin" />
               ) : (
@@ -473,6 +567,34 @@ const GrupoVistaDirector = () => {
           setPracticanteSeleccionado(null);
         }}
         onRetirar={handleRetirar}
+      />
+
+      {/* Modal con las encuestas del practicante */}
+      <EncuestasPracticanteDirectorModal
+        mostrar={mostrarEncuestas}
+        practicante={practicanteEncuestasSeleccionado}
+        practicas={encuestasPracticante}
+        onCerrar={() => {
+          setMostrarEncuestas(false);
+          setEncuestaSeleccionada(null);
+        }}
+        onVerDetalle={(encuesta) => {
+          setEncuestaSeleccionada(encuesta);
+          setMostrarDetalleEncuesta(true);
+        }}
+      />
+
+      {/* Modal existente de encuesta, en modo consulta */}
+      <EncuestaTutorEmpresarialModal
+        mostrar={mostrarDetalleEncuesta}
+        practicante={practicanteEncuestasSeleccionado}
+        rolEncuesta="Practicante"
+        modoConsulta={true}
+        encuestaSeleccionada={encuestaSeleccionada}
+        onCerrar={() => {
+          setMostrarDetalleEncuesta(false);
+          setEncuestaSeleccionada(null);
+        }}
       />
     </div>
   );

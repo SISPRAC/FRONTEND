@@ -1,4 +1,11 @@
-import { ArrowLeft, Eye, CalendarDays } from "lucide-react";
+import {
+    ArrowLeft,
+    Eye,
+    CalendarDays,
+    ClipboardCheck,
+} from "lucide-react";
+
+import EncuestaTutorEmpresarialModal from "../../components/modals/EncuestaTutorEmpresarialModal.jsx";
 
 import { getPracticantesGrupo } from "../../../aplicacion/tutorDocente/getPracticantesGrupo.js";
 import { tutorDocenteRepository } from "../../../infraestructura/repository/tutorDocenteRepository.js";
@@ -84,6 +91,8 @@ const GrupoVistaTutorDocente = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [grupo, setGrupo] = useState(null);
     const [loading, setLoading] = useState(true);
+
+    const [practicanteEncuesta, setPracticanteEncuesta] = useState(null);
 
     const [mostrarModalSolicitud, setMostrarModalSolicitud] =
         useState(false);
@@ -505,6 +514,34 @@ const GrupoVistaTutorDocente = () => {
 
     };
 
+    const handleEncuesta = (id) => {
+        const practicante = rows.find(
+            (p) => p.id === id
+        );
+
+        if (!practicante) {
+            toast.error("No se encontró el practicante.");
+            return;
+        }
+
+        if (
+            practicante.estado === "Retirado" ||
+            practicante.estado === "Finalizada"
+        ) {
+            toast.error(
+                "No se puede realizar la encuesta para este practicante."
+            );
+            return;
+        }
+
+        setPracticanteEncuesta({
+            id_practicante: practicante.id,
+            nombre: practicante.practicante,
+            empresa: practicante.empresa,
+            estado: practicante.estado,
+        });
+    };
+
 
     /*
     |--------------------------------------------------------------------------
@@ -912,8 +949,19 @@ const GrupoVistaTutorDocente = () => {
                 actions={[
                     {
                         icon: <Eye size={18} />,
+                        label: "Informes",
                         className: "hover:bg-blue-100 text-blue-500",
                         onClick: handleView,
+                        disabled: (row) =>
+                            row.estado === "Retirado" ||
+                            row.estado === "Finalizada",
+                        disabledTitle: "No disponible para este estado",
+                    },
+                    {
+                        icon: <ClipboardCheck size={18} />,
+                        label: "Encuesta",
+                        className: "hover:bg-red-100 text-[#e8192c]",
+                        onClick: handleEncuesta,
                         disabled: (row) =>
                             row.estado === "Retirado" ||
                             row.estado === "Finalizada",
@@ -988,6 +1036,13 @@ const GrupoVistaTutorDocente = () => {
                 idsPracticantesNoSeleccionables={idsPracticantesNoSeleccionables}
                 onGestionarVisita={handleGestionarVisita}
                 onCancelarSolicitud={handleCancelarSolicitud}
+            />
+
+            <EncuestaTutorEmpresarialModal
+                mostrar={!!practicanteEncuesta}
+                practicante={practicanteEncuesta}
+                rolEncuesta="Tutor Docente"
+                onCerrar={() => setPracticanteEncuesta(null)}
             />
 
 
