@@ -125,3 +125,18 @@ export const actualizarEmpresaRequest = (
     );
 
 };
+
+
+// =========================================================
+// OBTENER EMPRESAS PARA REPORTE POR PERÍODO
+// =========================================================
+
+export const getEmpresasParaReportePorPeriodoRequest = (
+    periodo_id
+) => {
+
+    return empresaApi.get(
+        `/reporte/periodo/${periodo_id}`
+    );
+
+};

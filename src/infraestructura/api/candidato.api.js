@@ -66,3 +66,8 @@ export const getCandidatosPerfil = (perfilNombre) => {
 export const invitarCandidatoRequest = (data) => {
   return candidatoApi.post("/invitacion", data);
 };
+
+// Obtener candidatos para el reporte por período
+export const obtenerCandidatosParaReportePorPeriodoRequest = (periodo_id) => {
+  return candidatoApi.get(`/reporte/periodo/${periodo_id}`);
+};

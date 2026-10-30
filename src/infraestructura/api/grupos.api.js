@@ -81,3 +81,9 @@ export const editarGrupoRequest = async (id, data) => {
 export const deleteGrupoRequest = async (id) => {
     return await grupoApi.delete(`/${id}`);
 };
+
+
+// OBTENER GRUPOS PARA REPORTE POR PERIODO
+export const obtenerGruposParaReportePorPeriodoRequest = async (periodo_id) => {
+    return await grupoApi.get(`/reporte/periodo/${periodo_id}`);
+};

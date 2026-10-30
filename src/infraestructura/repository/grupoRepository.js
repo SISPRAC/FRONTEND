@@ -7,7 +7,8 @@ import {
   getGruposByPracticaIdRequest,
   getPracticantesDocumentosByGrupoRequest,
   editarGrupoRequest,
-  deleteGrupoRequest
+  deleteGrupoRequest,
+  obtenerGruposParaReportePorPeriodoRequest
 } from "../api/grupos.api.js";
 
 
@@ -51,5 +52,9 @@ export const grupoRepository = {
   async delete(id) {
     const response = await deleteGrupoRequest(id);
     return response.data;
-  }
+  },
+  async obtenerGruposParaReportePorPeriodo(periodo_id) {
+    const response = await obtenerGruposParaReportePorPeriodoRequest(periodo_id);
+    return response.data;
+}
 };
