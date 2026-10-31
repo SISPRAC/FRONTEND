@@ -1,262 +1,357 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Building2, Users, XCircle, CheckCircle2, TrendingUp, TrendingDown, ChevronDown,
+  Building2, Briefcase, FileText, Percent, Users, ChevronDown,
 } from "lucide-react";
 import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
+import { toast } from "react-hot-toast";
 
+import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos.js";
+import { periodoRepository } from "../../../infraestructura/repository/periodoRepository.js";
+import { getDashboardReporte } from "../../../aplicacion/dashboard/getDashboardReporte.js";
+import { reporteRepository } from "../../../infraestructura/repository/reporteRepository.js";
 
 // -----------------------------------------------------------------------
-// Paleta: rojo (marca), negro (texto) y blanco (fondo), con acentos que
-// no rompen la gama para diferenciar series en las gráficas.
+// Paleta
 // -----------------------------------------------------------------------
 const COLOR_ROJO = "#EF4444";
 const COLOR_NEGRO = "#111827";
 const COLOR_AZUL = "#3B82F6";
 const COLOR_VERDE = "#10B981";
 const COLOR_AMBAR = "#F59E0B";
-const COLOR_MORADO = "#8B5CF6";
-const COLOR_TEAL = "#14B8A6";
 
-// -----------------------------------------------------------------------
-// DATOS DE EJEMPLO — reemplaza esto por lo que traigas de tu API,
-// agregado por período. La forma de cada período es:
-//   {
-//     kpis: { empresas, practicantes, rechazados, aprobados } con { valor, cambio, tendencia }
-//     satisfaccion: [{ mes, practicantes, empresas, docentes }]   // promedio de encuestas (0-100)
-//     vacantesPorPerfil: [{ perfil, vacantes }]
-//     resultadosSeleccion: [{ estado, valor }]                    // porcentaje
-//   }
-// -----------------------------------------------------------------------
-const DATA_POR_PERIODO = {
-  "2026-01": {
-    kpis: {
-      empresas: { valor: 40, cambio: 11.01, tendencia: "up" },
-      practicantes: { valor: 60, cambio: -0.03, tendencia: "down" },
-      rechazados: { valor: 4, cambio: 15.03, tendencia: "up" },
-      aprobados: { valor: 56, cambio: 6.08, tendencia: "up" },
-    },
-    satisfaccion: [
-      { mes: "Ene", practicantes: 72, empresas: 68, docentes: 80 },
-      { mes: "Feb", practicantes: 65, empresas: 70, docentes: 78 },
-      { mes: "Mar", practicantes: 74, empresas: 66, docentes: 82 },
-      { mes: "Abr", practicantes: 80, empresas: 75, docentes: 79 },
-      { mes: "May", practicantes: 78, empresas: 82, docentes: 85 },
-      { mes: "Jun", practicantes: 83, empresas: 79, docentes: 88 },
-      { mes: "Jul", practicantes: 85, empresas: 84, docentes: 86 },
-    ],
-    vacantesPorPerfil: [
-      { perfil: "Frontend", vacantes: 18, color: COLOR_ROJO },
-      { perfil: "Backend", vacantes: 30, color: COLOR_TEAL },
-      { perfil: "UX/UI", vacantes: 12, color: COLOR_MORADO },
-      { perfil: "QA", vacantes: 22, color: COLOR_AMBAR },
-      { perfil: "Datos", vacantes: 9, color: COLOR_AZUL },
-      { perfil: "Otro", vacantes: 15, color: COLOR_VERDE },
-    ],
-    resultadosSeleccion: [
-      { estado: "Pendiente", valor: 52.1, color: COLOR_NEGRO },
-      { estado: "Retirado", valor: 22.8, color: COLOR_AZUL },
-      { estado: "Aceptado", valor: 13.9, color: COLOR_VERDE },
-      { estado: "Rechazado", valor: 11.2, color: COLOR_ROJO },
-    ],
-  },
-  "2025-02": {
-    kpis: {
-      empresas: { valor: 36, cambio: 4.4, tendencia: "up" },
-      practicantes: { valor: 61, cambio: 2.1, tendencia: "up" },
-      rechazados: { valor: 7, cambio: -8.5, tendencia: "down" },
-      aprobados: { valor: 48, cambio: 3.2, tendencia: "up" },
-    },
-    satisfaccion: [
-      { mes: "Ago", practicantes: 60, empresas: 62, docentes: 70 },
-      { mes: "Sep", practicantes: 63, empresas: 65, docentes: 74 },
-      { mes: "Oct", practicantes: 58, empresas: 60, docentes: 72 },
-      { mes: "Nov", practicantes: 66, empresas: 68, docentes: 76 },
-      { mes: "Dic", practicantes: 70, empresas: 71, docentes: 79 },
-    ],
-    vacantesPorPerfil: [
-      { perfil: "Frontend", vacantes: 14, color: COLOR_ROJO },
-      { perfil: "Backend", vacantes: 24, color: COLOR_TEAL },
-      { perfil: "UX/UI", vacantes: 8, color: COLOR_MORADO },
-      { perfil: "QA", vacantes: 17, color: COLOR_AMBAR },
-      { perfil: "Datos", vacantes: 6, color: COLOR_AZUL },
-      { perfil: "Otro", vacantes: 11, color: COLOR_VERDE },
-    ],
-    resultadosSeleccion: [
-      { estado: "Pendiente", valor: 40.5, color: COLOR_NEGRO },
-      { estado: "Retirado", valor: 18.2, color: COLOR_AZUL },
-      { estado: "Aceptado", valor: 27.6, color: COLOR_VERDE },
-      { estado: "Rechazado", valor: 13.7, color: COLOR_ROJO },
-    ],
-  },
+const COLOR_RESULTADO = {
+  Pendiente: COLOR_NEGRO,
+  Retirado: COLOR_AZUL,
+  Aceptado: COLOR_VERDE,
+  Rechazado: COLOR_ROJO,
 };
 
-function KpiCard({ icon, label, valor, cambio, tendencia, tint }) {
-  const up = tendencia === "up";
+const COLOR_PRACTICANTE = {
+  "En curso": COLOR_AZUL,
+  Finalizada: COLOR_VERDE,
+  Retirado: COLOR_NEGRO,
+  Cancelado: COLOR_AMBAR,
+};
+
+const DASHBOARD_VACIO = {
+  kpis: {
+    empresas: 0,
+    cuposDisponibles: 0,
+    postulaciones: 0,
+    tasaAceptacion: 0,
+    practicantesActivos: 0,
+  },
+  practicantesPorEstado: [],
+  ofertaDemanda: [],
+  resultadosSeleccion: [],
+};
+
+const tooltipStyle = { borderRadius: 10, border: "1px solid #F1F1F1", fontSize: 12 };
+const tickStyle = { fontSize: 12, fill: "#9CA3AF" };
+
+const mensajeError = (error, porDefecto) =>
+  error?.response?.data?.message || error?.message || porDefecto;
+
+// El período activo es el que contiene la fecha de hoy; si no hay, el último
+function elegirPeriodoActivo(lista) {
+  const hoy = new Date().toISOString().slice(0, 10);
+  return (
+    lista.find((p) => p.fecha_inicio <= hoy && hoy <= p.fecha_fin) ??
+    lista[lista.length - 1]
+  );
+}
+
+// -----------------------------------------------------------------------
+// Componentes auxiliares
+// -----------------------------------------------------------------------
+function KpiCard({ icon, label, valor, tint }) {
   return (
     <div className={`rounded-2xl border border-gray-100 p-5 ${tint}`}>
       <div className="mb-4 flex items-center justify-between">
         <span className="text-sm font-semibold text-gray-500">{label}</span>
         {icon}
       </div>
-      <div className="flex items-end justify-between">
-        <span className="text-3xl font-bold text-gray-900">{valor}</span>
-        <span className={`flex items-center gap-1 text-xs font-semibold ${up ? "text-emerald-600" : "text-red-500"}`}>
-          {up ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
-          {Math.abs(cambio)}%
-        </span>
-      </div>
+      <span className="text-3xl font-bold text-gray-900">{valor}</span>
     </div>
   );
 }
 
-export default function PracticasDashboard() {
-  // TODO: reemplaza por tu fetch real agregado por período, por ejemplo:
-  // const { data } = useQuery(["dashboard-practicas", periodo], () => fetchDashboard(periodo));
-  const periodos = Object.keys(DATA_POR_PERIODO);
-  const [periodo, setPeriodo] = useState(periodos[0]);
+function SinDatos({ texto = "Sin datos para este período" }) {
+  return (
+    <div className="flex h-full items-center justify-center text-sm text-gray-400">
+      {texto}
+    </div>
+  );
+}
 
-  const data = useMemo(() => DATA_POR_PERIODO[periodo], [periodo]);
+function TituloGrafica({ titulo, subtitulo }) {
+  return (
+    <div className="mb-4">
+      <h2 className="text-sm font-bold text-gray-900">{titulo}</h2>
+      <p className="mt-0.5 text-xs text-gray-400">{subtitulo}</p>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------
+// Componente principal
+// -----------------------------------------------------------------------
+export default function PracticasDashboard() {
+  const [periodos, setPeriodos] = useState([]);
+  const [periodoId, setPeriodoId] = useState("");
+  const [dashboard, setDashboard] = useState(DASHBOARD_VACIO);
+  const [cargandoPeriodos, setCargandoPeriodos] = useState(true);
+  const [cargandoDatos, setCargandoDatos] = useState(false);
+
+  // 1. Cargar períodos y elegir el activo
+  useEffect(() => {
+    const cargarPeriodos = async () => {
+      try {
+        setCargandoPeriodos(true);
+
+        const datosPeriodos = await getPeriodos({ periodoRepository });
+        const lista = datosPeriodos || [];
+
+        setPeriodos(lista);
+
+        if (lista.length) {
+          setPeriodoId(String(elegirPeriodoActivo(lista).id));
+        }
+      } catch (error) {
+        console.error("Error al cargar los períodos:", error);
+        toast.error(mensajeError(error, "No se pudieron cargar los períodos."));
+      } finally {
+        setCargandoPeriodos(false);
+      }
+    };
+
+    cargarPeriodos();
+  }, []);
+
+  // 2. Cargar el dashboard cada vez que cambia el período
+  useEffect(() => {
+    if (!periodoId) return;
+
+    let cancelado = false;
+
+    const cargarDashboard = async () => {
+      try {
+        setCargandoDatos(true);
+
+        const data = await getDashboardReporte({ reporteRepository }, periodoId);
+
+        if (!cancelado) {
+          setDashboard({
+            ...DASHBOARD_VACIO,
+            ...data,
+            kpis: { ...DASHBOARD_VACIO.kpis, ...data?.kpis },
+          });
+        }
+      } catch (error) {
+        console.error("Error al cargar el dashboard:", error);
+        if (!cancelado) {
+          setDashboard(DASHBOARD_VACIO);
+          toast.error(
+            mensajeError(error, "No se pudieron cargar los datos de los reportes.")
+          );
+        }
+      } finally {
+        if (!cancelado) setCargandoDatos(false);
+      }
+    };
+
+    cargarDashboard();
+
+    // Evita que una respuesta vieja pise a una más reciente
+    return () => {
+      cancelado = true;
+    };
+  }, [periodoId]);
+
+  const { kpis, ofertaDemanda } = dashboard;
+
+  // Los colores se asignan aquí; el backend solo manda los datos
+  const practicantesPorEstado = dashboard.practicantesPorEstado.map((p) => ({
+    ...p,
+    color: COLOR_PRACTICANTE[p.estado] ?? COLOR_NEGRO,
+  }));
+
+  const resultadosSeleccion = dashboard.resultadosSeleccion.map((r) => ({
+    ...r,
+    color: COLOR_RESULTADO[r.estado] ?? COLOR_NEGRO,
+  }));
+
+  const hayPracticantes = practicantesPorEstado.some((p) => p.total > 0);
+  const hayResultados = resultadosSeleccion.some((r) => r.valor > 0);
+  const cargando = cargandoPeriodos || cargandoDatos;
 
   return (
     <div>
       <div className="mx-auto max-w-6xl px-6 py-8">
+        {/* Encabezado + selector de período */}
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Practicas</h1>
           <div className="relative">
             <select
-              value={periodo}
-              onChange={(e) => setPeriodo(e.target.value)}
-              className="appearance-none rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm font-medium text-gray-700 outline-none focus:border-red-400"
+              value={periodoId}
+              onChange={(e) => setPeriodoId(e.target.value)}
+              disabled={cargandoPeriodos || !periodos.length}
+              className="appearance-none rounded-lg border border-gray-200 bg-white py-1.5 pl-3 pr-8 text-sm font-medium text-gray-700 outline-none focus:border-red-400 disabled:opacity-60"
             >
               {periodos.map((p) => (
-                <option key={p} value={p}>{p}</option>
+                <option key={p.id} value={String(p.id)}>
+                  {p.nombre}
+                </option>
               ))}
             </select>
-            <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            <ChevronDown
+              size={14}
+              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+            />
           </div>
         </div>
 
-        <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <KpiCard
-            label="Empresas"
-            valor={data.kpis.empresas.valor}
-            cambio={data.kpis.empresas.cambio}
-            tendencia={data.kpis.empresas.tendencia}
-            tint="bg-purple-50"
-            icon={<Building2 size={18} className="text-purple-400" />}
-          />
-          <KpiCard
-            label="Practicantes"
-            valor={data.kpis.practicantes.valor}
-            cambio={data.kpis.practicantes.cambio}
-            tendencia={data.kpis.practicantes.tendencia}
-            tint="bg-blue-50"
-            icon={<Users size={18} className="text-blue-400" />}
-          />
-          <KpiCard
-            label="Rechazados"
-            valor={data.kpis.rechazados.valor}
-            cambio={data.kpis.rechazados.cambio}
-            tendencia={data.kpis.rechazados.tendencia}
-            tint="bg-red-50"
-            icon={<XCircle size={18} className="text-red-400" />}
-          />
-          <KpiCard
-            label="Aprobados"
-            valor={data.kpis.aprobados.valor}
-            cambio={data.kpis.aprobados.cambio}
-            tendencia={data.kpis.aprobados.tendencia}
-            tint="bg-emerald-50"
-            icon={<CheckCircle2 size={18} className="text-emerald-400" />}
-          />
-        </div>
-
-        <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-6">
-          <div className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-1">
-            <h2 className="text-sm font-bold text-gray-900">Satisfacción promedio en encuestas</h2>
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
-              <span className="h-2 w-2 rounded-full" style={{ background: COLOR_ROJO }} /> Practicantes
-            </span>
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
-              <span className="h-2 w-2 rounded-full" style={{ background: COLOR_NEGRO }} /> Empresas
-            </span>
-            <span className="flex items-center gap-1.5 text-xs text-gray-400">
-              <span className="h-2 w-2 rounded-full" style={{ background: COLOR_AZUL }} /> Docentes
-            </span>
-          </div>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data.satisfaccion} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid vertical={false} stroke="#F1F1F1" />
-                <XAxis dataKey="mes" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} unit="%" />
-                <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #F1F1F1", fontSize: 12 }} />
-                <Line type="monotone" dataKey="practicantes" stroke={COLOR_ROJO} strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="empresas" stroke={COLOR_NEGRO} strokeWidth={2.5} dot={false} />
-                <Line type="monotone" dataKey="docentes" stroke={COLOR_AZUL} strokeWidth={2.5} strokeDasharray="5 4" dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-gray-100 bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold text-gray-900">Vacantes disponibles por perfil</h2>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.vacantesPorPerfil} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="#F1F1F1" />
-                  <XAxis dataKey="perfil" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #F1F1F1", fontSize: 12 }} />
-                  <Bar dataKey="vacantes" radius={[6, 6, 0, 0]}>
-                    {data.vacantesPorPerfil.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+        {cargando ? (
+          <div className="py-20 text-center text-sm text-gray-400">Cargando reportes...</div>
+        ) : (
+          <>
+            {/* Tarjetas */}
+            <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
+              <KpiCard
+                label="Empresas con vacantes"
+                valor={kpis.empresas}
+                tint="bg-purple-50"
+                icon={<Building2 size={18} className="text-purple-400" />}
+              />
+              <KpiCard
+                label="Cupos disponibles"
+                valor={kpis.cuposDisponibles}
+                tint="bg-blue-50"
+                icon={<Briefcase size={18} className="text-blue-400" />}
+              />
+              <KpiCard
+                label="Postulaciones recibidas"
+                valor={kpis.postulaciones}
+                tint="bg-red-50"
+                icon={<FileText size={18} className="text-red-400" />}
+              />
+              <KpiCard
+                label="Tasa de aceptación"
+                valor={`${kpis.tasaAceptacion}%`}
+                tint="bg-emerald-50"
+                icon={<Percent size={18} className="text-emerald-400" />}
+              />
+              <KpiCard
+                label="Practicantes activos"
+                valor={kpis.practicantesActivos}
+                tint="bg-amber-50"
+                icon={<Users size={18} className="text-amber-400" />}
+              />
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-white p-6">
-            <h2 className="mb-4 text-sm font-bold text-gray-900">Distribución de resultados de selección</h2>
-            <div className="flex items-center gap-6">
-              <div className="h-48 w-48 flex-shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data.resultadosSeleccion}
-                      dataKey="valor"
-                      nameKey="estado"
-                      innerRadius={55}
-                      outerRadius={80}
-                      paddingAngle={2}
-                    >
-                      {data.resultadosSeleccion.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
+            {/* Oferta y demanda por cargo */}
+            <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-6">
+              <TituloGrafica
+                titulo="Oferta y demanda por cargo"
+                subtitulo="Cupos abiertos frente a postulaciones recibidas en cada cargo"
+              />
+              <div className="h-72">
+                {ofertaDemanda.length ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={ofertaDemanda} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                      <CartesianGrid vertical={false} stroke="#F1F1F1" />
+                      <XAxis dataKey="cargo" tick={tickStyle} axisLine={false} tickLine={false} />
+                      <YAxis allowDecimals={false} tick={tickStyle} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={tooltipStyle} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="cupos" name="Cupos" fill={COLOR_AZUL} radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="postulaciones" name="Postulaciones" fill={COLOR_ROJO} radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <SinDatos />
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Estado de los practicantes */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-6">
+                <TituloGrafica
+                  titulo="Estado de los practicantes"
+                  subtitulo="Practicantes del período según su estado actual, incluidos retirados y cancelados"
+                />
+                <div className="h-64">
+                  {hayPracticantes ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={practicantesPorEstado} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                        <CartesianGrid vertical={false} stroke="#F1F1F1" />
+                        <XAxis dataKey="estado" tick={tickStyle} axisLine={false} tickLine={false} />
+                        <YAxis allowDecimals={false} tick={tickStyle} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={tooltipStyle} />
+                        <Bar dataKey="total" name="Practicantes" radius={[6, 6, 0, 0]}>
+                          {practicantesPorEstado.map((entry, i) => (
+                            <Cell key={i} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <SinDatos />
+                  )}
+                </div>
+              </div>
+
+              {/* Resultado de las postulaciones */}
+              <div className="rounded-2xl border border-gray-100 bg-white p-6">
+                <TituloGrafica
+                  titulo="Resultado de las postulaciones"
+                  subtitulo="Porcentaje de postulaciones pendientes, aceptadas, rechazadas y retiradas"
+                />
+                {hayResultados ? (
+                  <div className="flex items-center gap-6">
+                    <div className="h-48 w-48 flex-shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={resultadosSeleccion}
+                            dataKey="valor"
+                            nameKey="estado"
+                            innerRadius={55}
+                            outerRadius={80}
+                            paddingAngle={2}
+                          >
+                            {resultadosSeleccion.map((entry, i) => (
+                              <Cell key={i} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip contentStyle={tooltipStyle} formatter={(v) => `${v}%`} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex-1 space-y-2.5">
+                      {resultadosSeleccion.map((r) => (
+                        <div key={r.estado} className="flex items-center gap-2 text-sm">
+                          <span className="h-2.5 w-2.5 rounded-full" style={{ background: r.color }} />
+                          <span className="text-gray-500">{r.estado}</span>
+                          <span className="ml-auto font-semibold text-gray-800">{r.valor}%</span>
+                        </div>
                       ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #F1F1F1", fontSize: 12 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="space-y-2.5">
-                {data.resultadosSeleccion.map((r) => (
-                  <div key={r.estado} className="flex items-center gap-2 text-sm">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: r.color }} />
-                    <span className="text-gray-500">{r.estado}</span>
-                    <span className="ml-auto font-semibold text-gray-800">{r.valor}%</span>
+                    </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="h-48">
+                    <SinDatos />
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
-    </div >
+    </div>
   );
 }

@@ -111,7 +111,7 @@ const CandidatosEmpresa = () => {
           tracking-tight
         "
       >
-        Candidatos
+        Candidatos a practicas
       </h1>
 
 

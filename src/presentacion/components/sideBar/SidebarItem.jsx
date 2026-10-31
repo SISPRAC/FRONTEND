@@ -74,6 +74,11 @@ export const Director_NAV = [
     icon: <Bell />,
     href: "/notificaciones",
   },
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
+  },
 ];
 
 
@@ -101,11 +106,7 @@ export const Empresa_NAV = [
     icon: <ClipboardPlus />,
     href: "/protocolosEmpresa",
   },
-  {
-    label: "Encuestas",
-    icon: <FileUser />,
-    href: "/encuestas",
-  },
+
   {
     label: "Vacantes",
     icon: <FileUser />,
@@ -122,9 +123,9 @@ export const Empresa_NAV = [
     href: "/notificaciones",
   },
   {
-    label: "Mi perfil",
-    icon: <User />,
-    href: " /miPerfil",
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/miPerfil",
   },
 ];
 
@@ -150,12 +151,7 @@ export const Practicante_NAV = [
     href: "/documentosIniciales",
   },
   {
-    label: "Perfil",
-    icon: <UserCog />,
-    href: "/perfil",
-  },
-  {
-    label: "Encuestas",
+    label: "Encuesta",
     icon: <FileUser />,
     href: "/EncuestaPracticante",
   },
@@ -163,6 +159,11 @@ export const Practicante_NAV = [
     label: "Notificaciones",
     icon: <Bell />,
     href: "/notificaciones",
+  },
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
   },
 ];
 
@@ -184,16 +185,6 @@ export const PracticantePerfil_NAV = [
 // ==========================
 export const Candidato_NAV = [
   {
-    label: "Protocolos",
-    icon: <ClipboardPlus />,
-    href: "/protocolos",
-  },
-  {
-    label: "Perfil",
-    icon: <UserCog />,
-    href: "/perfil",
-  },
-  {
     label: "Situación",
     icon: <BadgeInfo />,
     href: "/situacion",
@@ -202,6 +193,11 @@ export const Candidato_NAV = [
     label: "Notificaciones",
     icon: <Bell />,
     href: "/notificaciones",
+  },
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
   },
 ];
 
@@ -216,19 +212,14 @@ export const TutorDocente_NAV = [
     href: "/misGrupos",
   },
   {
-    label: "Visitas",
-    icon: <MapPinned />,
-    href: "/visitas",
-  },
-  {
-    label: "Encuestas",
-    icon: <FileUser />,
-    href: "/encuestas",
-  },
-  {
     label: "Notificaciones",
     icon: <Bell />,
     href: "/notificaciones",
+  },
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
   },
 ];
 
@@ -243,14 +234,14 @@ export const TutorEmpresarial_NAV = [
     href: "/mis-aperturas",
   },
   {
-    label: "Visitas",
-    icon: <MapPinned />,
-    href: "/visitas",
-  },
-  {
     label: "Notificaciones",
     icon: <Bell />,
     href: "/notificaciones",
+  },
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
   },
 ];
 
@@ -288,6 +279,11 @@ export const Admin_NAV = [
     label: "Notificaciones",
     icon: <Bell />,
     href: "/notificaciones",
+  },
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
   },
 ];
 

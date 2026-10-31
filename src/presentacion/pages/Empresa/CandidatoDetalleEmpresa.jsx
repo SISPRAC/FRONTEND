@@ -35,7 +35,6 @@ const CandidatoDetalleEmpresa = () => {
       vacante: "",
       correo: "",
       telefono: "",
-      experiencia: "",
       fechaPostulacion: "",
       estado: "pendiente",
       hojaVida: null,
@@ -342,13 +341,7 @@ const CandidatoDetalleEmpresa = () => {
                         : "-"
                     }
                   />
-
-                  <InfoRow
-                    icon={<Briefcase size={17} />}
-                    label="Experiencia"
-                    value={candidato.experiencia}
-                  />
-
+               
                 </div>
               </div>
 
