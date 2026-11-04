@@ -1,5 +1,7 @@
+
 import logo from "../../../assets/images/logo/Logo.png";
 import LogoSolo from "../../../assets/images/logo/solo_logo.png";
+
 import React, {
   useState,
   useRef,
@@ -12,7 +14,8 @@ import {
 
 import {
   useNavigate,
-  useLocation
+  useLocation,
+  NavLink
 } from "react-router-dom";
 
 import {
@@ -20,9 +23,6 @@ import {
   PracticantePerfil_NAV
 } from "./SidebarItem";
 
-import {
-  userRepository
-} from "../../../infraestructura/repository/userRepository";
 
 import {
   UserRound,
@@ -46,12 +46,12 @@ export default function Sidebar({
   collapsed = false,
   setCollapsed,
   mobileOpen = false,
-  setMobileOpen
+  setMobileOpen,
+  perfilCompletado,
+  setPerfilCompletado
 }) {
 
-
-  const [openMenu, setOpenMenu] =
-    useState(false);
+  const [openMenu, setOpenMenu] = useState(false);
 
 
   const navigate = useNavigate();
@@ -60,106 +60,28 @@ export default function Sidebar({
   const menuRef = useRef(null);
 
 
-  const token =
-    localStorage.getItem("token");
+  // =====================================================
+  // OBTENER USUARIO DEL TOKEN
+  // =====================================================
 
-  const usuario =
-    token ? jwtDecode(token) : null;
+  const token = localStorage.getItem("token");
 
+  const usuario = React.useMemo(() => {
 
+    if (!token) return null;
 
-
-  const [perfilCompletado, setPerfilCompletado] =
-    useState(null);
-
-
-  // =========================================================
-  // ESTABLECER ROL ACTIVO
-  // =========================================================
-
-  useEffect(() => {
-
-    if (!usuario) return;
-
-    if (!localStorage.getItem("rolActivo")) {
-
-      localStorage.setItem(
-        "rolActivo",
-        usuario.roles[0]
-      );
-
+    try {
+      return jwtDecode(token);
+    } catch (error) {
+      return null;
     }
 
-  }, [usuario]);
+  }, [token]);
 
 
-  // =========================================================
-  // CARGAR PERFIL DEL PRACTICANTE
-  // =========================================================
-
-  useEffect(() => {
-
-    const cargarPerfil = async () => {
-
-      // =========================
-      // SI NO ES PRACTICANTE
-      // =========================
-
-      if (rolActivo !== "Practicante") {
-
-        setPerfilCompletado(true);
-
-        return;
-
-      }
-
-
-      // =========================
-      // PRACTICANTE
-      // =========================
-
-      try {
-
-        const usuarioPerfil =
-          await userRepository.getMe();
-
-
-        const completado =
-          usuarioPerfil
-            ?.candidato
-            ?.practicante
-            ?.perfil_completado;
-
-
-        setPerfilCompletado(
-          !!completado
-        );
-
-      } catch (error) {
-
-        console.error(
-          "Error obteniendo estado del perfil:",
-          error
-        );
-
-        setPerfilCompletado(false);
-
-      }
-
-    };
-
-
-    cargarPerfil();
-
-  }, [
-    rolActivo,
-    location.pathname
-  ]);
-
-
-  // =========================================================
+  // =====================================================
   // CERRAR MENÚ AL HACER CLICK AFUERA
-  // =========================================================
+  // =====================================================
 
   useEffect(() => {
 
@@ -176,12 +98,10 @@ export default function Sidebar({
 
     };
 
-
     document.addEventListener(
       "mousedown",
       handleClickOutside
     );
-
 
     return () => {
 
@@ -195,9 +115,9 @@ export default function Sidebar({
   }, []);
 
 
-  // =========================================================
+  // =====================================================
   // CERRAR SIDEBAR MÓVIL AL CAMBIAR DE RUTA
-  // =========================================================
+  // =====================================================
 
   useEffect(() => {
 
@@ -207,15 +127,12 @@ export default function Sidebar({
 
     }
 
-  }, [
-    location.pathname,
-    setMobileOpen
-  ]);
+  }, [location.pathname, setMobileOpen]);
 
 
-  // =========================================================
+  // =====================================================
   // LOGOUT
-  // =========================================================
+  // =====================================================
 
   const handleLogout = async () => {
 
@@ -233,47 +150,49 @@ export default function Sidebar({
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("rolActivo");
 
-
-      navigate(
-        "/",
-        {
-          replace: true
-        }
-      );
+      navigate("/", {
+        replace: true
+      });
 
     }
 
   };
 
-  // =========================================================
-  // CAMBIAR ROL
-  // =========================================================
 
+  // =====================================================
+  // CAMBIAR ROL
+  // =====================================================
 
   const handleChangeRole = (rol) => {
-    // Actualizar el rol en el estado compartido
+
     setRolActivo(rol);
 
-    // Guardar el rol seleccionado
     localStorage.setItem("rolActivo", rol);
 
-    // Cerrar el menú emergente
+    // Permitir que ProtectedRoute vuelva a validar el perfil
+    // únicamente cuando se cambia al rol Practicante.
+    if (setPerfilCompletado) {
+      setPerfilCompletado(
+        rol === "Practicante" ? null : true
+      );
+    }
+
     setOpenMenu(false);
 
-    // Cerrar el sidebar móvil si está abierto
     if (setMobileOpen) {
       setMobileOpen(false);
     }
 
-    // Navegar a la página principal del rol seleccionado
     navigate(HOME_ROUTES[rol], {
       replace: true
     });
+
   };
 
-  // =========================================================
+
+  // =====================================================
   // NAVEGACIÓN FINAL
-  // =========================================================
+  // =====================================================
 
   const navItemsFinal =
     rolActivo === "Practicante"
@@ -285,20 +204,18 @@ export default function Sidebar({
       : navItems;
 
 
-  // =========================================================
+  // =====================================================
   // CLASES DINÁMICAS
-  // =========================================================
+  // =====================================================
 
-  const sidebarWidth =
-    collapsed
-      ? "md:w-[80px]"
-      : "md:w-[300px]";
+  const sidebarWidth = collapsed
+    ? "md:w-[80px]"
+    : "md:w-[300px]";
 
 
   return (
 
     <>
-
 
       {/* =====================================================
           FONDO OSCURO PARA MÓVIL
@@ -307,16 +224,12 @@ export default function Sidebar({
       {mobileOpen && (
 
         <div
-          onClick={() =>
-            setMobileOpen(false)
-          }
+          onClick={() => setMobileOpen(false)}
           className="
             fixed
             inset-0
             z-40
-
             bg-black/40
-
             md:hidden
           "
         />
@@ -332,31 +245,20 @@ export default function Sidebar({
         className={`
           fixed
           md:sticky
-
           top-0
           left-0
-
           z-50
-
           h-screen
-
           bg-[#e8192c]
-
           flex
           flex-col
-
           shadow-[4px_0_16px_rgba(232,25,44,0.18)]
-
           flex-shrink-0
-
           transition-all
           duration-300
           ease-in-out
-
           ${sidebarWidth}
-
           w-[300px]
-
           ${mobileOpen
             ? "translate-x-0"
             : "-translate-x-full md:translate-x-0"
@@ -364,106 +266,82 @@ export default function Sidebar({
         `}
       >
 
-
         {/* =================================================
-    ÁREA SUPERIOR / LOGO
-================================================= */}
+            ÁREA SUPERIOR / LOGO
+        ================================================= */}
 
         <div
           className={`
-    relative
-    min-h-[80px]
-
-    flex
-    items-center
-
-    border-b
-    border-white/15
-
-    transition-all
-    duration-300
-
-    ${collapsed
+            relative
+            min-h-[80px]
+            flex
+            items-center
+            border-b
+            border-white/15
+            transition-all
+            duration-300
+            ${collapsed
               ? "justify-center px-2"
               : "justify-between px-4"
             }
-  `}
+          `}
         >
 
           {/* LOGO */}
 
           <div
             className={`
-      flex
-      items-center
-      justify-center
-
-      transition-all
-      duration-300
-
-      ${collapsed
+              flex
+              items-center
+              justify-center
+              transition-all
+              duration-300
+              ${collapsed
                 ? "w-full"
                 : "flex-1"
               }
-    `}
+            `}
           >
 
             <img
               src={collapsed ? LogoSolo : logo}
               alt="SISPRAC"
               className={`
-        object-contain
-
-        transition-all
-        duration-300
-
-        ${collapsed
+                object-contain
+                transition-all
+                duration-300
+                ${collapsed
                   ? "h-12 w-12"
                   : "h-20"
                 }
-      `}
+              `}
             />
 
           </div>
 
 
-          {/* =================================================
-      BOTÓN CONTRAER / EXPANDIR
-  ================================================= */}
+          {/* BOTÓN CONTRAER / EXPANDIR */}
 
           <button
-            onClick={() =>
-              setCollapsed(!collapsed)
-            }
-            className={`
-      hidden
-      md:flex
-
-      flex-shrink-0
-
-      items-center
-      justify-center
-
-      rounded-lg
-
-      text-white
-
-      bg-white/10
-      hover:bg-white/20
-
-      border
-      border-white/15
-
-      shadow-sm
-
-      transition-all
-      duration-200
-
-      ${collapsed
-                ? "w-9 h-9"
-                : "w-9 h-9"
-              }
-    `}
+            onClick={() => setCollapsed(!collapsed)}
+            className="
+              hidden
+              md:flex
+              flex-shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-white
+              bg-white/10
+              hover:bg-white/20
+              border
+              border-white/15
+              shadow-sm
+              transition-all
+              duration-200
+              w-9
+              h-9
+            "
             aria-label={
               collapsed
                 ? "Expandir menú"
@@ -472,55 +350,34 @@ export default function Sidebar({
           >
 
             {collapsed ? (
-
-              <ChevronRight
-                size={20}
-                strokeWidth={2.5}
-              />
-
+              <ChevronRight size={20} strokeWidth={2.5} />
             ) : (
-
-              <ChevronLeft
-                size={20}
-                strokeWidth={2.5}
-              />
-
+              <ChevronLeft size={20} strokeWidth={2.5} />
             )}
 
           </button>
 
 
-          {/* =================================================
-      BOTÓN CERRAR - MÓVIL
-  ================================================= */}
+          {/* BOTÓN CERRAR MÓVIL */}
 
           <button
-            onClick={() =>
-              setMobileOpen(false)
-            }
+            onClick={() => setMobileOpen(false)}
             className="
-      md:hidden
-
-      absolute
-      right-4
-      top-4
-
-      w-9
-      h-9
-
-      flex
-      items-center
-      justify-center
-
-      rounded-lg
-
-      text-white
-
-      bg-white/10
-      hover:bg-white/20
-
-      transition-colors
-    "
+              md:hidden
+              absolute
+              right-4
+              top-4
+              w-9
+              h-9
+              flex
+              items-center
+              justify-center
+              rounded-lg
+              text-white
+              bg-white/10
+              hover:bg-white/20
+              transition-colors
+            "
             aria-label="Cerrar menú"
           >
 
@@ -537,114 +394,106 @@ export default function Sidebar({
 
         <nav
           className={`
-            flex-1
-
-            pt-5
-
-            flex
-            flex-col
-
-            gap-0.5
-
-            overflow-y-auto
-
-            ${collapsed
+    flex-1
+    pt-5
+    flex
+    flex-col
+    gap-0.5
+    overflow-y-auto
+    ${collapsed
               ? "items-center"
               : ""
             }
-          `}
+  `}
         >
 
-          {navItemsFinal.map((item, i) => (
+          {rolActivo === "Practicante" && perfilCompletado === null ? (
 
-            <a
-              key={i}
-              href={item.href ?? "#"}
-              title={
-                collapsed
-                  ? item.label
-                  : undefined
-              }
+            <div
               className={`
-                flex
-                items-center
-
-                text-white
-                text-[15px]
-                font-bold
-                no-underline
-
-                transition-all
-                duration-200
-
-                ${collapsed
-                  ? `
-                      justify-center
-
-                      w-[56px]
-                      h-[48px]
-
-                      rounded-xl
-
-                      px-0
-                    `
-                  : `
-                      gap-3
-
-                      px-5
-                      py-[13px]
-
-                      mr-4
-
-                      rounded-r-full
-                    `
-                }
-
-                ${item.active
-                  ? "bg-white/20"
-                  : "hover:bg-white/10"
-                }
-              `}
+        flex
+        items-center
+        gap-3
+        px-5
+        py-4
+        text-white/80
+        ${collapsed ? "justify-center px-0" : ""}
+      `}
             >
 
-
-              {item.icon && (
-
-                <span
-                  className="
-                    w-[22px]
-                    h-[22px]
-
-                    flex
-                    items-center
-                    justify-center
-
-                    flex-shrink-0
-                  "
-                >
-
-                  {item.icon}
-
-                </span>
-
-              )}
-
-
-              {/* =================================================
-                  TEXTO DEL ITEM
-              ================================================= */}
+              <span className="
+        w-5
+        h-5
+        border-2
+        border-white/30
+        border-t-white
+        rounded-full
+        animate-spin
+        flex-shrink-0
+      " />
 
               {!collapsed && (
-
-                <span className="truncate">
-                  {item.label}
+                <span className="text-sm">
+                  Verificando perfil...
                 </span>
-
               )}
 
-            </a>
+            </div>
 
-          ))}
+          ) : (
+
+            navItemsFinal.map((item, i) => (
+
+              <NavLink
+                key={item.href ?? item.label ?? i}
+                to={item.href}
+                title={collapsed ? item.label : undefined}
+                className={({ isActive }) => `
+          flex
+          items-center
+          text-white
+          text-[15px]
+          font-bold
+          no-underline
+          transition-all
+          duration-200
+          ${collapsed
+                    ? "justify-center w-[56px] h-[48px] rounded-xl px-0"
+                    : "gap-3 px-5 py-[13px] mr-4 rounded-r-full"
+                  }
+          ${isActive || item.active
+                    ? "bg-white/20"
+                    : "hover:bg-white/10"
+                  }
+        `}
+              >
+
+                {item.icon && (
+
+                  <span className="
+            w-[22px]
+            h-[22px]
+            flex
+            items-center
+            justify-center
+            flex-shrink-0
+          ">
+                    {item.icon}
+                  </span>
+
+                )}
+
+                {!collapsed && (
+                  <span className="truncate">
+                    {item.label}
+                  </span>
+                )}
+
+              </NavLink>
+
+            ))
+
+          )}
 
         </nav>
 
@@ -657,10 +506,8 @@ export default function Sidebar({
           ref={menuRef}
           className={`
             relative
-
             border-t
             border-white/20
-
             ${collapsed
               ? "px-2"
               : ""
@@ -668,60 +515,44 @@ export default function Sidebar({
           `}
         >
 
-
-          {/* =================================================
-              MENÚ EMERGENTE
-          ================================================= */}
+          {/* MENÚ EMERGENTE */}
 
           {openMenu && (
 
             <div
               className={`
                 absolute
-
                 bottom-full
-
                 mb-2
-
                 rounded-xl
-
                 bg-white
-
                 shadow-xl
-
                 overflow-hidden
-
                 ${collapsed
-                  ? `
-                      left-[70px]
-                      w-[220px]
-                    `
-                  : `
-                      left-3
-                      right-3
-                    `
+                  ? "left-[70px] w-[220px]"
+                  : "left-3 right-3"
                 }
               `}
             >
 
-
-              {/* =================================================
-                  NOTIFICACIONES
-              ================================================= */}
+              {/* NOTIFICACIONES */}
 
               <button
+                onClick={() => {
+
+                  setOpenMenu(false);
+
+                  navigate("/notificaciones");
+
+                }}
                 className="
                   w-full
-
                   flex
                   items-center
                   gap-3
-
                   px-4
                   py-3
-
                   text-gray-700
-
                   hover:bg-gray-100
                 "
               >
@@ -733,9 +564,7 @@ export default function Sidebar({
               </button>
 
 
-              {/* =================================================
-                  CAMBIO DE ROL
-              ================================================= */}
+              {/* CAMBIO DE ROL */}
 
               {usuario?.roles?.length > 1 && (
 
@@ -743,16 +572,13 @@ export default function Sidebar({
 
                   <div className="border-t" />
 
-
                   <div
                     className="
                       px-4
                       py-2
-
                       text-xs
                       font-semibold
                       text-gray-500
-
                       uppercase
                     "
                   >
@@ -761,33 +587,21 @@ export default function Sidebar({
 
                   </div>
 
-
                   {usuario.roles.map((rol) => (
 
                     <button
                       key={rol}
-                      onClick={() =>
-                        handleChangeRole(rol)
-                      }
+                      onClick={() => handleChangeRole(rol)}
                       className={`
                         w-full
-
                         flex
                         items-center
-
                         px-4
                         py-3
-
                         text-left
-
                         hover:bg-gray-100
-
                         ${rol === rolActivo
-                          ? `
-                              bg-red-50
-                              text-red-600
-                              font-semibold
-                            `
+                          ? "bg-red-50 text-red-600 font-semibold"
                           : "text-gray-700"
                         }
                       `}
@@ -807,24 +621,18 @@ export default function Sidebar({
               <div className="border-t" />
 
 
-              {/* =================================================
-                  CERRAR SESIÓN
-              ================================================= */}
+              {/* CERRAR SESIÓN */}
 
               <button
                 onClick={handleLogout}
                 className="
                   w-full
-
                   flex
                   items-center
                   gap-3
-
                   px-4
                   py-3
-
                   text-red-600
-
                   hover:bg-red-50
                 "
               >
@@ -840,50 +648,29 @@ export default function Sidebar({
           )}
 
 
-          {/* =================================================
-              USUARIO
-          ================================================= */}
+          {/* USUARIO */}
 
           <div
-            onClick={() =>
-              setOpenMenu(!openMenu)
-            }
+            onClick={() => setOpenMenu(!openMenu)}
             className={`
               cursor-pointer
-
               hover:bg-white/10
-
               transition-all
               duration-200
-
               flex
               items-center
-
               text-white/80
-
               ${collapsed
-                ? `
-                    justify-center
-
-                    px-2
-                    py-4
-                  `
-                : `
-                    justify-between
-
-                    px-5
-                    py-4
-                  `
+                ? "justify-center px-2 py-4"
+                : "justify-between px-5 py-4"
               }
             `}
           >
-
 
             <div
               className={`
                 flex
                 items-center
-
                 ${collapsed
                   ? "justify-center"
                   : "gap-3 flex-1 min-w-0"
@@ -891,19 +678,8 @@ export default function Sidebar({
               `}
             >
 
+              <UserRound className="flex-shrink-0" />
 
-              {/* =================================================
-                  ICONO USUARIO
-              ================================================= */}
-
-              <UserRound
-                className="flex-shrink-0"
-              />
-
-
-              {/* =================================================
-                  INFORMACIÓN USUARIO
-              ================================================= */}
 
               {!collapsed && (
 
@@ -911,7 +687,6 @@ export default function Sidebar({
                   className="
                     flex
                     flex-col
-
                     flex-1
                     min-w-0
                   "
@@ -923,10 +698,7 @@ export default function Sidebar({
                       text-white
                       truncate
                     "
-                    title={`
-                      ${usuario?.nombres}
-                      ${usuario?.apellidos}
-                    `}
+                    title={`${usuario?.nombres ?? ""} ${usuario?.apellidos ?? ""}`}
                   >
 
                     {usuario?.nombres}
@@ -956,9 +728,7 @@ export default function Sidebar({
             </div>
 
 
-            {/* =================================================
-                LOGOUT RÁPIDO
-            ================================================= */}
+            {/* LOGOUT RÁPIDO */}
 
             {!collapsed && (
 
@@ -974,9 +744,7 @@ export default function Sidebar({
                   }}
                   className="
                     hover:text-red-300
-
                     transition-colors
-
                     p-1
                   "
                   aria-label="Cerrar sesión"
@@ -994,7 +762,7 @@ export default function Sidebar({
 
         </div>
 
-      </aside >
+      </aside>
 
     </>
 

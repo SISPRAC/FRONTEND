@@ -64,6 +64,11 @@ export const ESTADOS_CONFIG = {
         text: "text-red-600",
         dot: "bg-red-500"
     },
+     Cancelado: {
+        bg: "bg-red-100",
+        text: "text-red-600",
+        dot: "bg-red-500"
+    },
 
     Postulado: {
         bg: "bg-yellow-100",

@@ -1,9 +1,45 @@
 import { useEffect, useState } from "react";
-
+import toast from "react-hot-toast";
+import { UserX } from "lucide-react";
 
 import { obtenerMiPractica } from "../../../aplicacion/practicante/obtenerMiPractica.js";
 import { practicanteRepository } from "../../../infraestructura/repository/practicanteRepository.js";
 
+import RetirarPracticanteModal from "../../components/modals/RetirarPracticanteModal";
+import ConfirmModal from "../../components/modals/ConfirmModal";
+import { crearRetiroPracticante } from "../../../aplicacion/retirarPracticante/crearRetiro";
+import { retiroPracticanteRepository } from "../../../infraestructura/repository/retirarPracticanteRepository";
+
+// ============================================================
+// HELPERS DE SESIÓN (localStorage)
+// ============================================================
+
+const getPracticanteIdFromToken = () => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0"))
+        .join("")
+    );
+
+    return JSON.parse(json)?.practicante_id ?? null;
+  } catch {
+    return null;
+  }
+};
+
+const getUsuarioLocal = () => {
+  try {
+    return JSON.parse(localStorage.getItem("user") ?? "null");
+  } catch {
+    return null;
+  }
+};
 
 const ESTADO_STYLES = {
   activa: "bg-green-100 text-green-700",
@@ -20,27 +56,34 @@ const HomePracticante = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // ===== Retiro =====
+  const [openRetiroModal, setOpenRetiroModal] = useState(false);
+  const [openConfirmRetiro, setOpenConfirmRetiro] = useState(false);
+  const [datosRetiro, setDatosRetiro] = useState(null); // { motivo, archivo }
+  const [retirando, setRetirando] = useState(false);
+
+  const fetchDatosPractica = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await obtenerMiPractica(practicanteRepository);
+
+      console.log("Datos de la práctica obtenidos:", data);
+
+      setPractica(data.practica);
+      setVacante(data.vacante);
+      setEmpresa(data.empresa);
+      setTutor(data.tutor);
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo cargar la información de la práctica.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDatosPractica = async () => {
-      try {
-        setLoading(true);
-
-        const data = await obtenerMiPractica(practicanteRepository);
-
-        console.log("Datos de la práctica obtenidos:", data);
-
-        setPractica(data.practica);
-        setVacante(data.vacante);
-        setEmpresa(data.empresa);
-        setTutor(data.tutor);
-      } catch (err) {
-        console.error(err);
-        setError("No se pudo cargar la información de la práctica.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchDatosPractica();
   }, []);
 
@@ -49,16 +92,113 @@ const HomePracticante = () => {
       return;
     }
 
-    window.open(
-      practica.archivoArl.url,
-      "_blank",
-      "noopener,noreferrer"
-    );
+    window.open(practica.archivoArl.url, "_blank", "noopener,noreferrer");
   };
 
   const estadoClase =
     ESTADO_STYLES[practica?.estado?.toLowerCase()] ||
     "bg-gray-100 text-gray-600";
+
+  // ============================================================
+  // RETIRARME DE LA PRÁCTICA
+  // ============================================================
+
+  const practicaEnCurso = ["en_curso", "activa"].includes(
+    practica?.estado?.toLowerCase()
+  );
+
+  const usuarioLocal = getUsuarioLocal();
+
+  // Objeto con la forma que espera RetirarPracticanteModal (mostrarDatosVacante)
+  const practicanteActual = {
+    practicante_id: getPracticanteIdFromToken(),
+    nombres: usuarioLocal?.nombres,
+    apellidos: usuarioLocal?.apellidos,
+    correo: usuarioLocal?.correo,
+    apertura: { vacante: vacante?.nombre },
+  };
+
+  const handleAbrirRetiro = () => {
+    if (!practicaEnCurso) {
+      toast.error("Solo puedes retirarte de una práctica en curso.");
+      return;
+    }
+
+    if (!practicanteActual.practicante_id) {
+      toast.error("No se pudo identificar tu sesión. Inicia sesión de nuevo.");
+      return;
+    }
+
+    setOpenRetiroModal(true);
+  };
+
+  const handleCerrarRetiro = () => {
+    if (retirando) return;
+    setOpenRetiroModal(false);
+    setDatosRetiro(null);
+  };
+
+  // Paso 1: el modal entrega motivo + archivo.
+  // El formulario se queda abierto debajo; solo mostramos la reconfirmación.
+  const handleSolicitarRetiro = ({ motivo, archivo }) => {
+    setDatosRetiro({ motivo, archivo });
+    setOpenConfirmRetiro(true);
+  };
+
+  // Cancelar la reconfirmación: el formulario sigue intacto.
+  const handleCancelarConfirmacion = () => {
+    if (retirando) return;
+    setOpenConfirmRetiro(false);
+  };
+
+  // Paso 2: confirmación final -> ahora sí se envía.
+  const handleConfirmarRetiro = async () => {
+    if (retirando || !datosRetiro) return;
+
+    const practicanteId = getPracticanteIdFromToken();
+
+    if (!practicanteId) {
+      toast.error("No se pudo identificar tu sesión. Inicia sesión de nuevo.");
+      return;
+    }
+
+    try {
+      setRetirando(true);
+
+      await crearRetiroPracticante(
+        { retiroPracticanteRepository },
+        {
+          motivo: datosRetiro.motivo,
+          archivo: datosRetiro.archivo,
+          practicante_id: practicanteId,
+        }
+      );
+    } catch (err) {
+      console.error("Error al retirarse de la práctica:", err);
+
+      toast.error(
+        err?.response?.data?.message ||
+          err?.message ||
+          "No fue posible procesar el retiro."
+      );
+
+      // Cerramos solo la reconfirmación; el formulario queda para reintentar.
+      setOpenConfirmRetiro(false);
+      setRetirando(false);
+      return;
+    }
+
+    toast.success(
+      "Tu retiro fue registrado. Se notificó a todos los involucrados."
+    );
+
+    setOpenConfirmRetiro(false);
+    setOpenRetiroModal(false);
+    setDatosRetiro(null);
+    setRetirando(false);
+
+    await fetchDatosPractica();
+  };
 
   return (
     <div>
@@ -246,8 +386,30 @@ const HomePracticante = () => {
           </div>
         )}
 
-        {/* ===== Botón ARL, anclado al fondo ===== */}
-        <div className="flex justify-end mt-4">
+        {/* ===== Botones inferiores: Retiro (izq) + ARL (der) ===== */}
+        <div className="flex items-center justify-between mt-4">
+          {practica ? (
+            <button
+              onClick={handleAbrirRetiro}
+              disabled={!practicaEnCurso || retirando}
+              title={
+                practicaEnCurso
+                  ? "Retirarme de la práctica"
+                  : "Solo disponible mientras la práctica está en curso"
+              }
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm border transition ${
+                practicaEnCurso
+                  ? "border-red-500 text-red-600 hover:bg-red-50 cursor-pointer"
+                  : "border-gray-200 text-gray-300 cursor-not-allowed"
+              }`}
+            >
+              <UserX size={18} />
+              Retirarme de la práctica
+            </button>
+          ) : (
+            <span />
+          )}
+
           <button
             onClick={handleDescargarArl}
             disabled={!practica?.archivoArl?.url}
@@ -262,6 +424,27 @@ const HomePracticante = () => {
           </button>
         </div>
       </div>
+
+      {/* ===== Modal de retiro (formulario) ===== */}
+      <RetirarPracticanteModal
+        open={openRetiroModal}
+        practicante={practicanteActual}
+        onClose={handleCerrarRetiro}
+        onRetirar={handleSolicitarRetiro}
+        mostrarDatosVacante
+      />
+
+      {/* ===== Reconfirmación (va DESPUÉS para quedar encima del formulario) ===== */}
+      <ConfirmModal
+        isOpen={openConfirmRetiro}
+        title="Esta acción es irrevocable"
+        message="Al confirmar, tu retiro de la práctica no podrá deshacerse y se notificará al tutor empresarial, al docente, a la empresa y al director. ¿Deseas continuar?"
+        confirmLabel={retirando ? "Procesando..." : "Sí, retirarme"}
+        cancelLabel="Cancelar"
+        confirmColor="bg-red-600 hover:bg-red-700"
+        onCancel={handleCancelarConfirmacion}
+        onConfirm={handleConfirmarRetiro}
+      />
     </div>
   );
 };

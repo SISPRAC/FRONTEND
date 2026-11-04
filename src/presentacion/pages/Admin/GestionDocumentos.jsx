@@ -243,21 +243,29 @@ export default function PracticaRequisitoDocumentoPage() {
     };
 
 
-    const deleteRow = (id) => {
+    const deleteRow = (data) => {
 
-        const requisito =
-            rows.find(r => r.id === id);
+        console.log("Dato recibido al eliminar:", data);
+
+        const requisito = typeof data === "object"
+            ? data
+            : rows.find(r => r.id === data);
+
+        console.log("Requisito seleccionado:", requisito);
 
         setRequisitoToDelete(requisito);
-
         setDeleteModal(true);
-
     };
 
 
     const handleDelete = async () => {
 
         try {
+
+            if (!requisitoToDelete?.id) {
+                toast.error("No se encontró el ID del requisito.");
+                return;
+            }
 
             await eliminarPracticaRequisitoDocumento(
                 {
@@ -268,16 +276,19 @@ export default function PracticaRequisitoDocumentoPage() {
 
             await loadRequisitos();
 
-            toast.success(
-                "Requisito eliminado."
-            );
+            toast.success("Requisito eliminado.");
 
             setDeleteModal(false);
             setRequisitoToDelete(null);
 
         } catch (error) {
 
-            console.log(error);
+            console.log("ERROR COMPLETO:", error);
+
+            console.log(
+                "RESPUESTA DEL BACKEND:",
+                error.response?.data
+            );
 
             toast.error(
                 error.response?.data?.message ||
@@ -285,7 +296,6 @@ export default function PracticaRequisitoDocumentoPage() {
             );
 
         }
-
     };
 
 
@@ -495,7 +505,7 @@ export default function PracticaRequisitoDocumentoPage() {
                 onConfirm={handleDelete}
                 title="Eliminar requisito documental"
                 message={
-                    `¿Desea eliminar el documento "${requisitoToDelete?.nombre}"?`
+                    `¿Desea eliminar el documento "${requisitoToDelete?.tipoRequisitoDocumento?.nombre || ""}"?`
                 }
             />
 

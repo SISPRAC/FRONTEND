@@ -23,8 +23,7 @@ const COLOR_VERDE = "#10B981";
 const COLOR_AMBAR = "#F59E0B";
 
 const COLOR_RESULTADO = {
-  Pendiente: COLOR_NEGRO,
-  Retirado: COLOR_AZUL,
+  Pendiente: COLOR_AMBAR,
   Aceptado: COLOR_VERDE,
   Rechazado: COLOR_ROJO,
 };

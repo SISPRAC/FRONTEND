@@ -507,6 +507,7 @@ const GrupoVistaDirector = () => {
             },
             disabled: (row) =>
               row.estado === "Retirado" ||
+              row.estado === "Cancelado" ||
               row.estado === "RECHAZADO" ||
               row.estado === "POSTULADO",
             disabledTitle: "No disponible para este estado",
@@ -517,6 +518,7 @@ const GrupoVistaDirector = () => {
             onClick: verDetalle,
             disabled: (row) =>
               row.estado === "Retirado" ||
+              row.estado === "Cancelado" ||
               row.estado === "Finalizada" ||
               loadingVisitasId !== null,
             disabledTitle: "No se puede retirar un practicante en este estado",
@@ -550,6 +552,7 @@ const GrupoVistaDirector = () => {
             onClick: verVisitasPracticante,
             disabled: (row) =>
               row.estado === "Retirado" ||
+             row.estado === "Cancelado" ||
               loadingVisitasId !== null,
             disabledTitle: "No disponible para practicantes retirados",
           },

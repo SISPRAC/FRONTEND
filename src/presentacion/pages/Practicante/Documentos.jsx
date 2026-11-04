@@ -1,9 +1,9 @@
-
 import React, { useCallback, useEffect, useState } from "react";
 import { Eye, Upload, Pencil, Download, X, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 
 import GenericTable from "../../components/Table/GenericTable";
+import EstadoBadge from "../../components/estadoBadge/EstadoBadge.jsx";
 
 import { practicaRequisitoDocumentoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoRepository";
 import { practicaRequisitoDocumentoSubidoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoSubidoRepository";
@@ -22,6 +22,49 @@ const ESTADOS = {
 };
 
 const PAGE_SIZE = 6;
+
+// =============================================================
+// SKELETON
+// =============================================================
+
+const DocumentosSkeleton = ({ filas = 4 }) => (
+  <div
+    className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+    aria-busy="true"
+    aria-label="Cargando documentos"
+  >
+    {/* ENCABEZADO */}
+    <div className="grid grid-cols-3 gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200">
+      {[1, 2, 3].map((item) => (
+        <div
+          key={item}
+          className="h-3 w-20 rounded bg-slate-200 animate-pulse"
+        />
+      ))}
+    </div>
+
+    {/* FILAS */}
+    {Array.from({ length: filas }).map((_, fila) => (
+      <div
+        key={fila}
+        className="grid grid-cols-3 gap-4 items-center px-5 py-4 border-b border-slate-100 last:border-0"
+      >
+        {/* Nombre */}
+        <div className="h-3 w-3/4 rounded bg-slate-200 animate-pulse" />
+
+        {/* Estado */}
+        <div className="h-6 w-24 rounded-full bg-slate-200 animate-pulse" />
+
+        {/* Acciones */}
+        <div className="flex items-center justify-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-slate-200 animate-pulse" />
+          <div className="h-8 w-8 rounded-lg bg-slate-200 animate-pulse" />
+          <div className="h-8 w-8 rounded-lg bg-slate-200 animate-pulse" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 const Documentos = ({ rol = "Practicante" }) => {
   const [documentos, setDocumentos] = useState([]);
@@ -329,21 +372,31 @@ const Documentos = ({ rol = "Practicante" }) => {
 
   return (
     <div>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-slate-800 mb-6">
-          Documentos a subir
-        </h1>
+      <h1
+        className="
+          text-[26px]
+          font-extrabold
+          text-slate-800
+          text-center
+          mb-7
+          tracking-tight
+        "
+      >
+        Documentos a subir
+      </h1>
 
+      {loading ? (
+        <DocumentosSkeleton />
+      ) : (
         <GenericTable
           rows={documentos}
           columns={columns}
           pageSize={PAGE_SIZE}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
-          loading={loading}
           emptyMessage="No hay documentos para mostrar"
         />
-      </div>
+      )}
 
       {modalVer && (
         <ModalVerDocumento
@@ -380,41 +433,6 @@ const Documentos = ({ rol = "Practicante" }) => {
         />
       )}
     </div>
-  );
-};
-
-// =============================================================
-// ESTADO
-// =============================================================
-
-const EstadoBadge = ({ estado }) => {
-  const configuracion = {
-    PENDIENTE: {
-      texto: "Pendiente",
-      clase: "text-amber-600",
-      punto: "bg-amber-500",
-    },
-    APROBADO: {
-      texto: "Aprobado",
-      clase: "text-emerald-600",
-      punto: "bg-emerald-500",
-    },
-    RECHAZADO: {
-      texto: "Rechazado",
-      clase: "text-red-600",
-      punto: "bg-red-600",
-    },
-  };
-
-  const estadoActual = configuracion[estado] || configuracion.PENDIENTE;
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-xs font-bold ${estadoActual.clase}`}
-    >
-      <span className={`w-1.5 h-1.5 rounded-full ${estadoActual.punto}`} />
-      {estadoActual.texto}
-    </span>
   );
 };
 

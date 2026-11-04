@@ -12,6 +12,7 @@ import { obtenerRequisitosDocumentosPracticante } from "../../aplicacion/practic
 import { practicanteRepository } from "../../infraestructura/repository/practicanteRepository.js";
 
 import ConfirmModal from "../components/modals/ConfirmModal.jsx";
+import EstadoBadge from "../components/estadoBadge/EstadoBadge.jsx"; // <- ajusta la ruta si es distinta
 
 // Componente y utilidad compartidos (ajusta la ruta a tu estructura)
 import TrazabilidadTimeline from "../components/Trazabilidadtimeline.jsx";
@@ -20,10 +21,107 @@ import { construirTrazabilidad } from "../components/Construirtrazabilidad.jsx";
 import {
     CheckCircle2,
     XCircle,
-    ArrowLeft
+    ArrowLeft,
+    ChevronDown
 } from "lucide-react";
 
 import toast from "react-hot-toast";
+
+
+// ─────────────────────────────────────────────────────────
+// SKELETON
+// ─────────────────────────────────────────────────────────
+
+const Bone = ({ className = "" }) => (
+    <div className={`bg-slate-200 animate-pulse ${className}`} />
+);
+
+const VistaInformeSkeleton = () => (
+    <div
+        className="flex flex-col flex-1 min-h-0 gap-4"
+        aria-busy="true"
+        aria-label="Cargando informes"
+    >
+
+        {/* HEADER */}
+        <div className="flex items-center justify-between flex-wrap gap-3 flex-shrink-0">
+
+            <div className="flex items-center gap-3">
+
+                <Bone className="h-10 w-10 rounded-xl" />
+
+                <div className="space-y-2">
+                    <Bone className="h-5 w-52 rounded" />
+                    <Bone className="h-3 w-32 rounded" />
+                </div>
+
+            </div>
+
+            <Bone className="h-10 w-48 rounded-xl" />
+
+        </div>
+
+        {/* FECHAS */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 flex-shrink-0 bg-white border border-slate-200 rounded-xl px-4 py-3">
+
+            <div className="flex gap-6">
+                <Bone className="h-3 w-36 rounded" />
+                <Bone className="h-3 w-40 rounded" />
+            </div>
+
+            <Bone className="h-6 w-40 rounded-full" />
+
+        </div>
+
+        {/* CUERPO */}
+        <div className="flex flex-col lg:flex-row flex-1 min-h-0 gap-4">
+
+            {/* VISOR */}
+            <div className="flex-1 flex flex-col border border-slate-200 rounded-xl overflow-hidden bg-white min-h-0 min-w-0 h-[60vh] lg:h-auto">
+
+                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                    <Bone className="h-3 w-56 rounded" />
+                </div>
+
+                <Bone className="flex-1 bg-slate-100" />
+
+            </div>
+
+            {/* PANEL DERECHO */}
+            <div className="w-full lg:w-80 flex-shrink-0 flex flex-col border border-slate-200 rounded-xl bg-white p-4 gap-4">
+
+                <Bone className="h-9 w-full rounded-lg" />
+
+                <Bone className="h-4 w-40 rounded" />
+
+                <div className="flex items-center justify-between">
+                    <Bone className="h-3 w-28 rounded" />
+                    <Bone className="h-6 w-20 rounded-full" />
+                </div>
+
+                <div className="flex items-center justify-between">
+                    <Bone className="h-3 w-24 rounded" />
+                    <Bone className="h-6 w-20 rounded-full" />
+                </div>
+
+                <div className="border-t border-slate-100" />
+
+                <div className="space-y-2">
+                    <Bone className="h-3 w-32 rounded" />
+                    <Bone className="h-24 w-full rounded-lg" />
+                </div>
+
+                <div className="flex flex-col gap-2 mt-auto">
+                    <Bone className="h-10 w-full rounded-lg" />
+                    <Bone className="h-10 w-full rounded-lg" />
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+);
 
 
 // ─────────────────────────────────────────────────────────
@@ -759,53 +857,6 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
 
 
     // ─────────────────────────────────────────────────────────
-    // BADGE DE ESTADO DE REVISIÓN
-    // ─────────────────────────────────────────────────────────
-
-    const renderBadgeEstadoRevision = (estado) => {
-
-        if (!estado) {
-
-            return (
-
-                <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
-                    Pendiente
-                </span>
-
-            );
-
-        }
-
-        const estilosPorEstado = {
-            [ESTADO_APROBADO]:
-                "bg-emerald-50 text-emerald-600 border border-emerald-200",
-            [ESTADO_RECHAZADO]:
-                "bg-red-50 text-red-600 border border-red-200"
-        };
-
-        const etiquetasPorEstado = {
-            [ESTADO_APROBADO]: "Aprobado",
-            [ESTADO_RECHAZADO]: "Rechazado"
-        };
-
-        return (
-
-            <span
-                className={`px-3 py-1 rounded-full text-xs font-medium ${estilosPorEstado[estado] ??
-                    "bg-gray-100 text-gray-500 border border-gray-200"
-                    }`}
-            >
-
-                {etiquetasPorEstado[estado] ?? estado}
-
-            </span>
-
-        );
-
-    };
-
-
-    // ─────────────────────────────────────────────────────────
     // VALIDACIÓN DEL PRACTICANTE
     // ─────────────────────────────────────────────────────────
 
@@ -838,19 +889,7 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
 
                 {cargando ? (
 
-                    <div className="flex flex-1 items-center justify-center h-full">
-
-                        <div className="flex flex-col items-center justify-center gap-2 text-[#e8192c]">
-
-                            <div className="w-6 h-6 border-2 border-slate-300 border-t-[#e8192c] rounded-full animate-spin" />
-
-                            <span className="text-sm font-medium">
-                                Cargando...
-                            </span>
-
-                        </div>
-
-                    </div>
+                    <VistaInformeSkeleton />
 
                 ) : (
 
@@ -868,7 +907,8 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
                                 <button
                                     type="button"
                                     onClick={handleVolver}
-                                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800 border border-gray-200 rounded-lg px-3 py-2 bg-white hover:bg-gray-50 transition-colors"
+                                    aria-label="Volver"
+                                    className="flex items-center justify-center h-10 w-10 text-gray-500 hover:text-gray-800 border border-slate-200 rounded-xl bg-white shadow-sm hover:border-slate-300 hover:bg-gray-50 transition"
                                 >
 
                                     <ArrowLeft className="w-4 h-4" />
@@ -877,7 +917,7 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
 
                                 <div>
 
-                                    <h1 className="text-xl font-semibold text-gray-900">
+                                    <h1 className="text-xl font-extrabold text-slate-800 tracking-tight">
                                         Informes del practicante
                                     </h1>
 
@@ -889,14 +929,30 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
 
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="relative">
 
                                 <select
                                     value={tipoSeleccionadoId ?? ""}
                                     onChange={(e) =>
                                         handleCambiarTipo(e.target.value)
                                     }
-                                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-rose-100 focus:border-rose-300"
+                                    className="
+                                        appearance-none
+                                        h-10
+                                        min-w-[190px]
+                                        pl-4 pr-10
+                                        rounded-xl
+                                        border border-slate-200
+                                        bg-white
+                                        text-sm font-medium text-slate-700
+                                        shadow-sm
+                                        cursor-pointer
+                                        transition
+                                        hover:border-slate-300
+                                        focus:outline-none
+                                        focus:border-blue-400
+                                        focus:ring-4 focus:ring-blue-100
+                                    "
                                 >
 
                                     {tiposInforme.map((tipo) => (
@@ -908,6 +964,16 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
                                     ))}
 
                                 </select>
+
+                                <ChevronDown
+                                    size={16}
+                                    className="
+                                        pointer-events-none
+                                        absolute right-3.5 top-1/2
+                                        -translate-y-1/2
+                                        text-slate-400
+                                    "
+                                />
 
                             </div>
 
@@ -962,9 +1028,7 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
 
                                 {cargandoEntrega ? (
 
-                                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
-                                        Cargando entrega...
-                                    </span>
+                                    <Bone className="h-6 w-40 rounded-full" />
 
                                 ) : estadoEntrega?.entregado ? (
 
@@ -1055,9 +1119,7 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
 
                                     {cargandoEntrega ? (
 
-                                        <div className="flex items-center justify-center h-full text-gray-400">
-                                            Cargando documento...
-                                        </div>
+                                        <Bone className="w-full h-full bg-slate-200/70" />
 
                                     ) : archivoUrl ? (
 
@@ -1145,9 +1207,10 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
                                                     Tutor Empresarial
                                                 </span>
 
-                                                {renderBadgeEstadoRevision(
-                                                    estadoTutorEmpresarial
-                                                )}
+                                                <EstadoBadge
+                                                    estado={estadoTutorEmpresarial ?? ESTADO_PENDIENTE}
+                                                    size="sm"
+                                                />
 
                                             </div>
 
@@ -1172,9 +1235,10 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
                                                     Tutor Docente
                                                 </span>
 
-                                                {renderBadgeEstadoRevision(
-                                                    estadoTutorDocente
-                                                )}
+                                                <EstadoBadge
+                                                    estado={estadoTutorDocente ?? ESTADO_PENDIENTE}
+                                                    size="sm"
+                                                />
 
                                             </div>
 
@@ -1259,7 +1323,7 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
                                                         }
                                                         rows={4}
                                                         placeholder="Escribe aquí tu observación..."
-                                                        className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-rose-100 focus:border-rose-300 disabled:bg-gray-50 disabled:text-gray-400"
+                                                        className="text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white text-gray-700 resize-none shadow-sm transition hover:border-slate-300 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 disabled:bg-gray-50 disabled:text-gray-400"
                                                     />
 
                                                 </div>

@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 
 import LoginPage from "../src/presentacion/pages/LoginPage";
@@ -43,7 +44,7 @@ import VistaInformePracticante from "./presentacion/pages/CalificarInforme";
 
 // Candidato
 import HomeCandidato from "./presentacion/pages/Candidato/HomeCandidato";
-import ResponderEncuestasPage from "./presentacion/pages/Practicante/ResponderEncuestasPage"
+import ResponderEncuestasPage from "./presentacion/pages/Practicante/ResponderEncuestasPage";
 
 // Candidato / Practicante
 import ActualizarPerfil from "./presentacion/pages/ActualizarPerfil";
@@ -52,9 +53,8 @@ import ActualizarPerfil from "./presentacion/pages/ActualizarPerfil";
 import HomePracticante from "./presentacion/pages/Practicante/HomePracticante";
 import InformeDocumento from "./presentacion/pages/Practicante/InformeDocumento";
 
-//empresa / Practicante
+// Empresa / Practicante
 import Documentos from "./presentacion/pages/Practicante/Documentos";
-
 
 // Empresa
 import HomeEmpresa from "./presentacion/pages/Empresa/HomeEmpresa";
@@ -93,473 +93,299 @@ export default function App() {
             RUTAS PÚBLICAS
             ===================================================== */}
 
-        <Route
-          path="/"
-          element={<LoginPage />}
-        />
+        <Route path="/" element={<LoginPage />} />
 
-        <Route
-          path="/registrarCandidato"
-          element={<RegisterCandidatePage />}
-        />
+        <Route path="/registrarCandidato" element={<RegisterCandidatePage />} />
 
-        <Route
-          path="/registrarEmpresa"
-          element={<RegisterEmpresaPage />}
-        />
+        <Route path="/registrarEmpresa" element={<RegisterEmpresaPage />} />
 
-        <Route
-          path="/registrarStaff"
-          element={<RegisterStaffPage />}
-        />
+        <Route path="/registrarStaff" element={<RegisterStaffPage />} />
 
 
         {/* =====================================================
-            TODAS LAS RUTAS AUTENTICADAS
+            PROTECCIÓN PRINCIPAL
+            VALIDA TOKEN Y PERFIL UNA SOLA VEZ
             ===================================================== */}
 
-        <Route element={<Layout />}>
+        <Route element={<ProtectedRoute />}>
 
           {/* =====================================================
-              ADMINISTRADOR
+              LAYOUT PRINCIPAL
+              SE MANTIENE MONTADO AL NAVEGAR
               ===================================================== */}
 
-          <Route
-            element={
-              <ProtectedRoute
-                roles={["Administrador"]}
+          <Route element={<Layout />}>
+
+            {/* =====================================================
+                ADMINISTRADOR
+                ===================================================== */}
+
+            <Route element={<ProtectedRoute roles={["Administrador"]} />}>
+
+              <Route path="/homeAdmin" element={<HomeAdmin />} />
+
+              <Route path="/periodos" element={<PeriodosAcademicos />} />
+
+              <Route path="/practicas" element={<Practicas />} />
+
+              <Route path="/usuarios" element={<UsersPage />} />
+
+              <Route path="/documentos" element={<PracticaRequisitoDocumentoPage />} />
+
+              <Route path="/tipoDocumentos" element={<TipoDocumentosPage />} />
+
+            </Route>
+
+
+            {/* =====================================================
+                DIRECTOR DE PROGRAMA
+                ===================================================== */}
+
+            <Route element={<ProtectedRoute roles={["Director de programa"]} />}>
+
+              <Route path="/dashboard" element={<DashboardDirector />} />
+
+              <Route path="/homeDirector" element={<DashboardDirector />} />
+
+              <Route path="/grupos" element={<GruposDirector />} />
+
+              <Route path="/grupos/:id/candidatos" element={<GrupoVistaGrupo />} />
+
+              <Route path="/vacantes" element={<VacantesDirector />} />
+
+              <Route path="/convenios" element={<Convenio />} />
+
+              <Route path="/convenio" element={<VistaConvenio />} />
+
+              <Route path="/encuestas" element={<Encuestas />} />
+
+              <Route path="/agregarEncuesta" element={<AgregarEncuestaPage />} />
+
+              <Route path="/editarEncuesta/:id" element={<AgregarEncuestaPage />} />
+
+              <Route path="/arl" element={<ARL />} />
+
+              <Route path="/reportes" element={<ReportesPage />} />
+
+              <Route path="/visitas" element={<VistaVisita />} />
+
+              <Route path="/protocolos" element={<ProtocolosPage />} />
+
+              <Route path="/tutorDocente" element={<TutoresDocentes />} />
+
+            </Route>
+
+
+            {/* =====================================================
+                CONSULTAR VISITA EMPRESARIAL
+                DIRECTOR + TUTOR EMPRESARIAL
+                ===================================================== */}
+
+            <Route
+              element={
+                <ProtectedRoute
+                  roles={[
+                    "Director de programa",
+                    "Tutor Empresarial"
+                  ]}
+                />
+              }
+            >
+
+              <Route
+                path="/visita-empresarial/:solicitudId"
+                element={<VisitaEmpresarialPage />}
               />
-            }
-          >
+
+            </Route>
+
+
+            {/* =====================================================
+                EMPRESA
+                ===================================================== */}
+
+            <Route element={<ProtectedRoute roles={["Empresa"]} />}>
+
+              <Route path="/homeEmpresa" element={<HomeEmpresa />} />
+
+              <Route path="/subirConvenio" element={<SubirConvenio />} />
+
+              <Route path="/candidatos" element={<CandidatosEmpresa />} />
+
+              <Route path="/protocolosEmpresa" element={<Documentos rol="Empresa" />} />
+
+              <Route path="/empresa/candidatos/:id" element={<CandidatoDetalleEmpresa />} />
+
+              <Route path="/gruposPractica" element={<GruposPractica />} />
+
+              <Route path="/empresa/grupos/:id" element={<GrupoPracticaDetalle />} />
+
+              <Route path="/vacantesEmpresa" element={<VacantesEmpresa />} />
+
+              <Route path="/tutorEmpresarial" element={<TutoresEmpresariales />} />
+
+              <Route path="/miPerfil" element={<ActualizarEmpresa />} />
+
+            </Route>
+
+
+            {/* =====================================================
+                PRACTICANTE
+                ===================================================== */}
+
+            <Route element={<ProtectedRoute roles={["Practicante"]} />}>
+
+              <Route path="/homePracticante" element={<HomePracticante />} />
+
+              <Route path="/informes" element={<InformeDocumento />} />
+
+              <Route path="/documentosIniciales" element={<Documentos />} />
+
+              <Route path="/EncuestaPracticante" element={<ResponderEncuestasPage />} />
+
+            </Route>
+
+
+            {/* =====================================================
+                PERFIL CANDIDATO / PRACTICANTE
+                ===================================================== */}
 
             <Route
-              path="/homeAdmin"
-              element={<HomeAdmin />}
-            />
+              element={
+                <ProtectedRoute
+                  roles={[
+                    "Candidato",
+                    "Practicante"
+                  ]}
+                />
+              }
+            >
+
+              <Route path="/perfil" element={<ActualizarPerfil />} />
+
+            </Route>
+
+
+            {/* =====================================================
+                CANDIDATO
+                ===================================================== */}
+
+            <Route element={<ProtectedRoute roles={["Candidato"]} />}>
+
+              <Route path="/homeCandidato" element={<HomeCandidato />} />
+
+            </Route>
+
+
+            {/* =====================================================
+                TUTOR DOCENTE
+                ===================================================== */}
+
+            <Route element={<ProtectedRoute roles={["Tutor Docente"]} />}>
+
+              <Route path="/homeTutorDocente" element={<HomeTutorDocente />} />
+
+              <Route path="/misGrupos" element={<MisGrupos />} />
+
+              <Route path="/grupos/:id/practicantes" element={<GrupoVistaTutorDocente />} />
+
+              <Route path="/gestionar-visita/:id" element={<GestionarVisita />} />
+
+            </Route>
+
+
+            {/* =====================================================
+                CALIFICAR INFORME
+                TUTOR DOCENTE + TUTOR EMPRESARIAL
+                ===================================================== */}
 
             <Route
-              path="/periodos"
-              element={<PeriodosAcademicos />}
-            />
+              element={
+                <ProtectedRoute
+                  roles={[
+                    "Tutor Docente",
+                    "Tutor Empresarial"
+                  ]}
+                />
+              }
+            >
+
+              <Route
+                path="/informes/:idPracticante"
+                element={<VistaInformePracticante />}
+              />
+
+            </Route>
+
+
+            {/* =====================================================
+                VER INFORME PRACTICANTE
+                EMPRESA + DIRECTOR
+                ===================================================== */}
 
             <Route
-              path="/practicas"
-              element={<Practicas />}
-            />
+              element={
+                <ProtectedRoute
+                  roles={[
+                    "Empresa",
+                    "Director de programa"
+                  ]}
+                />
+              }
+            >
+
+              <Route
+                path="/informes/:idPracticante/consulta"
+                element={<VistaInformePracticante soloLectura />}
+              />
+
+            </Route>
+
+
+            {/* =====================================================
+                TUTOR EMPRESARIAL
+                ===================================================== */}
+
+            <Route element={<ProtectedRoute roles={["Tutor Empresarial"]} />}>
+
+              <Route path="/homeTutorEmpresarial" element={<HomeTutorEmpresarial />} />
+
+              <Route path="/mis-aperturas" element={<MisAperturas />} />
+
+              <Route path="/mis-aperturas/:practicaId" element={<MisAperturasTutorDetalle />} />
+
+            </Route>
+
+
+            {/* =====================================================
+                NOTIFICACIONES
+                TODOS LOS ROLES
+                ===================================================== */}
 
             <Route
-              path="/usuarios"
-              element={<UsersPage />}
-            />
+              element={
+                <ProtectedRoute
+                  roles={[
+                    "Administrador",
+                    "Director de programa",
+                    "Empresa",
+                    "Practicante",
+                    "Candidato",
+                    "Tutor Docente",
+                    "Tutor Empresarial"
+                  ]}
+                />
+              }
+            >
 
-            <Route
-              path="/documentos"
-              element={<PracticaRequisitoDocumentoPage />}
-            />
+              <Route path="/notificaciones" element={<NotificacionesView />} />
 
-            <Route
-              path="/tipoDocumentos"
-              element={<TipoDocumentosPage />}
-            />
+            </Route>
 
           </Route>
-
-
-          {/* =====================================================
-              DIRECTOR DE PROGRAMA
-              ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={["Director de programa"]}
-              />
-            }
-          >
-
-            <Route
-              path="/dashboard"
-              element={<DashboardDirector />}
-            />
-
-            <Route
-              path="/homeDirector"
-              element={<DashboardDirector />}
-            />
-
-            <Route
-              path="/grupos"
-              element={<GruposDirector />}
-            />
-
-            <Route
-              path="/grupos/:id/candidatos"
-              element={<GrupoVistaGrupo />}
-            />
-
-            <Route
-              path="/vacantes"
-              element={<VacantesDirector />}
-            />
-
-            <Route
-              path="/convenios"
-              element={<Convenio />}
-            />
-
-            <Route
-              path="/convenio"
-              element={<VistaConvenio />}
-            />
-
-            <Route
-              path="/encuestas"
-              element={<Encuestas />}
-            />
-
-            <Route
-              path="/agregarEncuesta"
-              element={<AgregarEncuestaPage />}
-            />
-
-            <Route
-              path="/editarEncuesta/:id"
-              element={<AgregarEncuestaPage />}
-            />
-
-            <Route
-              path="/arl"
-              element={<ARL />}
-            />
-
-            <Route
-              path="/reportes"
-              element={<ReportesPage />}
-            />
-
-            <Route
-              path="/visitas"
-              element={<VistaVisita />}
-            />
-
-            <Route
-              path="/protocolos"
-              element={<ProtocolosPage />}
-            />
-
-            <Route
-              path="/tutorDocente"
-              element={<TutoresDocentes />}
-            />
-
-          </Route>
-
-
-          {/* =====================================================
-    CONSULTAR VISITA EMPRESARIAL
-    ADMINISTRADOR + TUTOR EMPRESARIAL
-    ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={[
-                  "Director de programa",
-                  "Tutor Empresarial"
-                ]}
-              />
-            }
-          >
-            <Route
-              path="/visita-empresarial/:solicitudId"
-              element={<VisitaEmpresarialPage />}
-            />
-          </Route>
-
-          {/* =====================================================
-              EMPRESA
-              ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={["Empresa"]}
-              />
-            }
-          >
-
-            <Route
-              path="/homeEmpresa"
-              element={<HomeEmpresa />}
-            />
-
-            <Route
-              path="/subirConvenio"
-              element={<SubirConvenio />}
-            />
-
-            <Route
-              path="/candidatos"
-              element={<CandidatosEmpresa />}
-            />
-
-            <Route
-              path="/protocolosEmpresa"
-              element={<Documentos rol="Empresa" />}
-            />
-
-            <Route
-              path="/empresa/candidatos/:id"
-              element={<CandidatoDetalleEmpresa />}
-            />
-
-            <Route
-              path="/gruposPractica"
-              element={<GruposPractica />}
-            />
-
-            <Route
-              path="/empresa/grupos/:id"
-              element={<GrupoPracticaDetalle />}
-            />
-
-            <Route
-              path="/vacantesEmpresa"
-              element={<VacantesEmpresa />}
-            />
-
-            <Route
-              path="/tutorEmpresarial"
-              element={<TutoresEmpresariales />}
-            />
-
-            <Route
-              path="/miPerfil"
-              element={<ActualizarEmpresa />}
-            />
-
-          </Route>
-
-
-          {/* =====================================================
-              PRACTICANTE
-              ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={["Practicante"]}
-              />
-            }
-          >
-
-            <Route
-              path="/homePracticante"
-              element={<HomePracticante />}
-            />
-
-            <Route
-              path="/informes"
-              element={<InformeDocumento />}
-            />
-
-            <Route
-              path="/documentosIniciales"
-              element={<Documentos />}
-            />
-
-            <Route
-            path="/EncuestaPracticante"
-            element={<ResponderEncuestasPage/>}/>
-
-          </Route>
-
-
-          {/* =====================================================
-              PERFIL CANDIDATO / PRACTICANTE
-              ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={[
-                  "Candidato",
-                  "Practicante"
-                ]}
-              />
-            }
-          >
-
-            <Route
-              path="/perfil"
-              element={<ActualizarPerfil />}
-            />
-
-          </Route>
-
-
-          {/* =====================================================
-              CANDIDATO
-              ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={["Candidato"]}
-              />
-            }
-          >
-
-            <Route
-              path="/homeCandidato"
-              element={<HomeCandidato />}
-            />
-
-          </Route>
-
-
-          {/* =====================================================
-              TUTOR DOCENTE
-              ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={["Tutor Docente"]}
-              />
-            }
-          >
-
-            <Route
-              path="/homeTutorDocente"
-              element={<HomeTutorDocente />}
-            />
-
-            <Route
-              path="/misGrupos"
-              element={<MisGrupos />}
-            />
-
-            <Route
-              path="/grupos/:id/practicantes"
-              element={<GrupoVistaTutorDocente />}
-            />
-
-            <Route
-              path="/gestionar-visita/:id"
-              element={<GestionarVisita />}
-            />
-
-          </Route>
-
-
-          {/* =====================================================
-              CALIFICAR INFORME
-              TUTOR DOCENTE + TUTOR EMPRESARIAL
-              ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={[
-                  "Tutor Docente",
-                  "Tutor Empresarial"
-                ]}
-              />
-            }
-          >
-
-            <Route
-              path="/informes/:idPracticante"
-              element={<VistaInformePracticante />}
-            />
-
-          </Route>
-
-          {/* =====================================================
-              Ver informe practicante
-              Empresa + Director de programa
-              ===================================================== */}
-          <Route
-            element={
-              <ProtectedRoute
-                roles={[
-                  "Empresa",
-                  "Director de programa",
-                ]}
-              />
-            }
-          >
-
-            <Route
-              path="/informes/:idPracticante/consulta"
-              element={<VistaInformePracticante soloLectura />}
-            />
-          </Route>
-
-
-
-          {/* =====================================================
-              TUTOR EMPRESARIAL
-              ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={["Tutor Empresarial"]}
-              />
-            }
-          >
-
-            <Route
-              path="/homeTutorEmpresarial"
-              element={<HomeTutorEmpresarial />}
-            />
-
-            <Route
-              path="/mis-aperturas"
-              element={<MisAperturas />}
-            />
-
-            <Route
-              path="/mis-aperturas/:practicaId"
-              element={<MisAperturasTutorDetalle />}
-            />
-
-          </Route>
-
-
-          {/* =====================================================
-              NOTIFICACIONES
-              TODOS LOS ROLES
-              ===================================================== */}
-
-          <Route
-            element={
-              <ProtectedRoute
-                roles={[
-                  "Administrador",
-                  "Director de programa",
-                  "Empresa",
-                  "Practicante",
-                  "Candidato",
-                  "Tutor Docente",
-                  "Tutor Empresarial"
-                ]}
-              />
-            }
-          >
-
-            <Route
-              path="/notificaciones"
-              element={<NotificacionesView />}
-            />
-
-          </Route>
-
         </Route>
 
-      </Routes >
+      </Routes>
     </>
   );
 }

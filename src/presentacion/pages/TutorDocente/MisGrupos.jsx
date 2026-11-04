@@ -1,5 +1,6 @@
-import { Eye } from "lucide-react";
+import { Eye, ChevronDown } from "lucide-react";
 import GenericTable from "../../components/Table/GenericTable";
+import EstadoBadge from "../../components/estadoBadge/EstadoBadge.jsx";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -9,6 +10,56 @@ import { tutorDocenteRepository } from "../../../infraestructura/repository/tuto
 
 import { getPracticas } from "../../../aplicacion/practica/getPracticas";
 import { practicaRepository } from "../../../infraestructura/repository/practicaRepository";
+
+
+// ==========================================
+// SKELETON
+// ==========================================
+
+const GruposSkeleton = ({ filas = 6 }) => (
+  <div
+    className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+    aria-busy="true"
+    aria-label="Cargando grupos"
+  >
+
+    {/* ENCABEZADO */}
+    <div className="grid grid-cols-5 gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200">
+      {[1, 2, 3, 4, 5].map((item) => (
+        <div
+          key={item}
+          className="h-3 w-20 rounded bg-slate-200 animate-pulse"
+        />
+      ))}
+    </div>
+
+    {/* FILAS */}
+    {Array.from({ length: filas }).map((_, fila) => (
+      <div
+        key={fila}
+        className="grid grid-cols-5 gap-4 items-center px-5 py-4 border-b border-slate-100 last:border-0"
+      >
+        {/* Nombre */}
+        <div className="h-3 w-2/3 rounded bg-slate-200 animate-pulse" />
+
+        {/* Periodo */}
+        <div className="h-3 w-1/2 rounded bg-slate-200 animate-pulse" />
+
+        {/* Estado */}
+        <div className="h-6 w-24 rounded-full bg-slate-200 animate-pulse" />
+
+        {/* Practicantes */}
+        <div className="h-3 w-8 rounded bg-slate-200 animate-pulse" />
+
+        {/* Acciones */}
+        <div className="flex justify-center">
+          <div className="h-8 w-8 rounded-lg bg-slate-200 animate-pulse" />
+        </div>
+      </div>
+    ))}
+
+  </div>
+);
 
 
 const GruposTutorDocente = () => {
@@ -34,7 +85,6 @@ const GruposTutorDocente = () => {
       loadGrupos();
     } else {
       setRows([]);
-      setLoading(false);
     }
 
   }, [practicaId]);
@@ -48,12 +98,13 @@ const GruposTutorDocente = () => {
         practicaRepository
       });
 
-      console.log("Prácticas obtenidas:", data);
-
       setPracticas(data);
 
       if (data.length > 0) {
         setPracticaId(data[0].id);
+      } else {
+        // No hay prácticas: no habrá carga de grupos
+        setLoading(false);
       }
 
     } catch (error) {
@@ -64,6 +115,8 @@ const GruposTutorDocente = () => {
         error.response?.data?.message ||
         "Error al cargar las prácticas"
       );
+
+      setLoading(false);
 
     }
 
@@ -80,8 +133,6 @@ const GruposTutorDocente = () => {
         tutorDocenteRepository,
         practicaId
       });
-
-      console.log("Grupos obtenidos:", data);
 
       const formattedData = data.map(grupo => ({
         id: grupo.id,
@@ -144,110 +195,132 @@ const GruposTutorDocente = () => {
       </h1>
 
 
+      {/* SELECT PRÁCTICA */}
       <div className="mb-6">
 
         <label
-          className="
-            block
-            text-sm
-            font-semibold
-            text-slate-700
-            mb-2
-          "
+          htmlFor="practica"
+          className="block text-sm font-semibold text-slate-600 mb-2"
         >
           Práctica
         </label>
 
-        <select
-          value={practicaId}
-          onChange={(e) => setPracticaId(e.target.value)}
-          className="
-            w-full
-            rounded-lg
-            border
-            border-gray-300
-            bg-white
-            px-4
-            py-2.5
-            text-sm
-            text-gray-700
-            outline-none
-            focus:border-red-500
-            focus:ring-1
-            focus:ring-red-500
-          "
-        >
+        <div className="relative">
 
-          {practicas.length === 0 ? (
+          <select
+            id="practica"
+            value={practicaId}
+            onChange={(e) => setPracticaId(e.target.value)}
+            className="
+              appearance-none
+              w-full
+              h-10
+              pl-4 pr-10
+              rounded-xl
+              border border-slate-200
+              bg-white
+              text-sm font-medium text-slate-700
+              shadow-sm
+              cursor-pointer
+              transition
+              hover:border-slate-300
+              focus:outline-none
+              focus:border-blue-400
+              focus:ring-4 focus:ring-blue-100
+            "
+          >
 
-            <option value="">
-              No hay prácticas disponibles
-            </option>
+            {practicas.length === 0 ? (
 
-          ) : (
-
-            practicas.map(practica => (
-
-              <option
-                key={practica.id}
-                value={practica.id}
-              >
-                {practica.Periodo?.nombre ||
-                  practica.periodo ||
-                  `Práctica ${practica.id}`}
+              <option value="">
+                No hay prácticas disponibles
               </option>
 
-            ))
+            ) : (
 
-          )}
+              practicas.map(practica => (
 
-        </select>
+                <option
+                  key={practica.id}
+                  value={practica.id}
+                >
+                  {practica.Periodo?.nombre ||
+                    practica.periodo ||
+                    `Práctica ${practica.id}`}
+                </option>
+
+              ))
+
+            )}
+
+          </select>
+
+          <ChevronDown
+            size={16}
+            className="
+              pointer-events-none
+              absolute right-3.5 top-1/2
+              -translate-y-1/2
+              text-slate-400
+            "
+          />
+
+        </div>
 
       </div>
 
 
-      <GenericTable
-        rows={rows}
-        loading={loading}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
+      {/* SKELETON / TABLA */}
+      {loading ? (
 
-        columns={[
-          {
-            key: "nombre",
-            label: "Nombre",
-            primary: true
-          },
-          {
-            key: "periodo",
-            label: "Periodo"
-          },
-          {
-            key: "estado",
-            label: "Estado"
-          },
-          {
-            key: "cantidadPracticantes",
-            label: "Practicantes"
+        <GruposSkeleton />
+
+      ) : (
+
+        <GenericTable
+          rows={rows}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+
+          columns={[
+            {
+              key: "nombre",
+              label: "Nombre",
+              primary: true
+            },
+            {
+              key: "periodo",
+              label: "Periodo"
+            },
+            {
+              key: "estado",
+              label: "Estado",
+              render: (row) => <EstadoBadge estado={row.estado} />
+            },
+            {
+              key: "cantidadPracticantes",
+              label: "Practicantes"
+            }
+          ]}
+
+          actions={[
+            {
+              icon: <Eye size={24} />,
+              className: "hover:bg-green-100",
+              onClick: handleView
+            }
+          ]}
+
+          emptyMessage={
+            practicaId
+              ? "No se le han asignado grupos."
+              : "Seleccione una práctica."
           }
-        ]}
 
-        actions={[
-          {
-            icon: <Eye size={24} />,
-            className: "hover:bg-green-100",
-            onClick: handleView
-          }
-        ]}
+          pageSize={6}
+        />
 
-        emptyMessage={
-          practicaId
-            ? "No se le han asignado grupos."
-            : "Seleccione una práctica."
-        }
-
-        pageSize={6}
-      />
+      )}
 
     </div>
 

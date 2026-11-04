@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import {
   Navigate,
@@ -11,16 +12,12 @@ import { userRepository } from "../../infraestructura/repository/userRepository"
 export default function ProtectedRoute({ roles }) {
 
   const token = localStorage.getItem("token");
-
   const location = useLocation();
 
+  const esProteccionPrincipal = roles === undefined;
 
-  const [perfilCompletado, setPerfilCompletado] =
-    useState(null);
-
-  const [cargandoPerfil, setCargandoPerfil] =
-    useState(false);
-
+  const [perfilCompletado, setPerfilCompletado] = useState(null);
+  const [cargandoPerfil, setCargandoPerfil] = useState(false);
 
   let usuario = null;
 
@@ -37,21 +34,24 @@ export default function ProtectedRoute({ roles }) {
 
   }
 
+  const rolActivo = usuario
+    ? localStorage.getItem("rolActivo") ?? usuario.roles?.[0]
+    : null;
 
-  const rolActivo =
-    usuario
-      ? localStorage.getItem("rolActivo") ??
-        usuario.roles?.[0]
-      : null;
 
+  // =====================================================
+  // VALIDAR PERFIL EN LA RUTA PRINCIPAL
+  // =====================================================
 
   useEffect(() => {
 
-    const validarPerfil = async () => {
+    if (!esProteccionPrincipal || !token || !usuario) {
+      return;
+    }
 
-      // =========================
-      // NO ES PRACTICANTE
-      // =========================
+    let cancelado = false;
+
+    const validarPerfil = async () => {
 
       if (rolActivo !== "Practicante") {
 
@@ -61,18 +61,11 @@ export default function ProtectedRoute({ roles }) {
         return;
       }
 
-
-      // =========================
-      // VALIDAR PRACTICANTE
-      // =========================
-
       setCargandoPerfil(true);
 
       try {
 
-        const usuarioPerfil =
-          await userRepository.getMe();
-
+        const usuarioPerfil = await userRepository.getMe();
 
         const completado =
           usuarioPerfil
@@ -80,8 +73,9 @@ export default function ProtectedRoute({ roles }) {
             ?.practicante
             ?.perfil_completado;
 
-
-        setPerfilCompletado(!!completado);
+        if (!cancelado) {
+          setPerfilCompletado(!!completado);
+        }
 
       } catch (error) {
 
@@ -90,81 +84,97 @@ export default function ProtectedRoute({ roles }) {
           error
         );
 
-        setPerfilCompletado(false);
+        if (!cancelado) {
+          setPerfilCompletado(false);
+        }
 
       } finally {
 
-        setCargandoPerfil(false);
+        if (!cancelado) {
+          setCargandoPerfil(false);
+        }
 
       }
 
     };
 
-
     validarPerfil();
 
-  }, [rolActivo, location.pathname]);
+    return () => {
+      cancelado = true;
+    };
+
+  }, [token, rolActivo, esProteccionPrincipal]);
 
 
-  // =========================
+  // =====================================================
   // VALIDAR TOKEN
-  // =========================
+  // =====================================================
 
   if (!token || !usuario) {
-
     return <Navigate to="/" replace />;
-
   }
 
 
-  // =========================
+  // =====================================================
   // VALIDAR ROL
-  // =========================
+  // =====================================================
 
   if (
     roles &&
     !roles.includes(rolActivo)
   ) {
-
     return <Navigate to="/" replace />;
-
   }
 
 
-  // =========================
-  // ESPERAR VALIDACIÓN
-  // =========================
+  // =====================================================
+  // MOSTRAR CARGANDO MIENTRAS SE VALIDA EL PERFIL
+  // =====================================================
 
   if (
+    esProteccionPrincipal &&
     rolActivo === "Practicante" &&
     (cargandoPerfil || perfilCompletado === null)
   ) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-100 gap-4">
 
-    return null;
+        <div className="w-12 h-12 border-4 border-gray-300 border-t-[#e8192c] rounded-full animate-spin" />
 
+        <p className="text-gray-600 font-medium text-sm">
+          Verificando tu perfil...
+        </p>
+
+        <p className="text-gray-400 text-xs">
+          Por favor, espera un momento.
+        </p>
+
+      </div>
+    );
   }
 
 
-  // =========================
-  // PRACTICANTE SIN PERFIL
-  // =========================
+  // =====================================================
+  // PRACTICANTE SIN PERFIL COMPLETADO
+  // =====================================================
 
   if (
+    esProteccionPrincipal &&
     rolActivo === "Practicante" &&
     perfilCompletado === false &&
     location.pathname !== "/perfil"
   ) {
-
-    return (
-      <Navigate
-        to="/perfil"
-        replace
-      />
-    );
-
+    return <Navigate to="/perfil" replace />;
   }
 
-  return <Outlet />;
+  return (
+    <Outlet
+      context={{
+        perfilCompletado,
+        setPerfilCompletado
+      }}
+    />
+  );
 
 }
-

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useOutletContext } from "react-router-dom";
 import Sidebar from "../../components/sideBar/Sidebar.jsx";
 import { jwtDecode } from "jwt-decode";
 import { ROLE_NAV } from "../../components/sideBar/SidebarItem.jsx";
@@ -8,6 +8,11 @@ import { Menu } from "lucide-react";
 export default function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
+
+  const outletContext = useOutletContext();
+
+  const perfilCompletado = outletContext?.perfilCompletado ?? null;
+  const setPerfilCompletado = outletContext?.setPerfilCompletado;
 
   const [rolActivo, setRolActivo] = useState(() => {
     const token = localStorage.getItem("token");
@@ -42,6 +47,8 @@ export default function Layout() {
         setCollapsed={setSidebarCollapsed}
         mobileOpen={sidebarMobileOpen}
         setMobileOpen={setSidebarMobileOpen}
+        perfilCompletado={perfilCompletado}
+        setPerfilCompletado={setPerfilCompletado}
       />
 
       <main

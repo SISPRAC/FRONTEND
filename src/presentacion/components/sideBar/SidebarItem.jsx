@@ -110,7 +110,7 @@ export const Empresa_NAV = [
   {
     label: "Vacantes",
     icon: <FileUser />,
-    href: " /vacantesEmpresa",
+    href: "/vacantesEmpresa",
   },
   {
     label: "Tutores Empresariales",
@@ -184,11 +184,6 @@ export const PracticantePerfil_NAV = [
 // CANDIDATO
 // ==========================
 export const Candidato_NAV = [
-  {
-    label: "Situación",
-    icon: <BadgeInfo />,
-    href: "/situacion",
-  },
   {
     label: "Notificaciones",
     icon: <Bell />,

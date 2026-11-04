@@ -1,20 +1,74 @@
 import GenericTable from "../../components/Table/GenericTable";
+import EstadoBadge from "../../components/estadoBadge/EstadoBadge.jsx";
 
 import {
-  Eye,
   Pencil,
   Trash2,
-  Plus
+  Plus,
+  Search,
+  ChevronDown,
+  X
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { vacanteRepository } from "../../../infraestructura/repository/vacanteRepository.js";
 import { getVacantesByEmpresa } from "../../../aplicacion/vacante/getVacantesByEmpresa.js";
 import { crearVacante } from "../../../aplicacion/vacante/crearVacante.js";
 import { eliminarVacante } from "../../../aplicacion/vacante/eliminarVacante.js";
 import { actualizarVacante } from "../../../aplicacion/vacante/actualizarVacante.js";
+
+
+/* =========================
+   SKELETON
+========================= */
+
+const VacantesSkeleton = ({ filas = 6 }) => (
+  <div
+    className="overflow-hidden rounded-xl border border-slate-200 bg-white"
+    aria-busy="true"
+    aria-label="Cargando vacantes"
+  >
+
+    {/* ENCABEZADO */}
+    <div className="grid grid-cols-5 gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200">
+      {[1, 2, 3, 4, 5].map((item) => (
+        <div
+          key={item}
+          className="h-3 w-20 rounded bg-slate-200 animate-pulse"
+        />
+      ))}
+    </div>
+
+    {/* FILAS */}
+    {Array.from({ length: filas }).map((_, fila) => (
+      <div
+        key={fila}
+        className="grid grid-cols-5 gap-4 items-center px-5 py-4 border-b border-slate-100 last:border-0"
+      >
+        {/* Vacante */}
+        <div className="h-3 w-2/3 rounded bg-slate-200 animate-pulse" />
+
+        {/* Descripción */}
+        <div className="h-3 w-5/6 rounded bg-slate-200 animate-pulse" />
+
+        {/* Convenio */}
+        <div className="h-3 w-1/2 rounded bg-slate-200 animate-pulse" />
+
+        {/* Estado */}
+        <div className="h-6 w-24 rounded-full bg-slate-200 animate-pulse" />
+
+        {/* Acciones */}
+        <div className="flex items-center justify-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-slate-200 animate-pulse" />
+          <div className="h-8 w-8 rounded-lg bg-slate-200 animate-pulse" />
+        </div>
+      </div>
+    ))}
+
+  </div>
+);
+
 
 const VacantesEmpresa = () => {
 
@@ -25,6 +79,8 @@ const VacantesEmpresa = () => {
   const [busqueda, setBusqueda] = useState("");
 
   const [rows, setRows] = useState([]);
+
+  const [loading, setLoading] = useState(true);
 
   const [modalAbierto, setModalAbierto] = useState(false);
 
@@ -89,6 +145,10 @@ const VacantesEmpresa = () => {
         error
       );
 
+    } finally {
+
+      setLoading(false);
+
     }
 
   };
@@ -107,14 +167,14 @@ const VacantesEmpresa = () => {
 
   const vacantesFiltradas = useMemo(() => {
 
+    const texto =
+      busqueda.toLowerCase().trim();
+
     return rows.filter((vacante) => {
 
       const coincideEstado =
         estadoFiltro === "TODOS" ||
         vacante.estado === estadoFiltro;
-
-      const texto =
-        busqueda.toLowerCase().trim();
 
       const coincideBusqueda =
         !texto ||
@@ -368,90 +428,136 @@ const VacantesEmpresa = () => {
 
         {/* FILTROS */}
 
-        <div className="flex items-center gap-3">
+        <div
+          className="
+            flex
+            flex-col
+            md:flex-row
+            md:items-center
+            gap-4
+          "
+        >
 
-          <label
-            htmlFor="estado"
-            className="
-              text-sm
-              font-medium
-              text-slate-600
-            "
-          >
-            Estado:
-          </label>
+          {/* FILTRO ESTADO */}
 
-          <select
-            id="estado"
-            value={estadoFiltro}
-            onChange={(e) => {
+          <div className="flex items-center gap-3">
 
-              setEstadoFiltro(
-                e.target.value
-              );
+            <label
+              htmlFor="estado"
+              className="text-sm font-semibold text-slate-600"
+            >
+              Estado
+            </label>
 
-              setCurrentPage(1);
+            <div className="relative">
 
-            }}
-            className="
-              border
-              border-slate-300
-              rounded-md
-              px-3
-              py-2
-              text-sm
-              text-slate-700
-              bg-white
-              focus:outline-none
-              focus:ring-2
-              focus:ring-slate-300
-            "
-          >
+              <select
+                id="estado"
+                value={estadoFiltro}
+                onChange={(e) => {
+                  setEstadoFiltro(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="
+                  appearance-none
+                  h-10
+                  min-w-[160px]
+                  pl-4 pr-10
+                  rounded-xl
+                  border border-slate-200
+                  bg-white
+                  text-sm font-medium text-slate-700
+                  shadow-sm
+                  cursor-pointer
+                  transition
+                  hover:border-slate-300
+                  focus:outline-none
+                  focus:border-blue-400
+                  focus:ring-4 focus:ring-blue-100
+                "
+              >
+                <option value="TODOS">Todos</option>
+                <option value="Disponible">Disponibles</option>
+                <option value="Cerrada">Cerradas</option>
+              </select>
 
-            <option value="TODOS">
-              Todos
-            </option>
+              <ChevronDown
+                size={16}
+                className="
+                  pointer-events-none
+                  absolute right-3.5 top-1/2
+                  -translate-y-1/2
+                  text-slate-400
+                "
+              />
 
-            <option value="Disponible">
-              Disponibles
-            </option>
+            </div>
 
-            <option value="Cerrada">
-              Cerradas
-            </option>
-
-          </select>
+          </div>
 
 
-          <input
-            type="text"
-            value={busqueda}
-            onChange={(e) => {
+          {/* BUSCADOR */}
 
-              setBusqueda(
-                e.target.value
-              );
+          <div className="relative w-full md:w-72">
 
-              setCurrentPage(1);
+            <Search
+              size={16}
+              className="
+                pointer-events-none
+                absolute left-3.5 top-1/2
+                -translate-y-1/2
+                text-slate-400
+              "
+            />
 
-            }}
-            placeholder="Buscar vacante..."
-            className="
-              w-full
-              md:w-64
-              border
-              border-slate-300
-              rounded-md
-              px-3
-              py-2
-              text-sm
-              text-slate-700
-              bg-white
-              focus:outline-none
-              focus:ring-2
-              focus:ring-slate-300
-            "
-          />
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => {
+                setBusqueda(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Buscar vacante..."
+              className="
+                w-full
+                h-10
+                pl-10 pr-9
+                rounded-xl
+                border border-slate-200
+                bg-white
+                text-sm text-slate-700
+                placeholder:text-slate-400
+                shadow-sm
+                transition
+                hover:border-slate-300
+                focus:outline-none
+                focus:border-blue-400
+                focus:ring-4 focus:ring-blue-100
+              "
+            />
+
+            {busqueda && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBusqueda("");
+                  setCurrentPage(1);
+                }}
+                aria-label="Limpiar búsqueda"
+                className="
+                  absolute right-2.5 top-1/2
+                  -translate-y-1/2
+                  p-1 rounded-full
+                  text-slate-400
+                  hover:text-slate-600 hover:bg-slate-100
+                  transition
+                "
+              >
+                <X size={14} />
+              </button>
+            )}
+
+          </div>
 
         </div>
 
@@ -466,14 +572,15 @@ const VacantesEmpresa = () => {
             items-center
             justify-center
             gap-2
+            h-10
             bg-red-600
             hover:bg-red-700
             text-white
             px-4
-            py-2
-            rounded-md
+            rounded-xl
             text-sm
             font-semibold
+            shadow-sm
             transition
           "
         >
@@ -488,53 +595,64 @@ const VacantesEmpresa = () => {
 
 
       {/* =========================
-          TABLA
+          SKELETON / TABLA
       ========================= */}
 
-      <GenericTable
-        rows={vacantesFiltradas}
+      {loading ? (
 
-        currentPage={currentPage}
+        <VacantesSkeleton />
 
-        onPageChange={setCurrentPage}
+      ) : (
 
-        columns={[
-          {
-            key: "nombre",
-            label: "Vacante",
-            primary: true
-          },
-          {
-            key: "descripcion",
-            label: "Descripción"
-          },
-          {
-            key: "convenio",
-            label: "Convenio"
-          },
-          {
-            key: "estado",
-            label: "Estado"
-          }
-        ]}
+        <GenericTable
+          rows={vacantesFiltradas}
 
-        actions={[
-          {
-            icon: <Pencil size={21} />,
-            className: "hover:bg-yellow-100",
-            onClick: handleEditar
-          },
-          {
-            icon: <Trash2 size={21} />,
-            className: "hover:bg-red-100",
-            onClick: handleEliminar
-          }
-        ]}
+          currentPage={currentPage}
 
-        emptyMessage="No hay vacantes que coincidan con los filtros."
+          onPageChange={setCurrentPage}
 
-        pageSize={6}
-      />
+          columns={[
+            {
+              key: "nombre",
+              label: "Vacante",
+              primary: true
+            },
+            {
+              key: "descripcion",
+              label: "Descripción"
+            },
+            {
+              key: "convenio",
+              label: "Convenio"
+            },
+            {
+              key: "estado",
+              label: "Estado",
+              render: (row) => (
+                <EstadoBadge estado={row.estado} />
+              )
+            }
+          ]}
+
+          actions={[
+            {
+              icon: <Pencil size={21} />,
+              className: "hover:bg-yellow-100",
+              onClick: handleEditar
+            },
+            {
+              icon: <Trash2 size={21} />,
+              className: "hover:bg-red-100",
+              onClick: handleEliminar
+            }
+          ]}
+
+          emptyMessage="No hay vacantes que coincidan con los filtros."
+
+          pageSize={6}
+        />
+
+      )}
 
 
       {/* =========================
@@ -593,12 +711,12 @@ const VacantesEmpresa = () => {
 
                 <label
                   className="
-      block
-      text-sm
-      font-medium
-      text-slate-700
-      mb-1
-    "
+                    block
+                    text-sm
+                    font-medium
+                    text-slate-700
+                    mb-1
+                  "
                 >
                   Nombre
                 </label>
@@ -614,20 +732,19 @@ const VacantesEmpresa = () => {
                   }
                   placeholder="Ingrese el nombre de la vacante"
                   required
-                  maxLength={15}
                   className="
-      w-full
-      border
-      border-slate-300
-      rounded-md
-      px-3
-      py-2
-      text-sm
-      placeholder:text-slate-400
-      focus:outline-none
-      focus:ring-2
-      focus:ring-slate-300
-    "
+                    w-full
+                    border
+                    border-slate-300
+                    rounded-md
+                    px-3
+                    py-2
+                    text-sm
+                    placeholder:text-slate-400
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-slate-300
+                  "
                 />
 
               </div>
@@ -639,12 +756,12 @@ const VacantesEmpresa = () => {
 
                 <label
                   className="
-      block
-      text-sm
-      font-medium
-      text-slate-700
-      mb-1
-    "
+                    block
+                    text-sm
+                    font-medium
+                    text-slate-700
+                    mb-1
+                  "
                 >
                   Descripción
                 </label>
@@ -661,19 +778,19 @@ const VacantesEmpresa = () => {
                   required
                   rows={4}
                   className="
-      w-full
-      border
-      border-slate-300
-      rounded-md
-      px-3
-      py-2
-      text-sm
-      resize-none
-      placeholder:text-slate-400
-      focus:outline-none
-      focus:ring-2
-      focus:ring-slate-300
-    "
+                    w-full
+                    border
+                    border-slate-300
+                    rounded-md
+                    px-3
+                    py-2
+                    text-sm
+                    resize-none
+                    placeholder:text-slate-400
+                    focus:outline-none
+                    focus:ring-2
+                    focus:ring-slate-300
+                  "
                 />
 
               </div>
