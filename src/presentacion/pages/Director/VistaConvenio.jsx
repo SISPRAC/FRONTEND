@@ -130,6 +130,7 @@ export default function VistaConvenio() {
 
     }
   };
+
   const handleHistorial = async () => {
     try {
 
@@ -176,7 +177,6 @@ export default function VistaConvenio() {
       );
     }
   };
-
 
   useEffect(() => {
     if (id) {
@@ -316,7 +316,8 @@ export default function VistaConvenio() {
               <div className="space-y-2">
                 {[
                   { label: "Empresa", value: convenio.empresa },
-                  { label: "Recibido", value: convenio.fechaEnvio },
+                  { label: "Enviado", value: convenio.fechaEnvio },
+                  { label: "Inicio", value: convenio.fechaInicio },
                   { label: "Vigencia", value: convenio.fechaFin },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between items-baseline gap-2 text-sm">

@@ -45,16 +45,15 @@ export default function LoginPage() {
 
                 switch (rol) {
                     case "Administrador":
-                        navigate("/homeAdmin");
+                        navigate("/periodos");
                         break;
 
                     case "Director de programa":
                         navigate("/homeDirector");
                         break;
 
-                    case "Empresa":
-                        console.log("Ingreso papu..");
-                        navigate("/homeEmpresa");
+                    case "Empresa":       
+                        navigate("/subirConvenio");
                         break;
 
                     case "Practicante":
@@ -62,15 +61,15 @@ export default function LoginPage() {
                         break;
 
                     case "Candidato":
-                        navigate("/homeCandidato");
+                        navigate("/perfil");
                         break;
 
                     case "Tutor Docente":
-                        navigate("/homeTutorDocente");
+                        navigate("/misGrupos");
                         break;
 
                     case "Tutor Empresarial":
-                        navigate("/homeTutorEmpresarial");
+                        navigate("/mis-aperturas");
                         break;
 
                     default:

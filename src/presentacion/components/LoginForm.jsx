@@ -1,6 +1,6 @@
-
 import bg from "../../assets/images/backgrounds/fondo.jpg";
 import fondo from "../../assets/images/logo/logo login.png";
+import programa from "../../assets/images/logo/Programa_Ingeniería_de_Sistemas.png";
 import { LoaderCircle } from "lucide-react";
 
 export default function LoginForm({ onSubmit, onChange, loading = false }) {
@@ -129,15 +129,30 @@ export default function LoginForm({ onSubmit, onChange, loading = false }) {
 
                     </div>
 
+                    {/* Logos */}
+                    <div className="ml-5 w-[500px] h-[500px] flex flex-col items-center justify-center gap-6 mt-6 mb-12">
 
+                        {/* Logo principal */}
+                        <div className="w-96 h-48 flex items-center justify-center">
+                            <img
+                                className="max-w-full max-h-full object-contain"
+                                src={fondo}
+                                alt="logo"
+                            />
+                        </div>
 
-                    {/* Logo */}
-                    <div className="ml-5 w-[500px] h-[500px] flex items-center justify-center mt-6 mb-12">
-                        <img
-                            className="w-full h-full object-cover"
-                            src={fondo}
-                            alt="logo"
-                        />
+                        {/* Separador */}
+                        <div className="w-24 h-px bg-gray-300" />
+
+                        {/* Logo del programa */}
+                        <div className="w-80 h-40 flex items-center justify-center">
+                            <img
+                                className="max-w-full max-h-full object-contain"
+                                src={programa}
+                                alt="Programa de Ingeniería de Sistemas"
+                            />
+                        </div>
+
                     </div>
 
                 </div>

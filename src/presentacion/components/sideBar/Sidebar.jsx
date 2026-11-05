@@ -1,4 +1,3 @@
-
 import logo from "../../../assets/images/logo/Logo.png";
 import LogoSolo from "../../../assets/images/logo/solo_logo.png";
 
@@ -28,8 +27,6 @@ import {
   UserRound,
   Bell,
   LogOut,
-  ChevronLeft,
-  ChevronRight,
   X
 } from "lucide-react";
 
@@ -249,7 +246,7 @@ export default function Sidebar({
           left-0
           z-50
           h-screen
-          bg-[#e8192c]
+          bg-red-600
           flex
           flex-col
           shadow-[4px_0_16px_rgba(232,25,44,0.18)]
@@ -268,94 +265,40 @@ export default function Sidebar({
 
         {/* =================================================
             ÁREA SUPERIOR / LOGO
+            (misma altura fija que el TopBar: 97.5px)
         ================================================= */}
 
         <div
           className={`
             relative
-            min-h-[80px]
+            h-[80px]
+            flex-shrink-0
             flex
             items-center
+            justify-center
             border-b
             border-white/15
             transition-all
             duration-300
-            ${collapsed
-              ? "justify-center px-2"
-              : "justify-between px-4"
-            }
+            ${collapsed ? "px-2" : "px-4"}
           `}
         >
 
           {/* LOGO */}
 
-          <div
+          <img
+            src={collapsed ? LogoSolo : logo}
+            alt="SISPRAC"
             className={`
-              flex
-              items-center
-              justify-center
+              object-contain
               transition-all
               duration-300
               ${collapsed
-                ? "w-full"
-                : "flex-1"
+                ? "h-16 w-16"
+                : "h-16"
               }
             `}
-          >
-
-            <img
-              src={collapsed ? LogoSolo : logo}
-              alt="SISPRAC"
-              className={`
-                object-contain
-                transition-all
-                duration-300
-                ${collapsed
-                  ? "h-12 w-12"
-                  : "h-20"
-                }
-              `}
-            />
-
-          </div>
-
-
-          {/* BOTÓN CONTRAER / EXPANDIR */}
-
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="
-              hidden
-              md:flex
-              flex-shrink-0
-              items-center
-              justify-center
-              rounded-lg
-              text-white
-              bg-white/10
-              hover:bg-white/20
-              border
-              border-white/15
-              shadow-sm
-              transition-all
-              duration-200
-              w-9
-              h-9
-            "
-            aria-label={
-              collapsed
-                ? "Expandir menú"
-                : "Contraer menú"
-            }
-          >
-
-            {collapsed ? (
-              <ChevronRight size={20} strokeWidth={2.5} />
-            ) : (
-              <ChevronLeft size={20} strokeWidth={2.5} />
-            )}
-
-          </button>
+          />
 
 
           {/* BOTÓN CERRAR MÓVIL */}
@@ -394,43 +337,43 @@ export default function Sidebar({
 
         <nav
           className={`
-    flex-1
-    pt-5
-    flex
-    flex-col
-    gap-0.5
-    overflow-y-auto
-    ${collapsed
+            flex-1
+            pt-5
+            flex
+            flex-col
+            gap-0.5
+            overflow-y-auto
+            ${collapsed
               ? "items-center"
               : ""
             }
-  `}
+          `}
         >
 
           {rolActivo === "Practicante" && perfilCompletado === null ? (
 
             <div
               className={`
-        flex
-        items-center
-        gap-3
-        px-5
-        py-4
-        text-white/80
-        ${collapsed ? "justify-center px-0" : ""}
-      `}
+                flex
+                items-center
+                gap-3
+                px-5
+                py-4
+                text-white/80
+                ${collapsed ? "justify-center px-0" : ""}
+              `}
             >
 
               <span className="
-        w-5
-        h-5
-        border-2
-        border-white/30
-        border-t-white
-        rounded-full
-        animate-spin
-        flex-shrink-0
-      " />
+                w-5
+                h-5
+                border-2
+                border-white/30
+                border-t-white
+                rounded-full
+                animate-spin
+                flex-shrink-0
+              " />
 
               {!collapsed && (
                 <span className="text-sm">
@@ -449,35 +392,35 @@ export default function Sidebar({
                 to={item.href}
                 title={collapsed ? item.label : undefined}
                 className={({ isActive }) => `
-          flex
-          items-center
-          text-white
-          text-[15px]
-          font-bold
-          no-underline
-          transition-all
-          duration-200
-          ${collapsed
+                  flex
+                  items-center
+                  text-white
+                  text-[15px]
+                  font-bold
+                  no-underline
+                  transition-all
+                  duration-200
+                  ${collapsed
                     ? "justify-center w-[56px] h-[48px] rounded-xl px-0"
                     : "gap-3 px-5 py-[13px] mr-4 rounded-r-full"
                   }
-          ${isActive || item.active
+                  ${isActive || item.active
                     ? "bg-white/20"
                     : "hover:bg-white/10"
                   }
-        `}
+                `}
               >
 
                 {item.icon && (
 
                   <span className="
-            w-[22px]
-            h-[22px]
-            flex
-            items-center
-            justify-center
-            flex-shrink-0
-          ">
+                    w-[22px]
+                    h-[22px]
+                    flex
+                    items-center
+                    justify-center
+                    flex-shrink-0
+                  ">
                     {item.icon}
                   </span>
 

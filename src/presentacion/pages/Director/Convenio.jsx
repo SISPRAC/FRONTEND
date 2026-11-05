@@ -87,6 +87,8 @@ export default function Convenios() {
         convenioRepository
       });
 
+      console.log("Convenios cargados:", data);
+
       const formattedData = data.map(convenio => ({
         ...convenio
       }));
@@ -189,6 +191,10 @@ export default function Convenios() {
               key: "empresa",
               label: "Empresa",
               primary: true
+            },
+             {
+              key: "fechaInicio",
+              label: "Inicio"
             },
             {
               key: "fechaFin",

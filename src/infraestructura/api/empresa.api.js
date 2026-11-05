@@ -140,3 +140,15 @@ export const getEmpresasParaReportePorPeriodoRequest = (
     );
 
 };
+
+// =========================================================
+// OBTENER EMPRESAS PARA SELECTS
+// =========================================================
+
+export const getEmpresasParaSelectRequest = (convenio = "activo") => {
+
+    return empresaApi.get(
+        `/select?convenio=${convenio}`
+    );
+
+};

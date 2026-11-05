@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 
-import { Building2, ChevronDown } from "lucide-react";
+import { Building2, ChevronDown, Search, X } from "lucide-react";
 import PostularCandidatoModal from "./PostularCandidatoModal";
 import VacanteCard from "../../components/cards/VacanteCard";
 import { vacanteRepository } from "../../../infraestructura/repository/vacanteRepository";
-import { periodoRepository } from "../../../infraestructura/repository/periodoRepository";
+import { practicaRepository } from "../../../infraestructura/repository/practicaRepository";
+import { EmpresaRepository } from "../../../infraestructura/repository/empresaRepository";
 import { getAperturasVacantes } from "../../../aplicacion/vacante/getAperturasVacantes";
-import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos";
+import { getPracticas } from "../../../aplicacion/practica/getPracticas";
+import { obtenerEmpresasParaSelect } from "../../../aplicacion/empresa/obtenerEmpresasParaSelect";
 import toast from "react-hot-toast";
 
 
@@ -48,7 +50,7 @@ const VacanteCardSkeleton = () => (
   </div>
 );
 
-const VacantesSkeleton = ({ cantidad = 6 }) => (
+const VacantesSkeleton = ({ cantidad = 3 }) => (
   <div
     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
     aria-busy="true"
@@ -61,10 +63,78 @@ const VacantesSkeleton = ({ cantidad = 6 }) => (
 );
 
 
+// ==========================================
+// SELECT REUTILIZABLE
+// ==========================================
+
+const FiltroSelect = ({ id, label, value, onChange, placeholder, opciones, disabled = false }) => (
+  <div className="flex items-center gap-3">
+    <label
+      htmlFor={id}
+      className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 whitespace-nowrap"
+    >
+      <Building2 size={15} />
+      {label}
+    </label>
+
+    <div className="relative">
+      <select
+        id={id}
+        value={value ?? ""}
+        onChange={onChange}
+        disabled={disabled}
+        className="
+          appearance-none
+          h-10
+          min-w-[200px]
+          pl-4 pr-10
+          rounded-xl
+          border border-slate-200
+          bg-white
+          text-sm font-medium text-slate-700
+          shadow-sm
+          cursor-pointer
+          transition
+          hover:border-slate-300
+          focus:outline-none
+          focus:border-blue-400
+          focus:ring-4 focus:ring-blue-100
+          disabled:cursor-not-allowed
+          disabled:opacity-60
+        "
+      >
+        <option value="">{placeholder}</option>
+        {opciones.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.nombre}
+          </option>
+        ))}
+      </select>
+
+      <ChevronDown
+        size={16}
+        className="
+          pointer-events-none
+          absolute right-3.5 top-1/2
+          -translate-y-1/2
+          text-slate-400
+        "
+      />
+    </div>
+  </div>
+);
+
+
 export default function VacantesDirector() {
   const [vacantes, setVacantes] = useState([]);
-  const [periodos, setPeriodos] = useState([]);
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState(null); // null = "Todos activos"
+  const [practicas, setPracticas] = useState([]);
+  const [empresas, setEmpresas] = useState([]);
+
+  // Filtros
+  const [practicaSeleccionada, setPracticaSeleccionada] = useState(null); // null = "Todas"
+  const [empresaSeleccionada, setEmpresaSeleccionada] = useState(null);   // null = "Todas"
+  const [busqueda, setBusqueda] = useState("");
+
   const [vacanteFocus, setVacanteFocus] = useState(null); // para el modal futuro
   const [loading, setLoading] = useState(true);
   const [postularModalOpen, setPostularModalOpen] = useState(false);
@@ -73,15 +143,43 @@ export default function VacantesDirector() {
     cargarDatos();
   }, []);
 
+  // Empresas para el filtro: solo las que tienen convenio activo.
+  // Va aparte para que si falla no tumbe la carga de vacantes.
+  useEffect(() => {
+    const cargarEmpresas = async () => {
+      try {
+        const lista = await obtenerEmpresasParaSelect(
+          { EmpresaRepository },
+          "activo"
+        );
+        console.log("empresas recibidas:", lista); // quitar cuando funcione
+
+        // Acepta el arreglo directo o la respuesta { success, data }
+        const arreglo = Array.isArray(lista) ? lista : lista?.data;
+        setEmpresas(Array.isArray(arreglo) ? arreglo : []);
+      } catch (error) {
+        console.error("Error al cargar las empresas:", error);
+        toast.error("No se pudieron cargar las empresas");
+      }
+    };
+
+    cargarEmpresas();
+  }, []);
+
 
   const cargarDatos = async () => {
     try {
       setLoading(true);
-      const periodosData = await getPeriodos({
-        periodoRepository
+
+      const practicasData = await getPracticas({
+        practicaRepository
       });
 
+      console.log("Prácticas obtenidas:", practicasData);
+
       const vacantesData = await getAperturasVacantes(vacanteRepository);
+
+      console.log("Vacantes obtenidas:", vacantesData);
 
       const vacantesNormalizadas = vacantesData.map((item) => ({
         id: item.id,
@@ -128,7 +226,7 @@ export default function VacantesDirector() {
       }));
 
       setVacantes(vacantesNormalizadas);
-      setPeriodos(periodosData);
+      setPracticas(practicasData);
     } catch (error) {
       console.error(error);
       toast.error("Error cargando datos");
@@ -137,18 +235,55 @@ export default function VacantesDirector() {
     }
   };
 
-  /** Solo muestra vacantes cuyo convenio tenga periodo activo (o el filtrado seleccionado). */
+  /** Aplica convenio aprobado + práctica + empresa + búsqueda. */
   const vacantesFiltradas = vacantes.filter((v) => {
     if (v.convenio?.estado !== "APROBADO") {
       return false;
     }
 
-    if (periodoSeleccionado === null) {
-      return true;
+    if (
+      practicaSeleccionada !== null &&
+      v.practica?.id !== practicaSeleccionada
+    ) {
+      return false;
     }
 
-    return v.periodo?.id === periodoSeleccionado;
+    if (
+      empresaSeleccionada !== null &&
+      v.empresa?.id !== empresaSeleccionada
+    ) {
+      return false;
+    }
+
+    const termino = busqueda.trim().toLowerCase();
+    if (termino) {
+      const texto = [
+        v.titulo,
+        v.descripcion,
+        v.empresa?.nombre,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      if (!texto.includes(termino)) {
+        return false;
+      }
+    }
+
+    return true;
   });
+
+  const hayFiltrosActivos =
+    practicaSeleccionada !== null ||
+    empresaSeleccionada !== null ||
+    busqueda.trim() !== "";
+
+  const limpiarFiltros = () => {
+    setPracticaSeleccionada(null);
+    setEmpresaSeleccionada(null);
+    setBusqueda("");
+  };
 
   const handlePostular = (vacante) => {
     setVacanteFocus(vacante);
@@ -161,67 +296,87 @@ export default function VacantesDirector() {
         Vacantes en empresas
       </h1>
 
-      {/* ── Filtro por periodo ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 mb-6">
-
-        <label
-          htmlFor="filtro-periodo"
-          className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 whitespace-nowrap"
-        >
-          <Building2 size={15} />
-          Periodo
-        </label>
-
-        <div className="relative">
-
-          <select
-            id="filtro-periodo"
-            value={periodoSeleccionado ?? ""}
-            onChange={(e) =>
-              setPeriodoSeleccionado(
-                e.target.value === ""
-                  ? null
-                  : Number(e.target.value)
-              )
-            }
-            className="
-              appearance-none
-              h-10
-              min-w-[200px]
-              pl-4 pr-10
-              rounded-xl
-              border border-slate-200
-              bg-white
-              text-sm font-medium text-slate-700
-              shadow-sm
-              cursor-pointer
-              transition
-              hover:border-slate-300
-              focus:outline-none
-              focus:border-blue-400
-              focus:ring-4 focus:ring-blue-100
-            "
+      {/* ── Buscador ───────────────────────────────────────────────────────── */}
+      <div className="relative mb-4">
+        <Search
+          size={16}
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          type="text"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por vacante, empresa o descripción..."
+          className="
+            w-full h-11
+            pl-11 pr-10
+            rounded-xl
+            border border-slate-200
+            bg-white
+            text-sm text-slate-700
+            shadow-sm
+            transition
+            placeholder:text-slate-400
+            hover:border-slate-300
+            focus:outline-none
+            focus:border-blue-400
+            focus:ring-4 focus:ring-blue-100
+          "
+        />
+        {busqueda && (
+          <button
+            type="button"
+            onClick={() => setBusqueda("")}
+            aria-label="Limpiar búsqueda"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
           >
-            <option value="">Todos los activos</option>
+            <X size={16} />
+          </button>
+        )}
+      </div>
 
-            {periodos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
+      {/* ── Filtros: práctica y empresa ────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-6">
 
-          <ChevronDown
-            size={16}
-            className="
-              pointer-events-none
-              absolute right-3.5 top-1/2
-              -translate-y-1/2
-              text-slate-400
-            "
-          />
+        <FiltroSelect
+          id="filtro-practica"
+          label="Práctica"
+          value={practicaSeleccionada}
+          onChange={(e) =>
+            setPracticaSeleccionada(
+              e.target.value === "" ? null : Number(e.target.value)
+            )
+          }
+          placeholder="Todas las prácticas"
+          opciones={practicas.map((p) => ({
+            id: p.id,
+            nombre: p.Periodo?.nombre ?? `Práctica ${p.id}`,
+          }))}
+        />
 
-        </div>
+        <FiltroSelect
+          id="filtro-empresa"
+          label="Empresa"
+          value={empresaSeleccionada}
+          onChange={(e) =>
+            setEmpresaSeleccionada(
+              e.target.value === "" ? null : Number(e.target.value)
+            )
+          }
+          placeholder="Todas las empresas"
+          opciones={empresas}
+          disabled={!empresas.length}
+        />
+
+        {hayFiltrosActivos && (
+          <button
+            type="button"
+            onClick={limpiarFiltros}
+            className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+          >
+            Limpiar filtros
+          </button>
+        )}
 
       </div>
 
@@ -231,7 +386,7 @@ export default function VacantesDirector() {
       ) : vacantesFiltradas.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <Building2 size={36} className="mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No hay vacantes para este periodo</p>
+          <p className="text-sm">No se encontraron vacantes con estos filtros</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, useOutletContext } from "react-router-dom";
 import Sidebar from "../../components/sideBar/Sidebar.jsx";
+import TopBar from "../../components/sideBar/TopBar.jsx";
 import { jwtDecode } from "jwt-decode";
 import { ROLE_NAV } from "../../components/sideBar/SidebarItem.jsx";
 import { Menu } from "lucide-react";
@@ -51,48 +52,58 @@ export default function Layout() {
         setPerfilCompletado={setPerfilCompletado}
       />
 
-      <main
-        className="
-          flex-1
-          min-w-0
-          overflow-y-auto
-          px-4
-          py-6
-          sm:px-6
-          sm:py-8
-          lg:px-10
-          lg:py-10
-        "
-      >
-        {!sidebarMobileOpen && (
-          <button
-            onClick={() => setSidebarMobileOpen(true)}
-            className="
-              md:hidden
-              fixed
-              top-4
-              left-4
-              z-40
-              w-11
-              h-11
-              flex
-              items-center
-              justify-center
-              rounded-xl
-              bg-[#e8192c]
-              text-white
-              shadow-lg
-              hover:bg-[#d91729]
-              transition-colors
-            "
-            aria-label="Abrir menú"
-          >
-            <Menu />
-          </button>
-        )}
+      {/* Columna derecha: barra superior + contenido */}
+      <div className="flex-1 flex flex-col min-w-0">
 
-        <Outlet />
-      </main>
+        <TopBar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        <main
+          className="
+            flex-1
+            min-w-0
+            overflow-y-auto
+            px-4
+            py-6
+            sm:px-6
+            sm:py-8
+            lg:px-10
+            lg:py-10
+          "
+        >
+          {!sidebarMobileOpen && (
+            <button
+              onClick={() => setSidebarMobileOpen(true)}
+              className="
+                md:hidden
+                fixed
+                top-4
+                left-4
+                z-40
+                w-11
+                h-11
+                flex
+                items-center
+                justify-center
+                rounded-xl
+                bg-[#e8192c]
+                text-white
+                shadow-lg
+                hover:bg-[#d91729]
+                transition-colors
+              "
+              aria-label="Abrir menú"
+            >
+              <Menu />
+            </button>
+          )}
+
+          <Outlet />
+        </main>
+
+      </div>
     </div>
   );
 }

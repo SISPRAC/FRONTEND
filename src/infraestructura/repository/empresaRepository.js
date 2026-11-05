@@ -5,7 +5,8 @@ import {
     getMisGruposRequest,
     getDetalleGrupoEmpresaRequest,
     actualizarEmpresaRequest,
-    getEmpresasParaReportePorPeriodoRequest
+    getEmpresasParaReportePorPeriodoRequest,
+    getEmpresasParaSelectRequest
 } from "../api/empresa.api.js";
 
 
@@ -95,6 +96,19 @@ export const EmpresaRepository = {
 
         return await getEmpresasParaReportePorPeriodoRequest(
             periodo_id
+        );
+
+    },
+
+
+    // =========================================================
+    // OBTENER EMPRESAS PARA SELECTS
+    // =========================================================
+
+    async obtenerEmpresasParaSelect(convenio = "activo") {
+
+        return await getEmpresasParaSelectRequest(
+            convenio
         );
 
     }

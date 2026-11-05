@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { FileSpreadsheet, FileDown } from "lucide-react";
+import { createPortal } from "react-dom";
+import { FileSpreadsheet, FileDown, Users, X } from "lucide-react";
 
 import { practicaRepository } from "../../../infraestructura/repository/practicaRepository.js";
 import { periodoRepository } from "../../../infraestructura/repository/periodoRepository.js";
@@ -17,6 +18,8 @@ import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";
 import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos.js";
 // ⚠️ Ajusta los "../" según dónde esté tu archivo
 import logoSisprac from "../../../assets/images/logo/LogoReportes.png";
+import logoSispracPDF from "../../../assets/images/logo/solo_logo.png";
+import logoPrograma from "../../../assets/images/logo/Programa_Ingeniería_de_Sistemas.png";
 
 import GenericTable from "../../components/Table/GenericTable.jsx";
 // ⚠️ Ajusta esta ruta a donde tengas EstadoBadge
@@ -65,6 +68,134 @@ const nombrePeriodoDeFila = (row) =>
 const mensajeError = (error, porDefecto) =>
   error?.response?.data?.message || error?.message || porDefecto;
 
+// Unifica la forma de los practicantes (vengan de grupos o de empresas)
+const normalizarPracticantes = (lista) =>
+  (Array.isArray(lista) ? lista : []).map((p) => ({
+    id: p.id,
+    codigo: p.codigo ?? "",
+    nombre:
+      p.nombreCompleto ??
+      p.nombreEstudiante ??
+      ([p.nombres, p.apellidos].filter(Boolean).join(" ") || "Sin nombre"),
+    correo: p.correo ?? p.Usuario?.correo ?? "",
+  }));
+
+// Texto para Excel / PDF: un practicante por línea
+const exportPracticantes = (row) =>
+  (row.practicantes ?? [])
+    .map((p) => `${p.codigo ? `${p.codigo} - ` : ""}${p.nombre}`)
+    .join("\n");
+
+function PracticantesModal({ row }) {
+  const [abierto, setAbierto] = useState(false);
+  const lista = row.practicantes ?? [];
+  const titulo = row.nombreGrupo ?? row.nombreEmpresa ?? "Practicantes";
+
+  // Cerrar con Escape y bloquear el scroll del fondo mientras está abierto
+  useEffect(() => {
+    if (!abierto) return;
+
+    const onKey = (e) => e.key === "Escape" && setAbierto(false);
+    document.addEventListener("keydown", onKey);
+
+    const overflowPrevio = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflowPrevio;
+    };
+  }, [abierto]);
+
+  if (!lista.length) {
+    return <span className="text-xs text-gray-400">Sin practicantes</span>;
+  }
+
+  return (
+    <div className="flex justify-center">
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+      >
+        <Users size={14} />
+        Ver ({lista.length})
+      </button>
+
+      {abierto &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setAbierto(false)}
+          >
+            <div
+              className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Encabezado */}
+              <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">
+                    {titulo}
+                  </h3>
+                  <p className="text-xs font-semibold text-red-500">
+                    {lista.length}{" "}
+                    {lista.length === 1 ? "practicante" : "practicantes"}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAbierto(false)}
+                  className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  aria-label="Cerrar"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Lista */}
+              <ul className="flex-1 divide-y divide-gray-100 overflow-y-auto px-5">
+                {lista.map((p, i) => (
+                  <li key={p.id ?? i} className="py-3 text-left">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {p.nombre}
+                    </p>
+
+                    <p className="text-xs text-gray-500">
+                      {p.codigo && <span>Código: {p.codigo}</span>}
+                      {p.codigo && p.correo && <span> · </span>}
+                      {p.correo && <span>{p.correo}</span>}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Pie */}
+              <div className="border-t border-gray-100 px-5 py-3 text-right">
+                <button
+                  type="button"
+                  onClick={() => setAbierto(false)}
+                  className="rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </div>
+  );
+}
+
+const columnaPracticantes = {
+  key: "practicantes",
+  label: "Practicantes",
+  render: (row) => <PracticantesModal row={row} />,
+  exportValue: exportPracticantes,
+};
+
 /* --------------------------------- Tabs ---------------------------------- */
 
 const TABS = {
@@ -105,6 +236,7 @@ const TABS = {
         render: renderEstado,
         exportValue: exportEstado,
       },
+      columnaPracticantes,
     ],
   },
 
@@ -112,6 +244,7 @@ const TABS = {
     label: "Practicantes",
     columns: [
       { key: "codigo", label: "Código", primary: true },
+      { key: "cedula", label: "Cédula" },
       { key: "nombreEstudiante", label: "Estudiante" },
       { key: "correo", label: "Correo" },
       { key: "grupo", label: "Grupo" },
@@ -122,7 +255,7 @@ const TABS = {
         exportValue: exportEstado,
       },
       { key: "empresa", label: "Empresa" },
-      { key: "vacante", label: "Vacante" },
+
     ],
   },
 
@@ -138,6 +271,7 @@ const TABS = {
         render: renderEstado,
         exportValue: exportEstado,
       },
+      columnaPracticantes,
     ],
   },
 };
@@ -147,7 +281,7 @@ const TABS = {
 const COLOR_PRIMARIO = [239, 68, 68];
 
 // Convierte el logo importado a base64 y calcula su proporción
-const cargarLogo = () =>
+const cargarLogo = (src) =>
   new Promise((resolve) => {
     const img = new Image();
 
@@ -164,7 +298,7 @@ const cargarLogo = () =>
     };
 
     img.onerror = () => resolve(null);
-    img.src = logoSisprac;
+    img.src = src;
   });
 
 function DescargarMenu({
@@ -190,83 +324,103 @@ function DescargarMenu({
   ];
 
   const descargarXlsx = async () => {
-    const logo = await cargarLogo();
+    const [logo, logoProg] = await Promise.all([
+      cargarLogo(logoSisprac),
+      cargarLogo(logoPrograma),
+    ]);
 
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Reporte", {
-      views: [{ state: "frozen", ySplit: 6 }], // deja fijo el encabezado de la tabla
+      views: [{ state: "frozen", ySplit: 6 }],
     });
 
     const rojo = "FFEF4444";
     const totalColumnas = columns.length;
+    // Mínimo 6 columnas en el encabezado para que quepan logo | texto | logo
+    const totalEncabezado = Math.max(totalColumnas, 6);
 
-    // Medidas
-    const anchoColumna = 22; // caracteres (todas iguales)
-    const altoFila = 24; // puntos
+    const altoFila = 24;
     const filasLogo = 4;
-    const columnasLogo = 2; // el logo ocupa A y B
+    const columnasLogo = 2;
+    const EMU = 9525; // 1 px = 9525 EMU
 
-    // Conversión aproximada a píxeles
-    const pxColumna = anchoColumna * 7 + 5;
+    // Ancho (en caracteres) de cada columna
+    const anchos = Array.from({ length: totalEncabezado }, (_, i) =>
+      columns[i]?.key === "practicantes" ? 38 : 22
+    );
+    const pxAncho = (w) => w * 7 + 5;
     const pxFila = altoFila * (96 / 72);
-    const cajaAncho = pxColumna * columnasLogo;
-    const cajaAlto = pxFila * filasLogo;
 
-    ws.columns = columns.map(() => ({ width: anchoColumna }));
+    ws.columns = anchos.map((width) => ({ width }));
 
     for (let fila = 1; fila <= filasLogo; fila++) {
       ws.getRow(fila).height = altoFila;
     }
-    ws.getRow(5).height = 8; // espacio entre encabezado y tabla
+    ws.getRow(5).height = 8;
 
-    // Recuadro del logo combinado: A1 hasta B4
-    ws.mergeCells(1, 1, filasLogo, columnasLogo);
+    // Coloca una imagen centrada dentro de un recuadro (colIni 0-based)
+    const agregarImagen = (img, colIni, nCols) => {
+      if (!img) return;
 
-    if (logo) {
-      const margen = 10; // aire alrededor del logo
+      const pxCols = anchos.slice(colIni, colIni + nCols).map(pxAncho);
+      const cajaAncho = pxCols.reduce((a, b) => a + b, 0);
+      const cajaAlto = pxFila * filasLogo;
+
+      const margen = 10;
       const maxAncho = cajaAncho - margen * 2;
       const maxAlto = cajaAlto - margen * 2;
 
-      // Se ajusta al recuadro manteniendo la proporción
       let alto = maxAlto;
-      let ancho = alto * logo.ratio;
+      let ancho = alto * img.ratio;
 
       if (ancho > maxAncho) {
         ancho = maxAncho;
-        alto = ancho / logo.ratio;
+        alto = ancho / img.ratio;
       }
 
-      const idLogo = wb.addImage({
-        base64: logo.dataUrl.split(",")[1],
+      const offsetX = (cajaAncho - ancho) / 2;
+      const offsetY = (cajaAlto - alto) / 2;
+
+      // Busca en qué columna cae el offsetX
+      let acumulado = 0;
+      let idx = 0;
+      while (idx < pxCols.length - 1 && acumulado + pxCols[idx] <= offsetX) {
+        acumulado += pxCols[idx];
+        idx++;
+      }
+
+      const filaInicio = Math.floor(offsetY / pxFila);
+
+      const idImagen = wb.addImage({
+        base64: img.dataUrl.split(",")[1],
         extension: "png",
       });
 
-      // Centrado dentro del recuadro
-      // Centrado dentro del recuadro (posición exacta en EMU: 1 px = 9525 EMU)
-      const EMU = 9525;
-
-      const offsetX = (cajaAncho - ancho) / 2; // px desde el borde izquierdo de A
-      const offsetY = (cajaAlto - alto) / 2; // px desde el borde superior de la fila 1
-
-      const colInicio = Math.floor(offsetX / pxColumna);
-      const filaInicio = Math.floor(offsetY / pxFila);
-
-      ws.addImage(idLogo, {
+      ws.addImage(idImagen, {
         tl: {
-          nativeCol: colInicio,
-          nativeColOff: Math.round((offsetX - colInicio * pxColumna) * EMU),
+          nativeCol: colIni + idx,
+          nativeColOff: Math.round((offsetX - acumulado) * EMU),
           nativeRow: filaInicio,
           nativeRowOff: Math.round((offsetY - filaInicio * pxFila) * EMU),
         },
         ext: { width: ancho, height: alto },
       });
-    }
+    };
 
-    // Texto del encabezado: desde la columna C hasta la última, centrado
+    // Recuadro izquierdo (SISPRAC) y derecho (Programa de Ingeniería de Sistemas)
+    const colDerecha = totalEncabezado - columnasLogo + 1; // 1-based
+    ws.mergeCells(1, 1, filasLogo, columnasLogo);
+    ws.mergeCells(1, colDerecha, filasLogo, totalEncabezado);
+
+    agregarImagen(logo, 0, columnasLogo);
+    agregarImagen(logoProg, colDerecha - 1, columnasLogo);
+
+    // Texto del encabezado: entre los dos logos
     const colTexto = columnasLogo + 1;
+    const colTextoFin = colDerecha - 1;
 
     const escribirTexto = (fila, valor, font) => {
-      ws.mergeCells(fila, colTexto, fila, totalColumnas);
+      ws.mergeCells(fila, colTexto, fila, colTextoFin);
 
       const celda = ws.getCell(fila, colTexto);
       celda.value = valor;
@@ -301,10 +455,8 @@ function DescargarMenu({
       color: { argb: "FF6B7280" },
     });
 
-    ws.getCell(1, 1).alignment = { vertical: "middle", horizontal: "center" };
-
     // Línea roja debajo del encabezado
-    for (let col = 1; col <= totalColumnas; col++) {
+    for (let col = 1; col <= totalEncabezado; col++) {
       ws.getCell(filasLogo, col).border = {
         bottom: { style: "medium", color: { argb: rojo } },
       };
@@ -331,7 +483,7 @@ function DescargarMenu({
         celda.alignment = {
           vertical: "middle",
           horizontal: "center",
-          wrapText: true,
+          wrapText: true, // respeta los saltos de línea de los practicantes
         };
         celda.border = { top: borde, bottom: borde, left: borde, right: borde };
 
@@ -361,7 +513,10 @@ function DescargarMenu({
   };
 
   const descargarPdf = async () => {
-    const logo = await cargarLogo();
+    const [logo, logoProg] = await Promise.all([
+      cargarLogo(logoSispracPDF),
+      cargarLogo(logoPrograma),
+    ]);
 
     const doc = new jsPDF({
       orientation: "landscape",
@@ -372,6 +527,8 @@ function DescargarMenu({
     const anchoPagina = doc.internal.pageSize.getWidth();
     const altoPagina = doc.internal.pageSize.getHeight();
     const margenX = 30;
+    const altoLogoIzq = 60; // Programa (más grande)
+    const altoLogoDer = 34; // SISPRAC (más pequeño)
 
     const fecha = new Date().toLocaleDateString("es-CO", {
       day: "2-digit",
@@ -381,16 +538,26 @@ function DescargarMenu({
 
     const dibujarEncabezado = () => {
       let textoX = margenX;
+      let derechaX = anchoPagina - margenX; // borde derecho disponible para texto
 
-      if (logo) {
-        const altoLogo = 45;
-        const anchoLogo = altoLogo * logo.ratio;
+      // Logo izquierdo: Programa de Ingeniería de Sistemas (más grande)
+      if (logoProg) {
+        const anchoIzq = altoLogoIzq * logoProg.ratio;
 
-        doc.addImage(logo.dataUrl, "PNG", margenX, 22, anchoLogo, altoLogo);
-        textoX = margenX + anchoLogo + 14;
+        doc.addImage(logoProg.dataUrl, "PNG", margenX, 15, anchoIzq, altoLogoIzq);
+        textoX = margenX + anchoIzq + 14;
       }
 
-      // Título: tipo de reporte (Empresas, Grupos, Practicantes, Prácticas)
+      // Logo derecho: SISPRAC (más pequeño, centrado verticalmente con el otro)
+      if (logo) {
+        const anchoDer = altoLogoDer * logo.ratio;
+        const xDer = anchoPagina - margenX - anchoDer;
+
+        doc.addImage(logo.dataUrl, "PNG", xDer, 24, anchoDer, altoLogoDer);
+        derechaX = xDer - 14;
+      }
+
+      // Título
       doc.setFont("helvetica", "bold");
       doc.setFontSize(18);
       doc.setTextColor(31, 41, 55);
@@ -406,19 +573,14 @@ function DescargarMenu({
         57
       );
 
-      // Fecha y total a la derecha
+      // Fecha y total, a la izquierda del logo derecho
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
       doc.setTextColor(107, 114, 128);
-      doc.text(`Generado el ${fecha}`, anchoPagina - margenX, 40, {
+      doc.text(`Generado el ${fecha}`, derechaX, 40, { align: "right" });
+      doc.text(`Total de registros: ${rows.length}`, derechaX, 55, {
         align: "right",
       });
-      doc.text(
-        `Total de registros: ${rows.length}`,
-        anchoPagina - margenX,
-        55,
-        { align: "right" }
-      );
 
       // Línea decorativa
       doc.setDrawColor(...COLOR_PRIMARIO);
@@ -476,7 +638,7 @@ function DescargarMenu({
     }
 
     doc.save(`${fileName}.pdf`);
-  };
+  }; // <- cierra descargarPdf
 
   const botonClase = `
   group inline-flex items-center justify-center gap-2
@@ -510,7 +672,7 @@ function DescargarMenu({
       </button>
     </div>
   );
-}
+} // <- cierra DescargarMenu
 
 /* --------------------------------- Página --------------------------------- */
 
@@ -589,9 +751,11 @@ export default function ReportesPage() {
           periodoId
         );
 
+        console.log("Datos de empresas obtenidos:", response.data);
+
         if (!vigente) return;
 
-        const datosEmpresas = response?.data?.data ?? [];
+        const datosEmpresas = response?.data ?? [];
 
         const empresasFormateadas = datosEmpresas.map((empresa) => {
           const convenios = empresa.Convenios ?? [];
@@ -619,6 +783,8 @@ export default function ReportesPage() {
             });
           });
 
+          const practicantesEmpresa = normalizarPracticantes(empresa.practicantes);
+
           return {
             ...empresa,
             nombreEmpresa: empresa.nombre,
@@ -635,7 +801,8 @@ export default function ReportesPage() {
               ? estadosConvenio.join(", ")
               : "Sin convenio",
 
-            cantidadPracticantes: candidatosAceptados.size,
+            practicantes: practicantesEmpresa,
+            cantidadPracticantes: practicantesEmpresa.length || candidatosAceptados.size,
           };
         });
 
@@ -680,6 +847,8 @@ export default function ReportesPage() {
           { candidatoRepository },
           periodoId
         );
+
+        console.log("Datos de practicantes obtenidos:", datosPracticantes);
 
         if (!vigente) return;
 
@@ -730,26 +899,34 @@ export default function ReportesPage() {
           periodoId
         );
 
+        console.log("Datos de grupos obtenidos:", datosGrupos);
+
         if (!vigente) return;
 
         if (!Array.isArray(datosGrupos)) {
           throw new Error("La respuesta de grupos no es un arreglo.");
         }
 
-        const gruposFormateados = datosGrupos.map((grupo) => ({
-          ...grupo,
+        const gruposFormateados = datosGrupos.map((grupo) => {
+          const practicantesGrupo = normalizarPracticantes(grupo.practicantes);
 
-          nombreGrupo: grupo.nombre ?? "Sin nombre",
+          return {
+            ...grupo,
 
-          tutorDocente:
-            [grupo.tutorDocente?.nombres, grupo.tutorDocente?.apellidos]
-              .filter(Boolean)
-              .join(" ") || "Sin tutor asignado",
+            nombreGrupo: grupo.nombre ?? "Sin nombre",
 
-          cantidadPracticantes: grupo.cantidadPracticantes ?? 0,
+            tutorDocente:
+              [grupo.tutorDocente?.nombres, grupo.tutorDocente?.apellidos]
+                .filter(Boolean)
+                .join(" ") || "Sin tutor asignado",
 
-          estado: grupo.estado ?? "Sin información",
-        }));
+            practicantes: practicantesGrupo,
+            cantidadPracticantes:
+              grupo.cantidadPracticantes ?? practicantesGrupo.length,
+
+            estado: grupo.estado ?? "Sin información",
+          };
+        });
 
         setGrupos(gruposFormateados);
       } catch (error) {

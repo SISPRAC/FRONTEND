@@ -74,11 +74,11 @@ export const Director_NAV = [
     icon: <Bell />,
     href: "/notificaciones",
   },
-  {
-    label: "Perfil",
-    icon: <UserCog />,
-    href: "/perfil",
-  },
+  /*  {
+     label: "Perfil",
+     icon: <UserCog />,
+     href: "/perfil",
+   }, */
 ];
 
 
@@ -299,11 +299,11 @@ export const ROLE_NAV = {
 
 
 export const HOME_ROUTES = {
-  "Director de programa": "/dashboard",
-  "Administrador": "/homeAdmin",
-  "Empresa": "/homeEmpresa",
+  "Administrador": "/periodos",
+  "Director de programa": "/homeDirector",
+  "Empresa": "/subirConvenio",
   "Practicante": "/homePracticante",
-  "Candidato": "/homeCandidato",
-  "Tutor Docente": "/homeTutorDocente",
-  "Tutor Empresarial": "/homeTutorEmpresarial",
+  "Candidato": "/perfil",
+  "Tutor Docente": "/misGrupos",
+  "Tutor Empresarial": "/mis-aperturas",
 };
