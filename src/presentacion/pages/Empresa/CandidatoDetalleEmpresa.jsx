@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import {
@@ -10,7 +11,7 @@ import {
   FileText,
   Download,
 } from "lucide-react";
-import Layout from "../../shared/Layouts/Layout";
+
 import ConfirmModal from "../../components/modals/ConfirmModal";
 
 import { aceptarPostulacion } from "../../../aplicacion/postulacion/aceptarPostulacion";
@@ -36,7 +37,6 @@ const CandidatoDetalleEmpresa = () => {
       vacante: "",
       correo: "",
       telefono: "",
-      experiencia: "",
       fechaPostulacion: "",
       estado: "pendiente",
       hojaVida: null,
@@ -45,9 +45,14 @@ const CandidatoDetalleEmpresa = () => {
 
   const [modal, setModal] = useState(null);
   const [comentarioRechazo, setComentarioRechazo] = useState("");
+  const [procesando, setProcesando] = useState(false);
 
+  // ACEPTAR POSTULACIÓN
   const handleAceptar = async () => {
+    if (procesando) return;
+
     try {
+      setProcesando(true);
 
       await aceptarPostulacion(
         postulacionRepository,
@@ -58,17 +63,18 @@ const CandidatoDetalleEmpresa = () => {
       navigate(-1);
 
     } catch (error) {
-
-      console.error(
-        "Error al aceptar la postulación:",
-        error
-      );
-
+      console.error("Error al aceptar la postulación:", error);
+    } finally {
+      setProcesando(false);
     }
   };
 
+  // RECHAZAR POSTULACIÓN
   const handleRechazar = async () => {
+    if (procesando) return;
+
     try {
+      setProcesando(true);
 
       await rechazarPostulacion(
         postulacionRepository,
@@ -81,12 +87,9 @@ const CandidatoDetalleEmpresa = () => {
       navigate(-1);
 
     } catch (error) {
-
-      console.error(
-        "Error al rechazar la postulación:",
-        error
-      );
-
+      console.error("Error al rechazar la postulación:", error);
+    } finally {
+      setProcesando(false);
     }
   };
 
@@ -99,23 +102,26 @@ const CandidatoDetalleEmpresa = () => {
     ESTADO_STYLES[estado] ?? ESTADO_STYLES.pendiente;
 
   return (
-    <Layout footerLabel="Empresa">
+    <div className="h-full min-h-0 overflow-hidden flex flex-col">
 
-      {/* CONTENEDOR PRINCIPAL */}
       <div
         className="
+          w-full
           max-w-6xl
           mx-auto
+          flex-1
+          min-h-0
           bg-white
           rounded-2xl
           border border-slate-200
           shadow-sm
           overflow-hidden
+          flex flex-col
         "
       >
 
-        {/* VOLVER (única línea, sin bloque de título aparte) */}
-        <div className="px-6 md:px-8 pt-4">
+        {/* VOLVER */}
+        <div className="px-5 md:px-7 pt-3 shrink-0">
           <button
             onClick={() => navigate(-1)}
             className="
@@ -129,26 +135,35 @@ const CandidatoDetalleEmpresa = () => {
               transition-colors
             "
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={17} />
             Volver
           </button>
         </div>
 
-        {/* ================= CONTENIDO ================= */}
-        <div className="p-6 md:p-8 pt-4">
+        {/* CONTENIDO */}
+        <div className="p-5 md:px-7 md:pb-5 pt-3 flex-1 min-h-0">
 
-          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8">
+          <div
+            className="
+              grid
+              grid-cols-1
+              lg:grid-cols-[minmax(0,1fr)_320px]
+              gap-5
+              h-full
+              min-h-0
+            "
+          >
 
-            {/* ================= VISOR (arriba del todo) ================= */}
-            <section className="min-w-0">
+            {/* VISOR PDF */}
+            <section className="min-w-0 min-h-0 flex flex-col">
 
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-2 shrink-0">
                 <div>
                   <h2 className="text-base font-bold text-slate-700">
                     Hoja de vida
                   </h2>
 
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-400 mt-0.5">
                     Documento adjunto del candidato
                   </p>
                 </div>
@@ -169,8 +184,7 @@ const CandidatoDetalleEmpresa = () => {
                       text-xs
                       font-medium
                       text-slate-600
-                      border
-                      border-slate-200
+                      border border-slate-200
                       hover:bg-slate-50
                       transition-colors
                     "
@@ -181,14 +195,13 @@ const CandidatoDetalleEmpresa = () => {
                 )}
               </div>
 
-              {/* VISOR PDF */}
+              {/* DOCUMENTO */}
               <div
                 className="
-                  w-full
-                  h-[480px]
+                  flex-1
+                  min-h-0
                   rounded-xl
-                  border
-                  border-slate-200
+                  border border-slate-200
                   bg-slate-100
                   overflow-hidden
                   shadow-sm
@@ -202,11 +215,17 @@ const CandidatoDetalleEmpresa = () => {
                   />
                 ) : (
                   <div className="h-full flex flex-col items-center justify-center text-center px-6">
-                    <div className="w-14 h-14 rounded-full bg-white border border-slate-200 flex items-center justify-center mb-4">
-                      <FileText
-                        size={26}
-                        className="text-slate-300"
-                      />
+                    <div
+                      className="
+                        w-12 h-12
+                        rounded-full
+                        bg-white
+                        border border-slate-200
+                        flex items-center justify-center
+                        mb-3
+                      "
+                    >
+                      <FileText size={24} className="text-slate-300" />
                     </div>
 
                     <p className="text-sm font-medium text-slate-500">
@@ -220,41 +239,38 @@ const CandidatoDetalleEmpresa = () => {
                 )}
               </div>
 
-              {/* NOMBRE DEL ARCHIVO */}
+              {/* NOMBRE ARCHIVO */}
               {candidato.hojaVida?.url && (
-                <div className="flex items-center gap-2 mt-3 px-1">
-                  <FileText
-                    size={15}
-                    className="text-slate-400"
-                  />
+                <div className="flex items-center gap-2 mt-2 px-1 shrink-0">
+                  <FileText size={14} className="text-slate-400" />
 
                   <span className="text-xs text-slate-500 truncate">
                     {candidato.hojaVida.nombre || "Hoja de vida.pdf"}
                   </span>
                 </div>
               )}
+
             </section>
 
-            {/* ================= INFORMACIÓN ================= */}
-            <aside className="min-w-0">
+            {/* INFORMACIÓN */}
+            <aside className="min-w-0 flex flex-col gap-3">
 
-              {/* IDENTIDAD DEL CANDIDATO */}
+              {/* IDENTIDAD */}
               <div
                 className="
                   rounded-xl
-                  border
-                  border-slate-200
+                  border border-slate-200
                   bg-slate-50/50
-                  p-5
+                  p-4
                 "
               >
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                <div className="flex items-start justify-between gap-2 mb-4">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
                       Candidato
                     </p>
 
-                    <h1 className="text-xl font-bold text-slate-800 leading-tight">
+                    <h1 className="text-lg font-bold text-slate-800 leading-tight break-words">
                       {candidato.nombre || "Candidato"}
                     </h1>
                   </div>
@@ -262,9 +278,9 @@ const CandidatoDetalleEmpresa = () => {
                   <span
                     className={`
                       shrink-0
-                      text-xs
+                      text-[11px]
                       font-semibold
-                      px-3
+                      px-2.5
                       py-1
                       rounded-full
                       border
@@ -276,16 +292,16 @@ const CandidatoDetalleEmpresa = () => {
                   </span>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
 
                   <InfoRow
-                    icon={<IdCard size={17} />}
+                    icon={<IdCard size={16} />}
                     label="Código"
                     value={candidato.codigo}
                   />
 
                   <InfoRow
-                    icon={<Briefcase size={17} />}
+                    icon={<Briefcase size={16} />}
                     label="Postulado a"
                     value={
                       candidato.vacante
@@ -295,13 +311,13 @@ const CandidatoDetalleEmpresa = () => {
                   />
 
                   <InfoRow
-                    icon={<Mail size={17} />}
+                    icon={<Mail size={16} />}
                     label="Correo"
                     value={candidato.correo}
                   />
 
                   <InfoRow
-                    icon={<Phone size={17} />}
+                    icon={<Phone size={16} />}
                     label="Teléfono"
                     value={candidato.telefono}
                   />
@@ -313,96 +329,81 @@ const CandidatoDetalleEmpresa = () => {
               <div
                 className="
                   rounded-xl
-                  border
-                  border-slate-200
+                  border border-slate-200
                   bg-slate-50/50
-                  p-5
-                  mt-5
+                  p-4
                 "
               >
-                <h3 className="text-sm font-bold text-slate-700 mb-5">
+                <h3 className="text-sm font-bold text-slate-700 mb-3">
                   Información de postulación
                 </h3>
 
-                <div className="space-y-4">
-
-                  <InfoRow
-                    icon={<Calendar size={17} />}
-                    label="Fecha de postulación"
-                    value={
-                      candidato.fechaPostulacion
-                        ? new Date(candidato.fechaPostulacion).toLocaleString("es-CO", {
-                          timeZone: "America/Bogota",
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                          hour12: true,
-                        })
-                        : "-"
-                    }
-                  />
-
-                  <InfoRow
-                    icon={<Briefcase size={17} />}
-                    label="Experiencia"
-                    value={candidato.experiencia}
-                  />
-
-                </div>
+                <InfoRow
+                  icon={<Calendar size={16} />}
+                  label="Fecha de postulación"
+                  value={
+                    candidato.fechaPostulacion
+                      ? new Date(candidato.fechaPostulacion).toLocaleString(
+                          "es-CO",
+                          {
+                            timeZone: "America/Bogota",
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          }
+                        )
+                      : "-"
+                  }
+                />
               </div>
 
               {/* ACCIONES */}
-              {/* ACCIONES */}
-              <div className="grid grid-cols-2 gap-3 mt-5">
+              <div className="grid grid-cols-2 gap-3 mt-auto">
 
                 <button
-                  disabled={estadoFinalizado}
-                  onClick={() => {
-                    if (estadoFinalizado) return;
-                    setModal("aceptar");
-                  }}
+                  disabled={estadoFinalizado || procesando}
+                  onClick={() => setModal("aceptar")}
                   className={`
-      px-4
-      py-2.5
-      rounded-lg
-      text-white
-      text-sm
-      font-semibold
-      shadow-sm
-      transition-colors
-      ${estadoFinalizado
-                      ? "bg-slate-300 cursor-not-allowed"
-                      : "bg-green-600 hover:bg-green-700"
+                    px-3 py-2.5
+                    rounded-lg
+                    text-white
+                    text-sm
+                    font-semibold
+                    shadow-sm
+                    transition-colors
+                    ${
+                      estadoFinalizado || procesando
+                        ? "bg-slate-300 cursor-not-allowed"
+                        : "bg-green-600 hover:bg-green-700"
                     }
-    `}
+                  `}
                 >
                   Aceptar
                 </button>
 
                 <button
-                  disabled={estadoFinalizado}
+                  disabled={estadoFinalizado || procesando}
                   onClick={() => {
-                    if (estadoFinalizado) return;
-
                     setComentarioRechazo("");
                     setModal("rechazar");
                   }}
                   className={`
-      px-4
-      py-2.5
-      rounded-lg
-      text-white
-      text-sm
-      font-semibold
-      shadow-sm
-      transition-colors
-      ${estadoFinalizado
-                      ? "bg-slate-300 cursor-not-allowed"
-                      : "bg-red-600 hover:bg-red-700"
+                    px-3 py-2.5
+                    rounded-lg
+                    text-white
+                    text-sm
+                    font-semibold
+                    shadow-sm
+                    transition-colors
+                    ${
+                      estadoFinalizado || procesando
+                        ? "bg-slate-300 cursor-not-allowed"
+                        : "bg-red-600 hover:bg-red-700"
                     }
-    `}
+                  `}
                 >
                   Rechazar
                 </button>
@@ -410,6 +411,7 @@ const CandidatoDetalleEmpresa = () => {
               </div>
 
             </aside>
+
           </div>
         </div>
       </div>
@@ -419,10 +421,13 @@ const CandidatoDetalleEmpresa = () => {
         isOpen={modal === "aceptar"}
         title="Aceptar candidato"
         message={`¿Seguro que desea aceptar al candidato ${candidato.nombre} para el cargo de ${candidato.vacante}?`}
-        confirmLabel="Sí, aceptar"
+        confirmLabel={procesando ? "Confirmando..." : "Sí, aceptar"}
         confirmColor="bg-green-600 hover:bg-green-700"
         onConfirm={handleAceptar}
-        onCancel={() => setModal(null)}
+        onCancel={() => {
+          if (procesando) return;
+          setModal(null);
+        }}
       />
 
       {/* MODAL RECHAZAR */}
@@ -430,10 +435,11 @@ const CandidatoDetalleEmpresa = () => {
         isOpen={modal === "rechazar"}
         title="Rechazar candidato"
         message={`¿Seguro que desea rechazar al candidato ${candidato.nombre} para el cargo de ${candidato.vacante}?`}
-        confirmLabel="Sí, rechazar"
+        confirmLabel={procesando ? "Rechazando..." : "Sí, rechazar"}
         confirmColor="bg-red-600 hover:bg-red-700"
         onConfirm={handleRechazar}
         onCancel={() => {
+          if (procesando) return;
           setModal(null);
           setComentarioRechazo("");
         }}
@@ -442,7 +448,8 @@ const CandidatoDetalleEmpresa = () => {
         onTextareaChange={setComentarioRechazo}
         textareaPlaceholder="Indique el motivo por el cual se rechaza al candidato..."
       />
-    </Layout>
+
+    </div>
   );
 };
 
@@ -454,7 +461,7 @@ const InfoRow = ({ icon, label, value }) => (
     </div>
 
     <div className="min-w-0">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
         {label}
       </p>
 

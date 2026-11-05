@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
-import Layout from "../../shared/Layouts/Layout";
-
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { getConvenio } from "../../../aplicacion/convenio/getConvenio";
 import { convenioRepository } from "../../../infraestructura/repository/convenioRepository";
 import { historialConvenioRepository } from "../../../infraestructura/repository/historialConvenioRepository";
 import { registrarHistorialConvenio } from "../../../aplicacion/historialConvenio/registrarHistorialConvenio.js";
 import { actualizarEstadoConvenio } from "../../../aplicacion/convenio/actualizarEstado.js"
 import EstadoBadge from "../../components/estadoBadge/EstadoBadge";
-import { Check, X, MessageSquare, Download } from "lucide-react";
+import {
+  Check,
+  X,
+  MessageSquare,
+  Download,
+  ChevronLeft
+} from "lucide-react";
 import ConfirmModal from "../../components/modals/DeleteModal.jsx";
 import toast from "react-hot-toast";
 
@@ -27,6 +31,7 @@ function getUsuarioSesion() {
 export default function VistaConvenio() {
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   const id = location.state?.convenioId;
 
@@ -125,6 +130,7 @@ export default function VistaConvenio() {
 
     }
   };
+
   const handleHistorial = async () => {
     try {
 
@@ -172,7 +178,6 @@ export default function VistaConvenio() {
     }
   };
 
-
   useEffect(() => {
     if (id) {
       cargarConvenio();
@@ -202,30 +207,52 @@ export default function VistaConvenio() {
   };
 
   if (!convenio) {
-    return (
-      <Layout
 
-        footerLabel="Director"
-      >
-        <div className="p-5 text-gray-500">
-          Cargando convenio...
-        </div>
-      </Layout >
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-slate-400 text-sm">
+        <div className="w-6 h-6 border-2 border-slate-300 border-t-[#e8192c] rounded-full animate-spin" />
+        <span>Cargando...</span>
+      </div>
     );
+
   }
 
   return (
-    <Layout footerLabel="Director">
-      {/* Contenedor que llena el alto del Layout  sin scroll de página */}
-      <div className="flex flex-col h-full overflow-hidden p-5 gap-4">
+    <div className="h-full w-full">
+      <div className="flex flex-col h-full w-full overflow-hidden p-4 gap-3">
 
         {/* Header */}
+        {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900">Convenio</h1>
-            <p className="text-sm text-gray-400 mt-0.5">{convenio.empresa}</p>
+
+          <div className="flex items-center gap-3">
+
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2 px-3 py-2 text-sm font-medium
+            text-gray-600 bg-white border border-gray-200 rounded-lg
+            hover:bg-gray-50 hover:text-gray-900 transition-colors"
+            >
+              <ChevronLeft size={18} />
+              Volver
+            </button>
+
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">
+                Convenio
+              </h1>
+              <p className="text-sm text-gray-400 mt-0.5">
+                {convenio.empresa}
+              </p>
+            </div>
+
           </div>
-          <EstadoBadge estado={accionLocal || convenio.estado} size="lg" />
+
+          <EstadoBadge
+            estado={accionLocal || convenio.estado}
+            size="lg"
+          />
+
         </div>
 
         {/* Cuerpo: dos columnas, ocupan el resto del alto */}
@@ -289,7 +316,8 @@ export default function VistaConvenio() {
               <div className="space-y-2">
                 {[
                   { label: "Empresa", value: convenio.empresa },
-                  { label: "Recibido", value: convenio.fechaEnvio },
+                  { label: "Enviado", value: convenio.fechaEnvio },
+                  { label: "Inicio", value: convenio.fechaInicio },
                   { label: "Vigencia", value: convenio.fechaFin },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex justify-between items-baseline gap-2 text-sm">
@@ -414,6 +442,6 @@ export default function VistaConvenio() {
         }}
 
       />
-    </Layout >
+    </div >
   );
 }

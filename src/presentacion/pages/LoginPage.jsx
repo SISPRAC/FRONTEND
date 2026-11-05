@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import LoginForm from "../components/LoginForm";
 import { loginUseCase } from "../../aplicacion/auth/loginUseCase";
@@ -7,6 +8,8 @@ import toast from "react-hot-toast";
 export default function LoginPage() {
 
     const navigate = useNavigate();
+
+    const [loading, setLoading] = useState(false);
 
     const [form, setForm] = useState({
         correo: "",
@@ -23,6 +26,10 @@ export default function LoginPage() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (loading) return;
+
+        setLoading(true);
+
         try {
             const res = await loginUseCase(form);
 
@@ -38,16 +45,15 @@ export default function LoginPage() {
 
                 switch (rol) {
                     case "Administrador":
-                        navigate("/homeAdmin");
+                        navigate("/periodos");
                         break;
 
                     case "Director de programa":
                         navigate("/homeDirector");
                         break;
 
-                    case "Empresa":
-                        console.log("Ingreso papu..");
-                        navigate("/homeEmpresa");
+                    case "Empresa":       
+                        navigate("/subirConvenio");
                         break;
 
                     case "Practicante":
@@ -55,23 +61,30 @@ export default function LoginPage() {
                         break;
 
                     case "Candidato":
-                        navigate("/homeCandidato");
+                        navigate("/perfil");
                         break;
 
                     case "Tutor Docente":
-                        navigate("/homeTutorDocente");
+                        navigate("/misGrupos");
                         break;
 
                     case "Tutor Empresarial":
-                        navigate("/homeTutorEmpresarial");
+                        navigate("/mis-aperturas");
                         break;
 
                     default:
                         navigate("/");
                 }
+            } else {
+                toast.error("No se pudo completar el inicio de sesión");
             }
+
         } catch (err) {
-            toast.error(err.response?.data?.message || "Error al iniciar sesión");
+            toast.error(
+                err.response?.data?.message || "Error al iniciar sesión"
+            );
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -79,6 +92,7 @@ export default function LoginPage() {
         <LoginForm
             onSubmit={handleSubmit}
             onChange={handleChange}
+            loading={loading}
         />
     );
 }

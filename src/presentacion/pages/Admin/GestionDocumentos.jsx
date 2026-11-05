@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Trash, SquarePen } from "lucide-react";
 
-import Layout from "../../shared/Layouts/Layout";
 
 import GenericTable from "../../components/Table/GenericTable";
 import AddButton from "../../components/buttons/AddButton";
@@ -10,25 +9,23 @@ import DeleteModal from "../../components/modals/DeleteModal";
 import PracticaRequisitoDocumentoModal from "../../components/modals/PracticaRequisitoDocumentoModal";
 
 import { practicaRepository } from "../../../infraestructura/repository/practicaRepository.js";
-import { rolRepository } from "../../../infraestructura/repository/rolRepository.js";
+
 import { practicaRequisitoDocumentoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoRepository.js";
 
 import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";
-import { getRoles } from "../../../aplicacion/rol/getRoles.js";
 
-import { createPracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumento/createPracticaRequisitoDocumento.js";
-import { updatePracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumento/updatePracticaRequisitoDocumento.js";
-import { deletePracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumento/deletePracticaRequisitoDocumento.js";
-import { getPracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumento/getPracticaRequisitoDocumento.js";
-import { getPracticaRequisitosDocumentoByPractica } from "../../../aplicacion/practicaRequisitoDocumento/getPracticaRequisitosDocumentoByPractica.js";
+import { crearPracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumento/createPracticaRequisitoDocumento.js";
+import { actualizarPracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumento/actualizarPracticaRequisitoDocumento.js";
+import { eliminarPracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumento/eliminarPracticaRequisitoDocumento.js";
+import { obtenerPracticaRequisitoDocumento } from "../../../aplicacion/practicaRequisitoDocumento/obtenerPracticaRequisitoDocumento.js";
+import { obtenerPracticaRequisitosDocumento } from "../../../aplicacion/practicaRequisitoDocumento/obtenerPracticaRequisitosDocumento.js";
+
 
 export default function PracticaRequisitoDocumentoPage() {
 
     const [practicas, setPracticas] = useState([]);
-    const [roles, setRoles] = useState([]);
 
     const [practicaSeleccionada, setPracticaSeleccionada] = useState("");
-    const [rolSeleccionado, setRolSeleccionado] = useState("");
 
     const [rows, setRows] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -40,16 +37,20 @@ export default function PracticaRequisitoDocumentoPage() {
     const [deleteModal, setDeleteModal] = useState(false);
     const [requisitoToDelete, setRequisitoToDelete] = useState(null);
 
+
     useEffect(() => {
+
         loadPracticas();
-        loadRoles();
+
     }, []);
+
 
     useEffect(() => {
 
         if (!practicaSeleccionada) {
 
             setRows([]);
+
             return;
 
         }
@@ -57,6 +58,7 @@ export default function PracticaRequisitoDocumentoPage() {
         loadRequisitos();
 
     }, [practicaSeleccionada]);
+
 
     const loadPracticas = async () => {
 
@@ -72,27 +74,9 @@ export default function PracticaRequisitoDocumentoPage() {
 
             console.log(error);
 
-            toast.error("Error al cargar las prácticas");
-
-        }
-
-    };
-
-    const loadRoles = async () => {
-
-        try {
-
-            const data = await getRoles(
-                rolRepository
+            toast.error(
+                "Error al cargar las prácticas"
             );
-
-            setRoles(data.roles);
-
-        } catch (error) {
-
-            console.log(error);
-
-            toast.error("Error al cargar los roles");
 
         }
 
@@ -103,8 +87,10 @@ export default function PracticaRequisitoDocumentoPage() {
         try {
 
             const data =
-                await getPracticaRequisitosDocumentoByPractica(
-                    practicaRequisitoDocumentoRepository,
+                await obtenerPracticaRequisitosDocumento(
+                    {
+                        practicaRequisitoDocumentoRepository
+                    },
                     practicaSeleccionada
                 );
 
@@ -117,22 +103,14 @@ export default function PracticaRequisitoDocumentoPage() {
 
             console.log(error);
 
-            toast.error("Error al cargar los requisitos");
+            toast.error(
+                "Error al cargar los requisitos"
+            );
 
         }
 
     };
 
-    const rowsFiltradas = useMemo(() => {
-
-        if (!rolSeleccionado)
-            return rows;
-
-        return rows.filter(
-            row => row.rol_id === Number(rolSeleccionado)
-        );
-
-    }, [rows, rolSeleccionado]);
 
     const handleCreate = () => {
 
@@ -152,15 +130,27 @@ export default function PracticaRequisitoDocumentoPage() {
 
     };
 
+
     const handleEdit = async (id) => {
 
         try {
 
-            const requisito = rows.find(r => r.id === id);
+            const requisito =
+                await obtenerPracticaRequisitoDocumento(
+                    {
+                        practicaRequisitoDocumentoRepository
+                    },
+                    id
+                );
 
             if (!requisito) {
-                toast.error("No se encontró el requisito.");
+
+                toast.error(
+                    "No se encontró el requisito."
+                );
+
                 return;
+
             }
 
             setSelectedRequisito(requisito);
@@ -171,6 +161,8 @@ export default function PracticaRequisitoDocumentoPage() {
 
         } catch (error) {
 
+            console.log(error);
+
             toast.error(
                 error.response?.data?.message ||
                 "Error al cargar el requisito."
@@ -180,12 +172,15 @@ export default function PracticaRequisitoDocumentoPage() {
 
     };
 
+
     const handleSave = async (formData) => {
 
         try {
 
-            await createPracticaRequisitoDocumento(
-                practicaRequisitoDocumentoRepository,
+            await crearPracticaRequisitoDocumento(
+                {
+                    practicaRequisitoDocumentoRepository
+                },
                 {
                     ...formData,
                     practica_id: practicaSeleccionada
@@ -202,6 +197,8 @@ export default function PracticaRequisitoDocumentoPage() {
 
         } catch (error) {
 
+            console.log(error);
+
             toast.error(
                 error.response?.data?.message ||
                 "Error al crear el requisito."
@@ -211,12 +208,15 @@ export default function PracticaRequisitoDocumentoPage() {
 
     };
 
+
     const handleUpdate = async (formData) => {
 
         try {
 
-            await updatePracticaRequisitoDocumento(
-                practicaRequisitoDocumentoRepository,
+            await actualizarPracticaRequisitoDocumento(
+                {
+                    practicaRequisitoDocumentoRepository
+                },
                 formData.id,
                 formData
             );
@@ -231,6 +231,8 @@ export default function PracticaRequisitoDocumentoPage() {
 
         } catch (error) {
 
+            console.log(error);
+
             toast.error(
                 error.response?.data?.message ||
                 "Error al actualizar."
@@ -240,36 +242,53 @@ export default function PracticaRequisitoDocumentoPage() {
 
     };
 
-    const deleteRow = (id) => {
 
-        const requisito =
-            rows.find(r => r.id === id);
+    const deleteRow = (data) => {
+
+        console.log("Dato recibido al eliminar:", data);
+
+        const requisito = typeof data === "object"
+            ? data
+            : rows.find(r => r.id === data);
+
+        console.log("Requisito seleccionado:", requisito);
 
         setRequisitoToDelete(requisito);
-
         setDeleteModal(true);
-
     };
+
 
     const handleDelete = async () => {
 
         try {
 
-            await deletePracticaRequisitoDocumento(
-                practicaRequisitoDocumentoRepository,
+            if (!requisitoToDelete?.id) {
+                toast.error("No se encontró el ID del requisito.");
+                return;
+            }
+
+            await eliminarPracticaRequisitoDocumento(
+                {
+                    practicaRequisitoDocumentoRepository
+                },
                 requisitoToDelete.id
             );
 
             await loadRequisitos();
 
-            toast.success(
-                "Requisito eliminado."
-            );
+            toast.success("Requisito eliminado.");
 
             setDeleteModal(false);
             setRequisitoToDelete(null);
 
         } catch (error) {
+
+            console.log("ERROR COMPLETO:", error);
+
+            console.log(
+                "RESPUESTA DEL BACKEND:",
+                error.response?.data
+            );
 
             toast.error(
                 error.response?.data?.message ||
@@ -277,18 +296,20 @@ export default function PracticaRequisitoDocumentoPage() {
             );
 
         }
-
     };
 
+
     const practicaActual = practicas.find(
-        practica => practica.id === Number(practicaSeleccionada)
+        practica =>
+            practica.id === Number(
+                practicaSeleccionada
+            )
     );
+
 
     return (
 
-        <Layout
-           
-            footerLabel="Administrador"
+        <div
         >
 
             <h1
@@ -306,132 +327,77 @@ export default function PracticaRequisitoDocumentoPage() {
 
             <div
                 className="
-                    bg-white
-                    rounded-2xl
-                    shadow-sm
-                    border
-                    p-5
-                    mb-6
-                "
+        bg-white
+        rounded-2xl
+        shadow-sm
+        border
+        p-5
+        mb-6
+    "
             >
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
 
-                    <div>
+                    <label
+                        className="
+                block
+                mb-2
+                font-semibold
+                text-slate-700
+            "
+                    >
+                        Práctica
+                    </label>
 
-                        <label
-                            className="
-                                block
-                                mb-2
-                                font-semibold
-                                text-slate-700
-                            "
-                        >
-                            Práctica
-                        </label>
+                    <select
+                        value={practicaSeleccionada}
+                        onChange={(e) => {
 
-                        <select
-                            value={practicaSeleccionada}
-                            onChange={(e) => {
+                            setPracticaSeleccionada(
+                                e.target.value
+                            );
 
-                                setPracticaSeleccionada(e.target.value);
-                                setRolSeleccionado("");
+                        }}
+                        className="
+                w-full
+                rounded-xl
+                border
+                p-3
+                focus:outline-none
+                focus:ring-2
+                focus:ring-[#e8192c]
+            "
+                    >
 
-                            }}
-                            className="
-                                w-full
-                                rounded-xl
-                                border
-                                p-3
-                                focus:outline-none
-                                focus:ring-2
-                                focus:ring-[#e8192c]
-                            "
-                        >
+                        <option value="">
+                            Seleccione una práctica
+                        </option>
 
-                            <option value="">
-
-                                Seleccione una práctica
-
-                            </option>
-
-                            {
-                                practicas.map(practica => (
+                        {
+                            practicas.map(
+                                practica => (
 
                                     <option
                                         key={practica.id}
                                         value={practica.id}
                                     >
-                                        {practica.Periodo?.nombre}
+                                        {
+                                            practica.Periodo?.nombre
+                                        }
                                     </option>
 
-                                ))
-                            }
+                                )
+                            )
+                        }
 
-                        </select>
-
-                    </div>
-
-                    <div>
-
-                        <label
-                            className="
-                                block
-                                mb-2
-                                font-semibold
-                                text-slate-700
-                            "
-                        >
-                            Rol
-                        </label>
-
-                        <select
-                            value={rolSeleccionado}
-                            onChange={(e) =>
-                                setRolSeleccionado(e.target.value)
-                            }
-                            disabled={!practicaSeleccionada}
-                            className="
-                                w-full
-                                rounded-xl
-                                border
-                                p-3
-                                focus:outline-none
-                                focus:ring-2
-                                focus:ring-[#e8192c]
-                                disabled:bg-slate-100
-                            "
-                        >
-
-                            <option value="">
-
-                                Todos
-
-                            </option>
-
-                            {
-                                roles.map(rol => (
-
-                                    <option
-                                        key={rol.id}
-                                        value={rol.id}
-                                    >
-                                        {rol.nombre}
-                                    </option>
-
-                                ))
-                            }
-
-                        </select>
-
-                    </div>
+                    </select>
 
                 </div>
 
             </div>
 
             <GenericTable
-                rows={rowsFiltradas}
+                rows={rows}
                 currentPage={currentPage}
                 onPageChange={setCurrentPage}
                 pageSize={8}
@@ -444,12 +410,15 @@ export default function PracticaRequisitoDocumentoPage() {
                     {
                         key: "nombre",
                         label: "Documento",
-                        primary: true
+                        primary: true,
+                        render: row =>
+                            row.tipoRequisitoDocumento?.nombre || ""
                     },
                     {
-                        key: "Rol",
+                        key: "rol",
                         label: "Rol",
-                        render: row => row.rol?.nombre
+                        render: row =>
+                            row.tipoRequisitoDocumento?.rol?.nombre || ""
                     },
                     {
                         key: "fecha_inicio",
@@ -463,28 +432,37 @@ export default function PracticaRequisitoDocumentoPage() {
                         key: "obligatorio",
                         label: "Obligatorio",
                         render: row =>
-                            row.obligatorio ? "Sí" : "No"
+                            row.tipoRequisitoDocumento?.obligatorio
+                                ? "Sí"
+                                : "No"
                     },
                     {
                         key: "estado",
                         label: "Estado",
                         render: row =>
-                            row.estado ? "Activo" : "Inactivo"
+                            row.estado
+                                ? "Activo"
+                                : "Inactivo"
                     }
                 ]}
                 actions={[
                     {
-                        icon: <SquarePen size={22} />,
-                        className: "hover:bg-blue-100",
+                        icon:
+                            <SquarePen size={22} />,
+                        className:
+                            "hover:bg-blue-100",
                         onClick: handleEdit
                     },
                     {
-                        icon: <Trash size={22} />,
-                        className: "hover:bg-red-100",
+                        icon:
+                            <Trash size={22} />,
+                        className:
+                            "hover:bg-red-100",
                         onClick: deleteRow
                     }
                 ]}
             />
+
 
             {
                 practicaSeleccionada && (
@@ -496,9 +474,12 @@ export default function PracticaRequisitoDocumentoPage() {
                 )
             }
 
+
             <PracticaRequisitoDocumentoModal
                 isOpen={isOpen}
-                onClose={() => setIsOpen(false)}
+                onClose={() =>
+                    setIsOpen(false)
+                }
                 onSubmit={
                     mode === "edit"
                         ? handleUpdate
@@ -506,8 +487,12 @@ export default function PracticaRequisitoDocumentoPage() {
                 }
                 requisito={selectedRequisito}
                 practicaId={practicaSeleccionada}
-                practicaNombre={practicaActual?.Periodo?.nombre || ""}
+                practicaNombre={
+                    practicaActual?.Periodo?.nombre ||
+                    ""
+                }
             />
+
 
             <DeleteModal
                 isOpen={deleteModal}
@@ -520,11 +505,11 @@ export default function PracticaRequisitoDocumentoPage() {
                 onConfirm={handleDelete}
                 title="Eliminar requisito documental"
                 message={
-                    `¿Desea eliminar el documento "${requisitoToDelete?.nombre}"?`
+                    `¿Desea eliminar el documento "${requisitoToDelete?.tipoRequisitoDocumento?.nombre || ""}"?`
                 }
             />
 
-        </Layout>
+        </div>
 
     );
 

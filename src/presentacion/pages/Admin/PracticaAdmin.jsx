@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import Layout from "../../shared/Layouts/Layout";
 
 import AddButton from "../../components/buttons/AddButton";
 import GenericTable from "../../components/Table/GenericTable";
@@ -15,6 +14,7 @@ import { getPracticaById } from "../../../aplicacion/practica/getPractica.js";
 import { createPractica } from "../../../aplicacion/practica/createPractica.js";
 import { updatePractica } from "../../../aplicacion/practica/updatePractica.js";
 import { deletePractica } from "../../../aplicacion/practica/deletePractica.js";
+import { ESTADOS_CONFIG } from "../../shared/constans/estados.js";
 
 export default function PracticasPage() {
 
@@ -38,6 +38,8 @@ export default function PracticasPage() {
       const data = await getPracticas({
         practicaRepository
       });
+
+      console.log("Practica ", data);
 
       setRows(data);
       setCurrentPage(1);
@@ -169,10 +171,7 @@ export default function PracticasPage() {
 
   return (
 
-    <Layout
-     
-      footerLabel="Administrador"
-    >
+    <div>
 
       <h1
         className="
@@ -205,6 +204,51 @@ export default function PracticasPage() {
           {
             key: "fecha_fin",
             label: "Fin"
+          },
+          {
+            key: "estado",
+            label: "Estado",
+            render: row => {
+              const estado = ESTADOS_CONFIG[row.estado] || {
+                bg: "bg-gray-100",
+                text: "text-gray-700",
+                dot: "bg-gray-500"
+              };
+
+              const nombreEstado = row.estado === "EN_CURSO"
+                ? "En curso"
+                : row.estado === "FINALIZADA"
+                  ? "Finalizada"
+                  : row.estado;
+
+              return (
+                <span
+                  className={`
+            inline-flex
+            items-center
+            gap-2
+            px-3
+            py-1
+            rounded-full
+            text-sm
+            font-medium
+            ${estado.bg}
+            ${estado.text}
+          `}
+                >
+                  <span
+                    className={`
+              w-2
+              h-2
+              rounded-full
+              ${estado.dot}
+            `}
+                  />
+
+                  {nombreEstado}
+                </span>
+              );
+            }
           }
         ]}
         actions={[
@@ -245,7 +289,7 @@ export default function PracticasPage() {
         message={`¿Desea eliminar la práctica del período "${practicaToDelete?.Periodo?.nombre}"?`}
       />
 
-    </Layout>
+    </div>
 
   );
 

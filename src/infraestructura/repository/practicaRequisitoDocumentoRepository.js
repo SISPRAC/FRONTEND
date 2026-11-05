@@ -1,89 +1,26 @@
 import {
-    createPracticaRequisitoDocumentoRequest,
-    updatePracticaRequisitoDocumentoRequest,
-    deletePracticaRequisitoDocumentoRequest,
-    getPracticaRequisitoDocumentoRequest,
-    getPracticaRequisitosDocumentoByPracticaRequest,
+    getPracticaRequisitosDocumentoRequest,
     getPracticaRequisitosDocumentoByRolRequest,
+    getRequisitosPracticanteVigentesRequest,
+    getInformesPracticanteVigentesRequest,
+    getRequisitosEmpresaVigentesRequest,
+    createPracticaRequisitoDocumentoRequest,
+    deletePracticaRequisitoDocumentoRequest,
+    updatePracticaRequisitoDocumentoRequest,
+    getPracticaRequisitoDocumentoByIdRequest
 } from "../api/practicaRequisitoDocumento.api.js";
-
-
-const buildFormData = (data) => {
-
-    const formData = new FormData();
-
-    Object.entries(data).forEach(([key, value]) => {
-
-        if (
-            value !== null &&
-            value !== undefined &&
-            key !== "archivo"
-        ) {
-
-            formData.append(key, value);
-
-        }
-
-    });
-
-    if (data.archivo) {
-
-        formData.append("archivo", data.archivo);
-
-    }
-
-    return formData;
-
-};
 
 
 export const practicaRequisitoDocumentoRepository = {
 
-    async create(data) {
-
-        const response =
-            await createPracticaRequisitoDocumentoRequest(
-                buildFormData(data)
-            );
-
-        return response.data;
-
-    },
-
-    async update(id, data) {
-
-        const response =
-            await updatePracticaRequisitoDocumentoRequest(
-                id,
-                buildFormData(data)
-            );
-
-        return response.data;
-
-    },
-
-    async delete(id) {
-
-        const response =
-            await deletePracticaRequisitoDocumentoRequest(id);
-
-        return response.data;
-
-    },
-
-    async findById(id) {
-
-        const response =
-            await getPracticaRequisitoDocumentoRequest(id);
-
-        return response.data;
-
-    },
+    // ============================================================
+    // REQUISITOS DE UNA PRÁCTICA
+    // ============================================================
 
     async findByPracticaId(practica_id) {
 
         const response =
-            await getPracticaRequisitosDocumentoByPracticaRequest(
+            await getPracticaRequisitosDocumentoRequest(
                 practica_id
             );
 
@@ -91,12 +28,125 @@ export const practicaRequisitoDocumentoRepository = {
 
     },
 
-    async findByPracticaAndRol(practica_id, rol_id) {
+
+    // ============================================================
+    // REQUISITOS DE UNA PRÁCTICA POR ROL
+    // ============================================================
+
+    async findByPracticaAndRol(
+        practica_id,
+        rol_id
+    ) {
 
         const response =
             await getPracticaRequisitosDocumentoByRolRequest(
                 practica_id,
                 rol_id
+            );
+
+        return response.data;
+
+    },
+
+
+    // ============================================================
+    // REQUISITOS VIGENTES DEL PRACTICANTE
+    // ============================================================
+
+    async findRequisitosPracticanteVigentes() {
+
+        const response =
+            await getRequisitosPracticanteVigentesRequest();
+
+        return response.data;
+
+    },
+
+
+    // ============================================================
+    // INFORMES VIGENTES DEL PRACTICANTE
+    // ============================================================
+
+    async findInformesPracticanteVigentes() {
+
+        const response =
+            await getInformesPracticanteVigentesRequest();
+
+        return response.data;
+
+    },
+
+
+    // ============================================================
+    // REQUISITOS VIGENTES DE LA EMPRESA
+    // ============================================================
+
+    async findRequisitosEmpresaVigentes() {
+
+        const response =
+            await getRequisitosEmpresaVigentesRequest();
+
+        return response.data;
+
+    },
+
+
+    // ============================================================
+    // CREAR
+    // ============================================================
+
+    async create(data) {
+
+        const response =
+            await createPracticaRequisitoDocumentoRequest(
+                data
+            );
+
+        return response.data;
+
+    },
+
+
+    // ============================================================
+    // OBTENER REQUISITO DOCUMENTAL POR ID
+    // ============================================================
+
+    async findById(id) {
+
+        const response =
+            await getPracticaRequisitoDocumentoByIdRequest(id);
+
+        return response.data;
+
+    },
+
+
+    // ============================================================
+    // ELIMINAR
+    // ============================================================
+
+    async delete(id) {
+
+        const response =
+            await deletePracticaRequisitoDocumentoRequest(
+                id
+            );
+
+        return response.data;
+
+    },
+
+
+    // ============================================================
+    // ACTUALIZAR
+    // ============================================================
+
+    async update(id, data) {
+
+        const response =
+            await updatePracticaRequisitoDocumentoRequest(
+                id,
+                data
             );
 
         return response.data;

@@ -10,8 +10,13 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
+import EstadoBadge from "../../components/estadoBadge/EstadoBadge.jsx";
 
-import Layout from "../../shared/Layouts/Layout";
+import { UserX } from "lucide-react";
+import RetirarPracticanteModal from "../../components/modals/RetirarPracticanteModal";
+import { crearRetiroPracticante } from "../../../aplicacion/retirarPracticante/crearRetiro";
+import { retiroPracticanteRepository } from "../../../infraestructura/repository/retirarPracticanteRepository";
+
 import ConfirmModal from "../../components/modals/ConfirmModal";
 import AperturaVacanteModal from "../../components/modals/AperturaVacanteModal.jsx";
 
@@ -24,7 +29,7 @@ import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";
 import { aperturaVacanteRepository } from "../../../infraestructura/repository/aperturaVacanteRepository.js";
 
 import { crearAperturaVacante } from "../../../aplicacion/aperturaVacante/crearAperturaVacante.js";
-import { getAperturasVacantes } from "../../../aplicacion/aperturaVacante/getAperturasVacantes.js";
+
 import { actualizarAperturaVacante } from "../../../aplicacion/aperturaVacante/actualizarAperturaVacante.js";
 import { eliminarAperturaVacante } from "../../../aplicacion/aperturaVacante/eliminarAperturaVacante.js";
 import { getTutorEmpresariales } from "../../../aplicacion/tutorEmpresarial/getTutorEmpresarial.js";
@@ -32,6 +37,8 @@ import { tutorEmpresarialRepository } from "../../../infraestructura/repository/
 
 import { EmpresaRepository } from "../../../infraestructura/repository/empresaRepository.js";
 import { obtenerDetalleGrupoEmpresa } from "../../../aplicacion/empresa/obtenerDetalleGrupoEmpresa.js";
+
+import EncuestaTutorEmpresarialModal from "../../components/modals/EncuestaTutorEmpresarialModal";
 
 import toast from "react-hot-toast";
 
@@ -58,6 +65,15 @@ const GrupoPracticaDetalle = () => {
 
   const scrollRef = useRef(null);
   const [hasOverflow, setHasOverflow] = useState(false);
+
+  const [openRetiroModal, setOpenRetiroModal] = useState(false);
+  const [practicanteSeleccionado, setPracticanteSeleccionado] = useState(null);
+  const [retirandoPracticante, setRetirandoPracticante] = useState(false);
+
+  const [encuestaModal, setEncuestaModal] = useState({
+    isOpen: false,
+    practicante: null,
+  });
 
   const checkOverflow = () => {
     const el = scrollRef.current;
@@ -167,13 +183,6 @@ const GrupoPracticaDetalle = () => {
 
 
   // ============================================================
-  // SELECCIONADOS
-  // ============================================================
-
-  const [seleccionados, setSeleccionados] = useState([]);
-
-
-  // ============================================================
   // CARGAR VACANTES Y PRÁCTICAS
   // ============================================================
 
@@ -240,38 +249,6 @@ const GrupoPracticaDetalle = () => {
     return () => window.removeEventListener("resize", checkOverflow);
   }, [aperturas]);
 
-  // ============================================================
-  // SELECCIÓN DE PRACTICANTES
-  // ============================================================
-
-  const toggleSeleccionado = (practicanteId) => {
-
-    setSeleccionados((prev) =>
-      prev.includes(practicanteId)
-        ? prev.filter(
-          (pid) => pid !== practicanteId
-        )
-        : [
-          ...prev,
-          practicanteId
-        ]
-    );
-
-  };
-
-
-  const toggleSeleccionarTodos = () => {
-
-    setSeleccionados((prev) =>
-      prev.length === practicantes.length
-        ? []
-        : practicantes.map(
-          (p) => p.id
-        )
-    );
-
-  };
-
 
   // ============================================================
   // VER CANDIDATO
@@ -294,11 +271,82 @@ const GrupoPracticaDetalle = () => {
   // ============================================================
 
   const handleEncuesta = (practicante) => {
+    setEncuestaModal({
+      isOpen: true,
+      practicante: {
+        id_practicante: practicante.practicante_id,
+        nombre: `${practicante.nombres ?? ""} ${practicante.apellidos ?? ""}`.trim(),
+      },
+    });
+  };
 
-    alert(
-      `Encuesta pendiente de implementar para: ${practicante.nombres}`
-    );
+  const handleCerrarEncuesta = () => {
+    setEncuestaModal({ isOpen: false, practicante: null });
+  };
 
+  // ============================================================
+  // RETIRAR PRACTICANTE
+  // ============================================================
+
+  const handleAbrirRetiro = (practicante) => {
+    if (practicanteNoEstaEnCurso(practicante)) {
+      toast.error("Solo se pueden retirar practicantes en curso.");
+      return;
+    }
+
+    setPracticanteSeleccionado(practicante);
+    setOpenRetiroModal(true);
+  };
+
+  const handleCerrarRetiro = () => {
+    if (retirandoPracticante) return;
+
+    setOpenRetiroModal(false);
+    setPracticanteSeleccionado(null);
+  };
+
+  const handleRetirar = async ({ motivo, archivo }) => {
+    if (!practicanteSeleccionado) {
+      toast.error("No se encontró el practicante seleccionado.");
+      return;
+    }
+
+    if (practicanteNoEstaEnCurso(practicanteSeleccionado)) {
+      toast.error("Solo se pueden retirar practicantes en curso.");
+      return;
+    }
+
+    try {
+      await crearRetiroPracticante(
+        { retiroPracticanteRepository },
+        {
+          motivo,
+          practicante_id: practicanteSeleccionado.practicante_id,
+          archivo,
+        }
+      );
+    } catch (error) {
+      console.error("Error al retirar al practicante:", error);
+
+      toast.error(
+        error?.response?.data?.message ||
+        error?.message ||
+        "Error al retirar al practicante."
+      );
+      return; // el modal queda abierto para reintentar
+    }
+
+    toast.success("El practicante fue retirado correctamente.");
+
+    setOpenRetiroModal(false);
+    setPracticanteSeleccionado(null);
+
+    try {
+      await cargarDetalleGrupo();
+    } catch (error) {
+      console.error(error);
+      toast.error("El retiro se hizo, pero no se pudo actualizar el detalle.");
+    }
   };
 
 
@@ -344,13 +392,17 @@ const GrupoPracticaDetalle = () => {
   // ============================================================
 
   const handleGuardarApertura = async (data) => {
+
     try {
 
       if (aperturaModal.mode === "crear") {
 
         await crearAperturaVacante(
           aperturaVacanteRepository,
-          data
+          {
+            ...data,
+            practica_id: grupo.practica.id
+          }
         );
 
         toast.success(
@@ -371,10 +423,8 @@ const GrupoPracticaDetalle = () => {
         );
       }
 
-      // CERRAR INMEDIATAMENTE EL MODAL
       cerrarAperturaModal();
 
-      // Luego actualizamos la información de la pantalla
       await cargarDatosApertura();
       await cargarDetalleGrupo();
 
@@ -391,14 +441,13 @@ const GrupoPracticaDetalle = () => {
       );
 
     }
+
   };
 
   const handleConfirmarEliminar = async () => {
 
     if (!aperturaAEliminar) return;
 
-    console.log("APERTURA A ELIMINAR:", aperturaAEliminar);
-    console.log("ID A ELIMINAR:", aperturaAEliminar.id);
 
     try {
 
@@ -437,15 +486,14 @@ const GrupoPracticaDetalle = () => {
 
   if (loadingGrupo) {
 
+
     return (
-      <Layout footerLabel="Empresa">
-
-        <div className="text-center py-10 text-slate-500">
-          Cargando detalle del grupo...
-        </div>
-
-      </Layout>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-slate-400 text-sm">
+        <div className="w-6 h-6 border-2 border-slate-300 border-t-[#e8192c] rounded-full animate-spin" />
+        <span>Cargando...</span>
+      </div>
     );
+
 
   }
 
@@ -453,13 +501,11 @@ const GrupoPracticaDetalle = () => {
   if (errorGrupo) {
 
     return (
-      <Layout footerLabel="Empresa">
 
-        <div className="text-center py-10 text-red-500 font-medium">
-          {errorGrupo}
-        </div>
+      <div className="text-center py-10 text-red-500 font-medium">
+        {errorGrupo}
+      </div>
 
-      </Layout>
     );
 
   }
@@ -468,21 +514,29 @@ const GrupoPracticaDetalle = () => {
   if (!grupo) {
 
     return (
-      <Layout footerLabel="Empresa">
 
-        <div className="text-center py-10 text-slate-500">
-          No se encontró el grupo.
-        </div>
+      <div className="text-center py-10 text-slate-500">
+        No se encontró el grupo.
+      </div>
 
-      </Layout>
     );
 
   }
 
+  const normalizarEstadoPracticante = (estado) =>
+    String(estado ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/_/g, " ")
+      .replace(/\s+/g, " ");
+
+  const practicanteNoEstaEnCurso = (practicante) =>
+    normalizarEstadoPracticante(practicante.estado) !== "en curso";
+
 
   return (
 
-    <Layout footerLabel="Director de programa">
+    <div>
 
 
       {/* ======================================================
@@ -620,50 +674,74 @@ const GrupoPracticaDetalle = () => {
             {
               key: "estado",
               label: "Estado",
-
-              render: (row) =>
-                row.estado ?? "—"
+              render: (row) => <EstadoBadge estado={row.estado} />,
             }
           ]}
+
 
           actions={[
             {
               icon: <Eye size={18} />,
               className: "text-slate-600 hover:bg-blue-100",
-
+              title: "Ver informes",
               onClick: (id) => {
-
-                const practicante =
-                  practicantes.find(
-                    (p) => p.practicante_id === id
-                  );
+                const practicante = practicantes.find(
+                  (p) => p.practicante_id === id
+                );
 
                 if (practicante) {
-                  handleVerCandidato(practicante);
+                  navigate(
+                    `/informes/${practicante.practicante_id}/consulta`,
+                    {
+                      state: {
+                        practicante: {
+                          id: practicante.practicante_id,
+                          nombre: `${practicante.nombres ?? ""} ${practicante.apellidos ?? ""}`.trim(),
+                          correo: practicante.correo,
+                          estado: practicante.estado,
+                        },
+                      },
+                    }
+                  );
                 }
-
               },
+              disabled: (row) => practicanteNoEstaEnCurso(row),
+              disabledTitle: "Solo se pueden consultar informes de practicantes en curso",
             },
+            {
+              icon: <UserX size={18} />,
+              className: "text-red-500 hover:bg-red-100",
+              title: "Retirar practicante",
+              onClick: (id) => {
+                const practicante = practicantes.find(
+                  (p) => p.practicante_id === id
+                );
 
+                if (practicante) {
+                  handleAbrirRetiro(practicante);
+                }
+              },
+              disabled: (row) =>
+                practicanteNoEstaEnCurso(row) || retirandoPracticante,
+              disabledTitle: "Solo se pueden retirar practicantes en curso",
+            },
             {
               icon: <ClipboardList size={18} />,
               className: "text-slate-600 hover:bg-amber-100",
-
               onClick: (id) => {
-
-                const practicante =
-                  practicantes.find(
-                    (p) =>
-                      p.practicante_id === id
-                  );
+                const practicante = practicantes.find(
+                  (p) => p.practicante_id === id
+                );
 
                 if (practicante) {
                   handleEncuesta(practicante);
                 }
-
               },
+              disabled: (row) => practicanteNoEstaEnCurso(row),
+              disabledTitle: "Solo está disponible para practicantes en curso",
             },
           ]}
+
 
           emptyMessage="No hay practicantes registrados."
 
@@ -922,7 +1000,22 @@ const GrupoPracticaDetalle = () => {
         onConfirm={handleConfirmarEliminar}
       />
 
-    </Layout>
+      <EncuestaTutorEmpresarialModal
+        mostrar={encuestaModal.isOpen}
+        practicante={encuestaModal.practicante}
+        rolEncuesta="Empresa"
+        onCerrar={handleCerrarEncuesta}
+      />
+
+
+      <RetirarPracticanteModal
+        open={openRetiroModal}
+        practicante={practicanteSeleccionado}
+        onClose={handleCerrarRetiro}
+        onRetirar={handleRetirar}
+        mostrarDatosVacante
+      />
+    </div>
 
   );
 

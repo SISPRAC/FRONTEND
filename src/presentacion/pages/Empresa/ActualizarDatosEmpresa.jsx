@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import Layout from "../../shared/Layouts/Layout";
+import { useEffect, useRef, useState } from "react";
+
 import {
     Building2,
     MapPin,
@@ -44,8 +44,8 @@ const FieldRow = ({
 
         <div
             className={`flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-colors ${editable
-                    ? "border-red-200 bg-white ring-1 ring-red-100 focus-within:ring-2 focus-within:ring-red-400"
-                    : "border-transparent bg-slate-100"
+                ? "border-red-200 bg-white ring-1 ring-red-100 focus-within:ring-2 focus-within:ring-red-400"
+                : "border-transparent bg-slate-100"
                 }`}
         >
 
@@ -96,8 +96,8 @@ const FieldLarge = ({
 
         <div
             className={`flex items-center gap-3 rounded-xl border px-3.5 py-3 transition-colors ${editable
-                    ? "border-red-200 bg-white ring-1 ring-red-100 focus-within:ring-2 focus-within:ring-red-400"
-                    : "border-transparent bg-slate-100"
+                ? "border-red-200 bg-white ring-1 ring-red-100 focus-within:ring-2 focus-within:ring-red-400"
+                : "border-transparent bg-slate-100"
                 }`}
         >
 
@@ -431,19 +431,14 @@ const ActualizarEmpresa = () => {
 
     if (loading) {
 
+
         return (
-            <Layout footerLabel="Empresa">
-
-                <div className="flex h-full items-center justify-center">
-
-                    <p className="text-sm text-slate-500">
-                        Cargando información de la empresa...
-                    </p>
-
-                </div>
-
-            </Layout>
+            <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 text-slate-400 text-sm">
+                <div className="w-6 h-6 border-2 border-slate-300 border-t-[#e8192c] rounded-full animate-spin" />
+                <span>Cargando...</span>
+            </div>
         );
+
 
     }
 
@@ -455,7 +450,7 @@ const ActualizarEmpresa = () => {
     if (error || !data) {
 
         return (
-            <Layout footerLabel="Empresa">
+            <div>
 
                 <div className="flex h-full items-center justify-center">
 
@@ -469,7 +464,7 @@ const ActualizarEmpresa = () => {
 
                 </div>
 
-            </Layout>
+            </div>
         );
 
     }
@@ -481,7 +476,7 @@ const ActualizarEmpresa = () => {
 
     return (
 
-        <Layout footerLabel="Empresa">
+        <div>
 
             <div className="mx-auto flex h-full w-full max-w-5xl flex-col px-4 py-3">
 
@@ -518,8 +513,8 @@ const ActualizarEmpresa = () => {
                                 <div
                                     onClick={handleLogoClick}
                                     className={`flex h-28 w-28 items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed ${editable
-                                            ? "border-red-300 bg-red-50 cursor-pointer"
-                                            : "border-slate-200 bg-slate-50"
+                                        ? "border-red-300 bg-red-50 cursor-pointer"
+                                        : "border-slate-200 bg-slate-50"
                                         }`}
                                 >
 
@@ -788,7 +783,7 @@ const ActualizarEmpresa = () => {
 
             </div>
 
-        </Layout>
+        </div>
 
     );
 

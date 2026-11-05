@@ -29,3 +29,18 @@ export const invitarTutorEmpresarialRequest = (correo) => {
     correo
   });
 };
+
+export const getAperturasByTutorEmpresa = (periodoId, practicaId) => {
+  return tutorEmpresarialApi.get("/mis-aperturas", {
+    params: {
+      periodoId,
+      practicaId
+    }
+  });
+};
+
+export const getAperturasByPractica = (practicaId) => {
+  return tutorEmpresarialApi.get(
+    `/mis-aperturas/${practicaId}`
+  );
+};

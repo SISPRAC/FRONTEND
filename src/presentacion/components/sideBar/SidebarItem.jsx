@@ -14,8 +14,11 @@ import {
   MapPinned,
   BadgeInfo,
   FileStack,
-  User
+  User,
+  Bell
 } from "lucide-react";
+
+
 
 // ==========================
 // DIRECTOR
@@ -66,7 +69,18 @@ export const Director_NAV = [
     icon: <FileText />,
     href: "/arl",
   },
+  {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
+  },
+  /*  {
+     label: "Perfil",
+     icon: <UserCog />,
+     href: "/perfil",
+   }, */
 ];
+
 
 // ==========================
 // EMPRESA
@@ -90,17 +104,13 @@ export const Empresa_NAV = [
   {
     label: "Protocolos",
     icon: <ClipboardPlus />,
-    href: "/protocolos",
+    href: "/protocolosEmpresa",
   },
-  {
-    label: "Encuestas",
-    icon: <FileUser />,
-    href: "/encuestas",
-  },
+
   {
     label: "Vacantes",
     icon: <FileUser />,
-    href: " /vacantesEmpresa",
+    href: "/vacantesEmpresa",
   },
   {
     label: "Tutores Empresariales",
@@ -108,21 +118,27 @@ export const Empresa_NAV = [
     href: "/tutorEmpresarial",
   },
   {
-    label: "Mi perfil",
-    icon: <User />,
-    href: " /miPerfil",
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
   },
-
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/miPerfil",
+  },
 ];
+
 
 // ==========================
 // PRACTICANTE
 // ==========================
 export const Practicante_NAV = [
+
   {
-    label: "Dashboard",
-    icon: <ChartNoAxesCombined />,
-    href: "/dashboard",
+    label: "Practica",
+    icon: <BadgeInfo />,
+    href: "/homePracticante",
   },
   {
     label: "Informes",
@@ -130,79 +146,104 @@ export const Practicante_NAV = [
     href: "/informes",
   },
   {
-    label: "Protocolos",
+    label: "Documentos Iniciales",
     icon: <ClipboardPlus />,
-    href: "/protocolos",
+    href: "/documentosIniciales",
   },
   {
-    label: "Encuestas",
+    label: "Encuesta",
     icon: <FileUser />,
-    href: "/encuestas",
+    href: "/EncuestaPracticante",
   },
-];
-
-// ==========================
-// CANDIDATO
-// ==========================
-export const Candidato_NAV = [
   {
-    label: "Protocolos",
-    icon: <ClipboardPlus />,
-    href: "/protocolos",
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
   },
   {
     label: "Perfil",
     icon: <UserCog />,
     href: "/perfil",
   },
+];
+
+
+// ==========================
+// PRACTICANTE - PERFIL INCOMPLETO
+// ==========================
+export const PracticantePerfil_NAV = [
   {
-    label: "Situación",
-    icon: <BadgeInfo />,
-    href: "/situacion",
+    label: "Completar perfil",
+    icon: <UserCog />,
+    href: "/perfil",
   },
 ];
+
+
+// ==========================
+// CANDIDATO
+// ==========================
+export const Candidato_NAV = [
+  {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
+  },
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
+  },
+];
+
 
 // ==========================
 // TUTOR DOCENTE
 // ==========================
 export const TutorDocente_NAV = [
   {
-    label: "Cursos",
+    label: "Mis Grupos",
     icon: <GraduationCap />,
-    href: "/cursos",
+    href: "/misGrupos",
   },
   {
-    label: "Visitas",
-    icon: <MapPinned />,
-    href: "/visitas",
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
   },
   {
-    label: "Encuestas",
-    icon: <FileUser />,
-    href: "/encuestas",
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
   },
 ];
+
 
 // ==========================
 // TUTOR EMPRESARIAL
 // ==========================
 export const TutorEmpresarial_NAV = [
   {
-    label: "Prácticas",
+    label: "Mis Aperturas",
     icon: <Briefcase />,
-    href: "/practicas",
+    href: "/mis-aperturas",
   },
   {
-    label: "Visitas",
-    icon: <MapPinned />,
-    href: "/visitas",
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
+  },
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
   },
 ];
+
 
 // ==========================
 // ADMINISTRADOR
 // ==========================
-
 export const Admin_NAV = [
   {
     label: "Periodos",
@@ -224,12 +265,27 @@ export const Admin_NAV = [
     icon: <FileStack />,
     href: "/documentos",
   },
+  {
+    label: "Gestion de Tipos de Documentos",
+    icon: <FileStack />,
+    href: "/tipoDocumentos",
+  },
+  {
+    label: "Notificaciones",
+    icon: <Bell />,
+    href: "/notificaciones",
+  },
+  {
+    label: "Perfil",
+    icon: <UserCog />,
+    href: "/perfil",
+  },
 ];
+
 
 // ==========================
 // MULTIROL
 // ==========================
-
 
 export const ROLE_NAV = {
   "Director de programa": Director_NAV,
@@ -241,12 +297,13 @@ export const ROLE_NAV = {
   "Tutor Empresarial": TutorEmpresarial_NAV,
 };
 
+
 export const HOME_ROUTES = {
-  "Director de programa": "/dashboard",
-  "Administrador": "/homeAdmin",
-  "Empresa": "/homeEmpresa",
+  "Administrador": "/periodos",
+  "Director de programa": "/homeDirector",
+  "Empresa": "/subirConvenio",
   "Practicante": "/homePracticante",
-  "Candidato": "/homeCandidato",
-  "Tutor Docente": "/homeTutorDocente",
-  "Tutor Empresarial": "/homeTutorEmpresarial",
+  "Candidato": "/perfil",
+  "Tutor Docente": "/misGrupos",
+  "Tutor Empresarial": "/mis-aperturas",
 };
