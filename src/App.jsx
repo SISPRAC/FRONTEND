@@ -2,10 +2,13 @@
 import { Routes, Route } from "react-router-dom";
 
 import LoginPage from "../src/presentacion/pages/LoginPage";
+import ForgotPasswordPage from "../src/presentacion/pages/ForgotPasswordPage";
+import ResetPasswordPage from "../src/presentacion/pages/Resetpasswordpage";
 
 import RegisterCandidatePage from "../src/presentacion/pages/RegisterCandidatoPage";
 import RegisterEmpresaPage from "../src/presentacion/pages/RegisterEmpresaPage";
 import RegisterStaffPage from "../src/presentacion/pages/RegisterStaffPage";
+
 
 import PeriodosAcademicos from "../src/presentacion/pages/Director/PeriodosAcademicos";
 import GruposDirector from "../src/presentacion/pages/Director/Grupos";
@@ -21,6 +24,8 @@ import VistaVisita from "./presentacion/pages/Director/VistaVisita";
 import ProtocolosPage from "./presentacion/pages/Director/ProtocolosPage";
 import DashboardDirector from "./presentacion/pages/Director/DashboardDirector";
 import TutoresDocentes from "./presentacion/pages/Director/GestionTutorDocente";
+import RequisitosConvenio from "./presentacion/pages/Director/RequisitosConvenio";
+import CandidatosPracticas from "./presentacion/pages/Director/CandidatosPractica";
 
 import ProtectedRoute from "./presentacion/components/ProtectedRoute";
 import Layout from "./presentacion/shared/layouts/Layout";
@@ -76,6 +81,7 @@ import TipoDocumentosPage from "./presentacion/pages/Admin/TipoRequisitoDocument
 
 // Notificaciones
 import NotificacionesView from "./presentacion/pages/Notificaciones";
+import SessionExpiredModal from "./presentacion/components/modals/SessionExpiredModal";
 
 import "./index.css";
 import { Toaster } from "react-hot-toast";
@@ -86,7 +92,7 @@ export default function App() {
   return (
     <>
       <Toaster position="top-center" />
-
+      <SessionExpiredModal />
       <Routes>
 
         {/* =====================================================
@@ -100,6 +106,8 @@ export default function App() {
         <Route path="/registrarEmpresa" element={<RegisterEmpresaPage />} />
 
         <Route path="/registrarStaff" element={<RegisterStaffPage />} />
+        <Route path="/recuperar-password" element={<ForgotPasswordPage />} />
+        <Route path="/restablecer-password" element={<ResetPasswordPage />} />
 
 
         {/* =====================================================
@@ -133,6 +141,7 @@ export default function App() {
               <Route path="/documentos" element={<PracticaRequisitoDocumentoPage />} />
 
               <Route path="/tipoDocumentos" element={<TipoDocumentosPage />} />
+              <Route path="/requisitos-convenio" element={<RequisitosConvenio />} />
 
             </Route>
 
@@ -172,6 +181,7 @@ export default function App() {
               <Route path="/protocolos" element={<ProtocolosPage />} />
 
               <Route path="/tutorDocente" element={<TutoresDocentes />} />
+              <Route path="/candidatosAPracticas" element={<CandidatosPracticas />} />
 
             </Route>
 

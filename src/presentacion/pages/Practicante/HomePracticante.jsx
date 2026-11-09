@@ -7,6 +7,8 @@ import { practicanteRepository } from "../../../infraestructura/repository/pract
 
 import RetirarPracticanteModal from "../../components/modals/RetirarPracticanteModal";
 import ConfirmModal from "../../components/modals/ConfirmModal";
+// TODO: ajusta la ruta según dónde tengas EstadoBadge
+import EstadoBadge from "../..//components/estadoBadge/EstadoBadge.jsx";
 import { crearRetiroPracticante } from "../../../aplicacion/retirarPracticante/crearRetiro";
 import { retiroPracticanteRepository } from "../../../infraestructura/repository/retirarPracticanteRepository";
 
@@ -41,12 +43,67 @@ const getUsuarioLocal = () => {
   }
 };
 
-const ESTADO_STYLES = {
-  activa: "bg-green-100 text-green-700",
-  en_curso: "bg-green-100 text-green-700",
-  finalizada: "bg-gray-100 text-gray-600",
-  pendiente: "bg-yellow-100 text-yellow-700",
-};
+// ============================================================
+// SKELETON
+// ============================================================
+
+const Bar = ({ className = "" }) => (
+  <div className={`bg-gray-200 rounded ${className}`} />
+);
+
+const CardSkeleton = ({ lines = 4 }) => (
+  <div className="rounded-2xl border border-gray-100 shadow-sm bg-white p-5">
+    <Bar className="h-4 w-24 mb-4 bg-red-100" />
+    <div className="flex flex-col gap-3">
+      {Array.from({ length: lines }).map((_, i) => (
+        <Bar key={i} className={`h-3 ${i % 2 === 0 ? "w-full" : "w-4/5"}`} />
+      ))}
+    </div>
+  </div>
+);
+
+const HomePracticanteSkeleton = () => (
+  <div
+    className="flex-1 flex items-center justify-center animate-pulse"
+    role="status"
+    aria-label="Cargando información de la práctica"
+  >
+    <div className="flex flex-col md:flex-row items-start gap-8 max-w-6xl w-full">
+      {/* Logo */}
+      <div className="flex flex-col items-center gap-3 w-full md:w-2/5">
+        <Bar className="h-5 w-48" />
+        <div className="w-full max-w-xs aspect-square bg-gray-200 rounded-2xl" />
+      </div>
+
+      {/* Cards */}
+      <div className="w-full md:w-3/5 flex flex-col gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <CardSkeleton lines={5} />
+          <CardSkeleton lines={4} />
+        </div>
+
+        <div className="rounded-2xl border border-gray-100 shadow-sm bg-white p-5">
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_2fr] gap-5">
+            <div className="flex flex-col gap-3">
+              <Bar className="h-4 w-20 bg-red-100" />
+              <Bar className="h-3 w-12" />
+              <Bar className="h-3 w-3/4" />
+              <Bar className="h-3 w-32 mt-3" />
+              <Bar className="h-3 w-full" />
+            </div>
+            <div className="sm:border-l sm:border-gray-100 sm:pl-5 flex flex-col gap-3">
+              <Bar className="h-4 w-44 bg-red-100" />
+              <Bar className="h-3 w-full" />
+              <Bar className="h-3 w-full" />
+              <Bar className="h-3 w-11/12" />
+              <Bar className="h-3 w-2/3" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const HomePracticante = () => {
   const [practica, setPractica] = useState(null);
@@ -69,8 +126,6 @@ const HomePracticante = () => {
 
       const data = await obtenerMiPractica(practicanteRepository);
 
-      console.log("Datos de la práctica obtenidos:", data);
-
       setPractica(data.practica);
       setVacante(data.vacante);
       setEmpresa(data.empresa);
@@ -86,18 +141,6 @@ const HomePracticante = () => {
   useEffect(() => {
     fetchDatosPractica();
   }, []);
-
-  const handleDescargarArl = () => {
-    if (!practica?.archivoArl?.url) {
-      return;
-    }
-
-    window.open(practica.archivoArl.url, "_blank", "noopener,noreferrer");
-  };
-
-  const estadoClase =
-    ESTADO_STYLES[practica?.estado?.toLowerCase()] ||
-    "bg-gray-100 text-gray-600";
 
   // ============================================================
   // RETIRARME DE LA PRÁCTICA
@@ -139,7 +182,6 @@ const HomePracticante = () => {
   };
 
   // Paso 1: el modal entrega motivo + archivo.
-  // El formulario se queda abierto debajo; solo mostramos la reconfirmación.
   const handleSolicitarRetiro = ({ motivo, archivo }) => {
     setDatosRetiro({ motivo, archivo });
     setOpenConfirmRetiro(true);
@@ -178,11 +220,10 @@ const HomePracticante = () => {
 
       toast.error(
         err?.response?.data?.message ||
-          err?.message ||
-          "No fue posible procesar el retiro."
+        err?.message ||
+        "No fue posible procesar el retiro."
       );
 
-      // Cerramos solo la reconfirmación; el formulario queda para reintentar.
       setOpenConfirmRetiro(false);
       setRetirando(false);
       return;
@@ -205,24 +246,25 @@ const HomePracticante = () => {
       <div className="h-full flex flex-col p-6">
 
         {/* ===== Barra superior: duración + estado ===== */}
-        {practica && (
-          <div className="flex items-center justify-center gap-3 text-xs text-gray-400 mb-1">
-            <span>
-              Inicio práctica: {practica.fecha_inicio} — Fin práctica: {practica.fecha_fin}
-            </span>
-            <span
-              className={`px-2 py-0.5 rounded-full font-medium uppercase ${estadoClase}`}
-            >
-              {practica.estado}
-            </span>
+        {loading ? (
+          <div className="flex items-center justify-center gap-3 mb-1 animate-pulse">
+            <Bar className="h-3 w-64" />
+            <Bar className="h-5 w-20 rounded-full" />
           </div>
+        ) : (
+          practica && (
+            <div className="flex items-center justify-center gap-3 text-xs text-gray-400 mb-1">
+              <span>
+                Inicio práctica: {practica.fecha_inicio} — Fin práctica: {practica.fecha_fin}
+              </span>
+              <EstadoBadge estado={practica.estado} size="sm" />
+            </div>
+          )
         )}
 
         <h1 className="text-3xl font-bold text-center mb-8">Bienvenido</h1>
 
-        {loading && (
-          <p className="text-center text-gray-500">Cargando información...</p>
-        )}
+        {loading && <HomePracticanteSkeleton />}
 
         {error && <p className="text-center text-red-600">{error}</p>}
 
@@ -253,7 +295,6 @@ const HomePracticante = () => {
               {/* ===== Columna derecha: 3 cards separadas ===== */}
               <div className="w-full md:w-3/5 flex flex-col gap-5">
 
-                {/* Fila: Empresa + Tutor, cada una en SU PROPIA card */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
                   {/* Card Empresa */}
@@ -336,12 +377,11 @@ const HomePracticante = () => {
                   )}
                 </div>
 
-                {/* Card Vacante: dos columnas, cada una con su propio encabezado al mismo nivel */}
+                {/* Card Vacante */}
                 {vacante && (
                   <div className="rounded-2xl border border-gray-100 shadow-sm bg-white p-5">
                     <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_2fr] gap-5">
 
-                      {/* Columna izquierda: VACANTE + Área + Duración */}
                       <div className="flex flex-col justify-between">
                         <div>
                           <h2 className="text-red-600 font-bold text-sm uppercase tracking-wide mb-3">
@@ -368,7 +408,6 @@ const HomePracticante = () => {
                         )}
                       </div>
 
-                      {/* Columna derecha: Descripción, con tope de alto + scroll interno */}
                       <div className="sm:border-l sm:border-gray-100 sm:pl-5">
                         <h2 className="text-red-600 font-bold text-sm uppercase tracking-wide mb-3">
                           Descripción de la vacante
@@ -388,40 +427,49 @@ const HomePracticante = () => {
 
         {/* ===== Botones inferiores: Retiro (izq) + ARL (der) ===== */}
         <div className="flex items-center justify-between mt-4">
-          {practica ? (
-            <button
-              onClick={handleAbrirRetiro}
-              disabled={!practicaEnCurso || retirando}
-              title={
-                practicaEnCurso
-                  ? "Retirarme de la práctica"
-                  : "Solo disponible mientras la práctica está en curso"
-              }
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm border transition ${
-                practicaEnCurso
-                  ? "border-red-500 text-red-600 hover:bg-red-50 cursor-pointer"
-                  : "border-gray-200 text-gray-300 cursor-not-allowed"
-              }`}
-            >
-              <UserX size={18} />
-              Retirarme de la práctica
-            </button>
+          {loading ? (
+            <div className="flex items-center justify-between w-full animate-pulse">
+              <Bar className="h-10 w-56 rounded-full" />
+              <Bar className="h-10 w-36 rounded-full" />
+            </div>
           ) : (
-            <span />
-          )}
+            <>
+              {practica ? (
+                <button
+                  onClick={handleAbrirRetiro}
+                  disabled={!practicaEnCurso || retirando}
+                  title={
+                    practicaEnCurso
+                      ? "Retirarme de la práctica"
+                      : "Solo disponible mientras la práctica está en curso"
+                  }
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm border transition ${practicaEnCurso
+                    ? "border-red-500 text-red-600 hover:bg-red-50 cursor-pointer"
+                    : "border-gray-200 text-gray-300 cursor-not-allowed"
+                    }`}
+                >
+                  <UserX size={18} />
+                  Retirarme de la práctica
+                </button>
+              ) : (
+                <span />
+              )}
 
-          <button
-            onClick={handleDescargarArl}
-            disabled={!practica?.archivoArl?.url}
-            className={`px-6 py-2.5 rounded-full font-semibold text-white text-sm transition ${practica?.archivoArl?.url
-                ? "bg-red-600 hover:bg-red-700 cursor-pointer"
-                : "bg-gray-300 cursor-not-allowed"
-              }`}
-          >
-            {practica?.archivoArl?.url
-              ? "Descargar ARL"
-              : "Documentos a subir"}
-          </button>
+              <a
+                href="https://operacionesarl.positiva.gov.co/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-6 py-2.5 rounded-full font-semibold text-white text-sm
+    bg-red-600 hover:bg-red-700
+    shadow-md hover:shadow-lg
+    transition-all duration-300
+    animate-bounce-sutil
+    hover:scale-105"
+              >
+                Consultar ARL
+              </a>
+            </>
+          )}
         </div>
       </div>
 

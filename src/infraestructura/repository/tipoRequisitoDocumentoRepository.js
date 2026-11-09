@@ -10,10 +10,12 @@ import {
 
 export const tipoRequisitoDocumentoRepository = {
 
-    async findAll() {
+    async findAll(params) {
 
         const response =
-            await getTiposRequisitoDocumentoRequest();
+            await getTiposRequisitoDocumentoRequest(
+                params
+            );
 
         return response.data;
 

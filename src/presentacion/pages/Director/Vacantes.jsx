@@ -4,13 +4,10 @@ import { Building2, ChevronDown, Search, X } from "lucide-react";
 import PostularCandidatoModal from "./PostularCandidatoModal";
 import VacanteCard from "../../components/cards/VacanteCard";
 import { vacanteRepository } from "../../../infraestructura/repository/vacanteRepository";
-import { practicaRepository } from "../../../infraestructura/repository/practicaRepository";
 import { EmpresaRepository } from "../../../infraestructura/repository/empresaRepository";
 import { getAperturasVacantes } from "../../../aplicacion/vacante/getAperturasVacantes";
-import { getPracticas } from "../../../aplicacion/practica/getPracticas";
 import { obtenerEmpresasParaSelect } from "../../../aplicacion/empresa/obtenerEmpresasParaSelect";
 import toast from "react-hot-toast";
-
 
 // ==========================================
 // SKELETON
@@ -127,11 +124,8 @@ const FiltroSelect = ({ id, label, value, onChange, placeholder, opciones, disab
 
 export default function VacantesDirector() {
   const [vacantes, setVacantes] = useState([]);
-  const [practicas, setPracticas] = useState([]);
   const [empresas, setEmpresas] = useState([]);
 
-  // Filtros
-  const [practicaSeleccionada, setPracticaSeleccionada] = useState(null); // null = "Todas"
   const [empresaSeleccionada, setEmpresaSeleccionada] = useState(null);   // null = "Todas"
   const [busqueda, setBusqueda] = useState("");
 
@@ -171,15 +165,8 @@ export default function VacantesDirector() {
     try {
       setLoading(true);
 
-      const practicasData = await getPracticas({
-        practicaRepository
-      });
-
-      console.log("Prácticas obtenidas:", practicasData);
-
       const vacantesData = await getAperturasVacantes(vacanteRepository);
 
-      console.log("Vacantes obtenidas:", vacantesData);
 
       const vacantesNormalizadas = vacantesData.map((item) => ({
         id: item.id,
@@ -226,7 +213,6 @@ export default function VacantesDirector() {
       }));
 
       setVacantes(vacantesNormalizadas);
-      setPracticas(practicasData);
     } catch (error) {
       console.error(error);
       toast.error("Error cargando datos");
@@ -237,50 +223,27 @@ export default function VacantesDirector() {
 
   /** Aplica convenio aprobado + práctica + empresa + búsqueda. */
   const vacantesFiltradas = vacantes.filter((v) => {
-    if (v.convenio?.estado !== "APROBADO") {
-      return false;
-    }
+    if (v.convenio?.estado !== "APROBADO") return false;
 
-    if (
-      practicaSeleccionada !== null &&
-      v.practica?.id !== practicaSeleccionada
-    ) {
-      return false;
-    }
-
-    if (
-      empresaSeleccionada !== null &&
-      v.empresa?.id !== empresaSeleccionada
-    ) {
+    if (empresaSeleccionada !== null && v.empresa?.id !== empresaSeleccionada) {
       return false;
     }
 
     const termino = busqueda.trim().toLowerCase();
     if (termino) {
-      const texto = [
-        v.titulo,
-        v.descripcion,
-        v.empresa?.nombre,
-      ]
+      const texto = [v.titulo, v.descripcion, v.empresa?.nombre]
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
-
-      if (!texto.includes(termino)) {
-        return false;
-      }
+      if (!texto.includes(termino)) return false;
     }
 
     return true;
   });
 
-  const hayFiltrosActivos =
-    practicaSeleccionada !== null ||
-    empresaSeleccionada !== null ||
-    busqueda.trim() !== "";
+  const hayFiltrosActivos = empresaSeleccionada !== null || busqueda.trim() !== "";
 
   const limpiarFiltros = () => {
-    setPracticaSeleccionada(null);
     setEmpresaSeleccionada(null);
     setBusqueda("");
   };
@@ -296,63 +259,46 @@ export default function VacantesDirector() {
         Vacantes en empresas
       </h1>
 
-      {/* ── Buscador ───────────────────────────────────────────────────────── */}
-      <div className="relative mb-4">
-        <Search
-          size={16}
-          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-        />
-        <input
-          type="text"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Buscar por vacante, empresa o descripción..."
-          className="
-            w-full h-11
-            pl-11 pr-10
-            rounded-xl
-            border border-slate-200
-            bg-white
-            text-sm text-slate-700
-            shadow-sm
-            transition
-            placeholder:text-slate-400
-            hover:border-slate-300
-            focus:outline-none
-            focus:border-blue-400
-            focus:ring-4 focus:ring-blue-100
-          "
-        />
-        {busqueda && (
-          <button
-            type="button"
-            onClick={() => setBusqueda("")}
-            aria-label="Limpiar búsqueda"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-          >
-            <X size={16} />
-          </button>
-        )}
-      </div>
+      {/* ── Buscador + empresa ─────────────────────────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6">
 
-      {/* ── Filtros: práctica y empresa ────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-6">
-
-        <FiltroSelect
-          id="filtro-practica"
-          label="Práctica"
-          value={practicaSeleccionada}
-          onChange={(e) =>
-            setPracticaSeleccionada(
-              e.target.value === "" ? null : Number(e.target.value)
-            )
-          }
-          placeholder="Todas las prácticas"
-          opciones={practicas.map((p) => ({
-            id: p.id,
-            nombre: p.Periodo?.nombre ?? `Práctica ${p.id}`,
-          }))}
-        />
+        <div className="relative flex-1">
+          <Search
+            size={16}
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+          />
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por vacante, empresa o descripción..."
+            className="
+        w-full h-11
+        pl-11 pr-10
+        rounded-xl
+        border border-slate-200
+        bg-white
+        text-sm text-slate-700
+        shadow-sm
+        transition
+        placeholder:text-slate-400
+        hover:border-slate-300
+        focus:outline-none
+        focus:border-blue-400
+        focus:ring-4 focus:ring-blue-100
+      "
+          />
+          {busqueda && (
+            <button
+              type="button"
+              onClick={() => setBusqueda("")}
+              aria-label="Limpiar búsqueda"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
 
         <FiltroSelect
           id="filtro-empresa"
@@ -372,12 +318,11 @@ export default function VacantesDirector() {
           <button
             type="button"
             onClick={limpiarFiltros}
-            className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition"
+            className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition whitespace-nowrap"
           >
             Limpiar filtros
           </button>
         )}
-
       </div>
 
       {/* ── Grid de vacantes ──────────────────────────────────────────────── */}

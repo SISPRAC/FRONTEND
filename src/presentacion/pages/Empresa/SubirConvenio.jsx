@@ -4,6 +4,7 @@ import { convenioRepository } from "../../../infraestructura/repository/convenio
 import { getConveniosByEmpresa } from "../../../aplicacion/convenio/getConveniosByEmpresa";
 import { getConvenioByEmpresa } from "../../../aplicacion/convenio/getConvenioByEmpresa";
 import { subirConvenio } from "../../../aplicacion/convenio/subirConvenio";
+import RequisitosEmpresa from "./RequisitosEmpresa";
 
 import GenericTable from "../../components/Table/GenericTable";
 import EstadoBadge from "../../components/estadoBadge/EstadoBadge";
@@ -18,6 +19,8 @@ import {
   Eye,
   Download,
   X,
+  ClipboardList,
+  Lock,
 } from "lucide-react";
 
 import toast from "react-hot-toast";
@@ -369,6 +372,13 @@ export default function CargarConvenio() {
 
   const usuarioSesion = getUsuarioSesion();
 
+  const esPublica = Boolean(usuarioSesion?.Empresa?.es_publica);
+
+  // PASOS
+
+  const [paso, setPaso] = useState("requisitos");
+  const [requisitosCompletos, setRequisitosCompletos] = useState(false);
+
   const [archivo, setArchivo] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
 
@@ -424,6 +434,7 @@ export default function CargarConvenio() {
   // =============================================================
 
   useEffect(() => {
+    const usuarioSesion = JSON.parse(localStorage.getItem("user") || "null");
     const empresaId = usuarioSesion?.Empresa?.id;
 
     if (empresaId) {
@@ -775,21 +786,19 @@ export default function CargarConvenio() {
   };
 
   // =============================================================
-  // DESCARGAR FORMATO
+  // DESCARGAR FORMATO (MODELO DE CONVENIO .docx)
   // =============================================================
 
   const handleDescargarFormato = () => {
-    const urlFormatoBase = "/formatos/formato-convenio-base.pdf";
+    const nombre = "modelo de convenio(NOMBRE DE EMPRESA - NIT).docx";
 
     const enlace = document.createElement("a");
 
-    enlace.href = urlFormatoBase;
-    enlace.download = "formato-convenio-base.pdf";
+    enlace.href = `/plantillas/${encodeURIComponent(nombre)}`;
+    enlace.download = nombre;
 
     document.body.appendChild(enlace);
-
     enlace.click();
-
     document.body.removeChild(enlace);
   };
 
@@ -968,10 +977,9 @@ export default function CargarConvenio() {
       focus:outline-none
       transition-all
 
-      ${
-        tieneError
-          ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] focus:border-red-500"
-          : "border-slate-200 focus:border-red-400"
+      ${tieneError
+        ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] focus:border-red-500"
+        : "border-slate-200 focus:border-red-400"
       }
 
       disabled:bg-slate-100
@@ -980,10 +988,10 @@ export default function CargarConvenio() {
   };
 
   // =============================================================
-  // SKELETON DE CARGA
+  // SKELETON DE CARGA (solo en el paso del convenio)
   // =============================================================
 
-  if (cargando || cargandoConvenio) {
+  if (paso === "convenio" && (cargando || cargandoConvenio)) {
     return <SkeletonConvenio />;
   }
 
@@ -994,422 +1002,469 @@ export default function CargarConvenio() {
   return (
     <>
       <div>
-        <h1 className="text-[24px] font-extrabold text-slate-800 text-center mb-5 tracking-tight">
+        <h1 className="text-[24px] font-extrabold text-slate-800 text-center mb-3 tracking-tight">
           Convenio
         </h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* PASOS */}
 
-          {/* =====================================================
-              COLUMNA IZQUIERDA
-          ===================================================== */}
+        <div className="flex justify-center gap-2 mb-5">
+          <button
+            type="button"
+            onClick={() => setPaso("requisitos")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${paso === "requisitos"
+                ? "bg-[#e8192c] text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+          >
+            <ClipboardList size={16} />
+            1. Requisitos
+          </button>
 
-          <div className="flex flex-col gap-4">
+          <button
+            type="button"
+            disabled={!requisitosCompletos}
+            onClick={() => setPaso("convenio")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${paso === "convenio"
+                ? "bg-[#e8192c] text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+          >
+            {requisitosCompletos ? <FileText size={16} /> : <Lock size={16} />}
+            2. Convenio
+          </button>
+        </div>
 
-            {/* FECHAS */}
+        {/* =====================================================
+            PASO 1: REQUISITOS
+        ===================================================== */}
 
-            <div>
-              <h2 className="text-sm font-bold text-slate-800 mb-2">
-                Fechas del convenio
-              </h2>
+        {paso === "requisitos" && (
+          <RequisitosEmpresa
+            empresaId={usuarioSesion?.Empresa?.id}
+            esPublica={esPublica}
+            onCompletoChange={setRequisitosCompletos}
+            onContinuar={() => setPaso("convenio")}
+          />
+        )}
 
-              <div className="grid grid-cols-2 gap-3">
+        {/* =====================================================
+            PASO 2: CONVENIO
+        ===================================================== */}
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">
-                    Fecha inicio
-                  </label>
+        {paso === "convenio" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-                  <input
-                    type="date"
-                    value={fechaInicio}
-                    onChange={(e) => {
-                      setFechaInicio(e.target.value);
+            {/* =================================================
+                COLUMNA IZQUIERDA
+            ================================================= */}
 
-                      setErrores((prev) => ({
-                        ...prev,
-                        fechaInicio: false,
-                      }));
-                    }}
-                    disabled={convenioBloqueado}
-                    className={claseFecha(errores.fechaInicio)}
-                  />
+            <div className="flex flex-col gap-4">
 
-                  {errores.fechaInicio && (
-                    <p className="text-[11px] text-red-500 mt-1">
-                      {fechaInicio && fechaFin
-                        ? "La fecha de inicio debe ser anterior o igual a la fecha de fin."
-                        : "La fecha de inicio es obligatoria."}
-                    </p>
-                  )}
-                </div>
+              {/* FECHAS */}
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1">
-                    Fecha fin
-                  </label>
-
-                  <input
-                    type="date"
-                    value={fechaFin}
-                    onChange={(e) => {
-                      setFechaFin(e.target.value);
-
-                      setErrores((prev) => ({
-                        ...prev,
-                        fechaFin: false,
-                      }));
-                    }}
-                    disabled={convenioBloqueado}
-                    className={claseFecha(errores.fechaFin)}
-                  />
-
-                  {errores.fechaFin && (
-                    <p className="text-[11px] text-red-500 mt-1">
-                      {fechaInicio && fechaFin
-                        ? "La fecha de fin debe ser posterior o igual a la fecha de inicio."
-                        : "La fecha de fin es obligatoria."}
-                    </p>
-                  )}
-                </div>
-
-              </div>
-            </div>
-
-            {/* CARGAR FORMATO */}
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-bold text-slate-800">
-                  Cargar Formato Convenido
+              <div>
+                <h2 className="text-sm font-bold text-slate-800 mb-2">
+                  Fechas del convenio
                 </h2>
 
-                <button
-                  onClick={handleDescargarFormato}
-                  className="
-                    flex items-center gap-1
-                    text-xs font-semibold text-slate-500
-                    hover:text-red-600 transition-colors
-                  "
-                >
-                  <Download size={13} />
-                  Descargar formato
-                </button>
+                <div className="grid grid-cols-2 gap-3">
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">
+                      Fecha inicio
+                    </label>
+
+                    <input
+                      type="date"
+                      value={fechaInicio}
+                      onChange={(e) => {
+                        setFechaInicio(e.target.value);
+
+                        setErrores((prev) => ({
+                          ...prev,
+                          fechaInicio: false,
+                        }));
+                      }}
+                      disabled={convenioBloqueado}
+                      className={claseFecha(errores.fechaInicio)}
+                    />
+
+                    {errores.fechaInicio && (
+                      <p className="text-[11px] text-red-500 mt-1">
+                        {fechaInicio && fechaFin
+                          ? "La fecha de inicio debe ser anterior o igual a la fecha de fin."
+                          : "La fecha de inicio es obligatoria."}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">
+                      Fecha fin
+                    </label>
+
+                    <input
+                      type="date"
+                      value={fechaFin}
+                      onChange={(e) => {
+                        setFechaFin(e.target.value);
+
+                        setErrores((prev) => ({
+                          ...prev,
+                          fechaFin: false,
+                        }));
+                      }}
+                      disabled={convenioBloqueado}
+                      className={claseFecha(errores.fechaFin)}
+                    />
+
+                    {errores.fechaFin && (
+                      <p className="text-[11px] text-red-500 mt-1">
+                        {fechaInicio && fechaFin
+                          ? "La fecha de fin debe ser posterior o igual a la fecha de inicio."
+                          : "La fecha de fin es obligatoria."}
+                      </p>
+                    )}
+                  </div>
+
+                </div>
               </div>
 
-              {/* APROBADO */}
+              {/* CARGAR FORMATO */}
 
-              {estado === "APROBADO" ? (
-                <div className="
-                  w-full h-32 border-2 border-slate-200
-                  rounded-2xl bg-slate-50
-                  flex flex-col items-center justify-center
-                ">
-                  <CheckCircle2
-                    size={24}
-                    className="text-emerald-500 mb-1"
-                  />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-sm font-bold text-slate-800">
+                    Cargar Formato Convenido
+                  </h2>
 
-                  <p className="text-sm font-semibold text-slate-700">
-                    Convenio aprobado
-                  </p>
+                  <button
+                    onClick={handleDescargarFormato}
+                    className="
+                      flex items-center gap-1
+                      text-xs font-semibold text-slate-500
+                      hover:text-red-600 transition-colors
+                    "
+                  >
+                    <Download size={13} />
+                    Descargar modelo (.docx)
+                  </button>
+                </div>
 
-                  <p className="text-xs text-slate-400 text-center px-4">
-                    No puedes modificar este convenio mientras esté vigente.
-                  </p>
+                {/* APROBADO */}
 
-                  {archivoActual && (
+                {estado === "APROBADO" ? (
+                  <div className="
+                    w-full h-32 border-2 border-slate-200
+                    rounded-2xl bg-slate-50
+                    flex flex-col items-center justify-center
+                  ">
+                    <CheckCircle2
+                      size={24}
+                      className="text-emerald-500 mb-1"
+                    />
+
+                    <p className="text-sm font-semibold text-slate-700">
+                      Convenio aprobado
+                    </p>
+
+                    <p className="text-xs text-slate-400 text-center px-4">
+                      No puedes modificar este convenio mientras esté vigente.
+                    </p>
+
+                    {archivoActual && (
+                      <button
+                        onClick={() =>
+                          abrirModalPDF(
+                            archivoActual,
+                            "Convenio aprobado"
+                          )
+                        }
+                        className="
+                          flex items-center gap-1
+                          text-xs font-bold text-blue-600
+                          hover:text-blue-800 mt-1
+                        "
+                      >
+                        <Eye size={13} />
+                        Ver convenio
+                      </button>
+                    )}
+                  </div>
+
+                ) : estado === "VENCIDO" ? (
+
+                  /* VENCIDO */
+
+                  <div className="
+                    w-full h-32 border-2 border-slate-300
+                    rounded-2xl bg-slate-50
+                    flex flex-col items-center justify-center px-6
+                  ">
+                    <Clock
+                      size={24}
+                      className="text-slate-500 mb-1"
+                    />
+
+                    <p className="text-sm font-semibold text-slate-700">
+                      Convenio vencido
+                    </p>
+
+                    <p className="text-xs text-slate-400 text-center">
+                      Este convenio no puede modificarse.
+                      Debes cargar uno nuevo.
+                    </p>
+
+                    <button
+                      onClick={prepararNuevoConvenio}
+                      className="
+                        mt-2 flex items-center gap-1
+                        text-xs font-bold text-red-600
+                        hover:text-red-700
+                      "
+                    >
+                      <UploadCloud size={13} />
+                      Cargar nuevo convenio
+                    </button>
+                  </div>
+
+                ) : archivo ? (
+
+                  /* PDF NUEVO */
+
+                  <div className="
+                    w-full h-32 border-2 rounded-2xl bg-white
+                    flex flex-col items-center justify-center
+                    px-6 relative border-slate-200
+                  ">
+                    <button
+                      onClick={handleQuitarArchivo}
+                      className="
+                        absolute top-2 right-2
+                        text-slate-400 hover:text-red-600
+                      "
+                      title="Quitar archivo"
+                    >
+                      <X size={16} />
+                    </button>
+
+                    <FileText
+                      size={24}
+                      className="text-red-500 mb-1"
+                    />
+
+                    <p className="
+                      text-sm font-semibold text-slate-700
+                      text-center truncate max-w-[220px]
+                    ">
+                      {archivo.name}
+                    </p>
+
+                    <p className="text-xs text-slate-400 mb-1.5">
+                      {(archivo.size / 1024).toFixed(0)} KB
+                    </p>
+
+                    <button
+                      onClick={handleVerPreview}
+                      className="
+                        flex items-center gap-1
+                        text-xs font-bold text-blue-600
+                        hover:text-blue-800
+                      "
+                    >
+                      <Eye size={13} />
+                      Ver
+                    </button>
+                  </div>
+
+                ) : archivoActual ? (
+
+                  /* ARCHIVO ACTUAL */
+
+                  <div className="
+                    w-full h-32 border-2 rounded-2xl bg-white
+                    flex flex-col items-center justify-center
+                    px-6 relative border-slate-200
+                  ">
+                    <FileText
+                      size={24}
+                      className="text-red-500 mb-1"
+                    />
+
+                    <p className="
+                      text-sm font-semibold text-slate-700
+                      text-center truncate max-w-[260px]
+                    ">
+                      Convenio actual
+                    </p>
+
+                    <p className="text-xs text-slate-400 mb-1.5">
+                      Se conservará si no seleccionas otro archivo
+                    </p>
+
                     <button
                       onClick={() =>
                         abrirModalPDF(
                           archivoActual,
-                          "Convenio aprobado"
+                          "Convenio actual"
                         )
                       }
                       className="
                         flex items-center gap-1
                         text-xs font-bold text-blue-600
-                        hover:text-blue-800 mt-1
+                        hover:text-blue-800
                       "
                     >
                       <Eye size={13} />
-                      Ver convenio
+                      Ver
                     </button>
-                  )}
-                </div>
+                  </div>
 
-              ) : estado === "VENCIDO" ? (
+                ) : (
 
-                /* VENCIDO */
+                  /* CARGAR PDF */
 
-                <div className="
-                  w-full h-32 border-2 border-slate-300
-                  rounded-2xl bg-slate-50
-                  flex flex-col items-center justify-center px-6
-                ">
-                  <Clock
-                    size={24}
-                    className="text-slate-500 mb-1"
-                  />
+                  <label
+                    htmlFor="convenio-pdf"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={handleDrop}
+                    className={`
+                      flex flex-col items-center justify-center
+                      w-full h-32 border-2 border-dashed
+                      rounded-2xl bg-white cursor-pointer
+                      transition-colors
 
-                  <p className="text-sm font-semibold text-slate-700">
-                    Convenio vencido
-                  </p>
-
-                  <p className="text-xs text-slate-400 text-center">
-                    Este convenio no puede modificarse.
-                    Debes cargar uno nuevo.
-                  </p>
-
-                  <button
-                    onClick={prepararNuevoConvenio}
-                    className="
-                      mt-2 flex items-center gap-1
-                      text-xs font-bold text-red-600
-                      hover:text-red-700
-                    "
-                  >
-                    <UploadCloud size={13} />
-                    Cargar nuevo convenio
-                  </button>
-                </div>
-
-              ) : archivo ? (
-
-                /* PDF NUEVO */
-
-                <div className="
-                  w-full h-32 border-2 rounded-2xl bg-white
-                  flex flex-col items-center justify-center
-                  px-6 relative border-slate-200
-                ">
-                  <button
-                    onClick={handleQuitarArchivo}
-                    className="
-                      absolute top-2 right-2
-                      text-slate-400 hover:text-red-600
-                    "
-                    title="Quitar archivo"
-                  >
-                    <X size={16} />
-                  </button>
-
-                  <FileText
-                    size={24}
-                    className="text-red-500 mb-1"
-                  />
-
-                  <p className="
-                    text-sm font-semibold text-slate-700
-                    text-center truncate max-w-[220px]
-                  ">
-                    {archivo.name}
-                  </p>
-
-                  <p className="text-xs text-slate-400 mb-1.5">
-                    {(archivo.size / 1024).toFixed(0)} KB
-                  </p>
-
-                  <button
-                    onClick={handleVerPreview}
-                    className="
-                      flex items-center gap-1
-                      text-xs font-bold text-blue-600
-                      hover:text-blue-800
-                    "
-                  >
-                    <Eye size={13} />
-                    Ver
-                  </button>
-                </div>
-
-              ) : archivoActual ? (
-
-                /* ARCHIVO ACTUAL */
-
-                <div className="
-                  w-full h-32 border-2 rounded-2xl bg-white
-                  flex flex-col items-center justify-center
-                  px-6 relative border-slate-200
-                ">
-                  <FileText
-                    size={24}
-                    className="text-red-500 mb-1"
-                  />
-
-                  <p className="
-                    text-sm font-semibold text-slate-700
-                    text-center truncate max-w-[260px]
-                  ">
-                    Convenio actual
-                  </p>
-
-                  <p className="text-xs text-slate-400 mb-1.5">
-                    Se conservará si no seleccionas otro archivo
-                  </p>
-
-                  <button
-                    onClick={() =>
-                      abrirModalPDF(
-                        archivoActual,
-                        "Convenio actual"
-                      )
-                    }
-                    className="
-                      flex items-center gap-1
-                      text-xs font-bold text-blue-600
-                      hover:text-blue-800
-                    "
-                  >
-                    <Eye size={13} />
-                    Ver
-                  </button>
-                </div>
-
-              ) : (
-
-                /* CARGAR PDF */
-
-                <label
-                  htmlFor="convenio-pdf"
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleDrop}
-                  className={`
-                    flex flex-col items-center justify-center
-                    w-full h-32 border-2 border-dashed
-                    rounded-2xl bg-white cursor-pointer
-                    transition-colors
-
-                    ${
-                      errores.archivo
+                      ${errores.archivo
                         ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
                         : "border-red-300 hover:bg-red-50/40"
-                    }
-                  `}
-                >
-                  <UploadCloud
-                    size={24}
-                    className="text-slate-800 mb-1.5"
-                  />
+                      }
+                    `}
+                  >
+                    <UploadCloud
+                      size={24}
+                      className="text-slate-800 mb-1.5"
+                    />
 
-                  <span className="text-sm font-semibold text-slate-700">
-                    Cargar el PDF
-                  </span>
-
-                  {errores.archivo && (
-                    <span className="text-[11px] text-red-500 mt-1">
-                      Debes seleccionar un archivo PDF
+                    <span className="text-sm font-semibold text-slate-700">
+                      Cargar el PDF
                     </span>
-                  )}
 
-                  <input
-                    id="convenio-pdf"
-                    ref={fileInputRef}
-                    type="file"
-                    accept="application/pdf"
-                    className="hidden"
-                    onChange={handleSelectFile}
-                  />
-                </label>
-              )}
-            </div>
+                    {errores.archivo && (
+                      <span className="text-[11px] text-red-500 mt-1">
+                        Debes seleccionar un archivo PDF
+                      </span>
+                    )}
 
-            {/* BOTÓN ENVIAR */}
+                    <input
+                      id="convenio-pdf"
+                      ref={fileInputRef}
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={handleSelectFile}
+                    />
+                  </label>
+                )}
+              </div>
 
-            <button
-              onClick={handleEnviar}
-              disabled={
-                enviando ||
-                estado === "APROBADO"
-              }
-              className="
-                mx-auto flex items-center justify-center gap-2
-                bg-red-600 hover:bg-red-700
-                disabled:opacity-60 disabled:cursor-not-allowed
-                text-white font-bold text-sm
-                px-7 py-2.5 rounded-2xl transition-colors
-              "
-            >
-              {modoBoton(estado, tieneConvenio, enviando)}
-            </button>
+              {/* BOTÓN ENVIAR */}
 
-            {/* TABLA */}
+              <button
+                onClick={handleEnviar}
+                disabled={
+                  enviando ||
+                  estado === "APROBADO"
+                }
+                className="
+                  mx-auto flex items-center justify-center gap-2
+                  bg-red-600 hover:bg-red-700
+                  disabled:opacity-60 disabled:cursor-not-allowed
+                  text-white font-bold text-sm
+                  px-7 py-2.5 rounded-2xl transition-colors
+                "
+              >
+                {modoBoton(estado, tieneConvenio, enviando)}
+              </button>
 
-            <div>
-              <h2 className="text-base font-extrabold text-slate-800 mb-2">
-                Convenios
-              </h2>
+              {/* TABLA */}
 
-              <GenericTable
-                rows={rows}
-                currentPage={currentPage}
-                onPageChange={setCurrentPage}
-                columns={[
-                  {
-                    key: "fechaFin",
-                    label: "Fecha de fin",
-                    primary: true,
-                  },
-                  {
-                    key: "estado",
-                    label: "Estado",
-                    render: (row) => (
-                      <EstadoBadge estado={row.estado} />
-                    ),
-                  },
-                ]}
-                actions={[
-                  {
-                    icon: <Eye size={16} />,
-                    className: "text-blue-600 hover:bg-blue-50",
-                    onClick: (id) => {
-                      loadConvenioActual(id);
+              <div>
+                <h2 className="text-base font-extrabold text-slate-800 mb-2">
+                  Convenios
+                </h2>
+
+                <GenericTable
+                  rows={rows}
+                  currentPage={currentPage}
+                  onPageChange={setCurrentPage}
+                  columns={[
+                    {
+                      key: "fechaFin",
+                      label: "Fecha de fin",
+                      primary: true,
                     },
-                  },
-                  {
-                    icon: <Download size={16} />,
-                    className: "text-slate-600 hover:bg-slate-100",
-                    onClick: (id) => {
-                      const convenio = rows.find(
-                        (item) => item.id === id
-                      );
-
-                      handleDescargarConvenio(
-                        convenio?.archivo,
-                        `convenio-${id}.pdf`
-                      );
+                    {
+                      key: "estado",
+                      label: "Estado",
+                      render: (row) => (
+                        <EstadoBadge estado={row.estado} />
+                      ),
                     },
-                  },
-                ]}
-                emptyMessage="No hay convenios registrados."
-                pageSize={3}
-              />
-            </div>
-          </div>
+                  ]}
+                  actions={[
+                    {
+                      icon: <Eye size={16} />,
+                      className: "text-blue-600 hover:bg-blue-50",
+                      onClick: (id) => {
+                        loadConvenioActual(id);
+                      },
+                    },
+                    {
+                      icon: <Download size={16} />,
+                      className: "text-slate-600 hover:bg-slate-100",
+                      onClick: (id) => {
+                        const convenio = rows.find(
+                          (item) => item.id === id
+                        );
 
-          {/* =====================================================
-              COLUMNA DERECHA
-          ===================================================== */}
-
-          <div className="flex flex-col gap-4">
-
-            <EstadoPanel estado={estado} />
-
-            <div className="flex-1 flex flex-col min-h-0">
-              <h2 className="text-sm font-bold text-slate-800 mb-2">
-                Trazabilidad
-              </h2>
-
-              <div className="
-                flex-1 bg-white border border-slate-200
-                rounded-2xl p-4 min-h-[300px] max-h-[420px]
-              ">
-                <TrazabilidadTimeline eventos={trazabilidad} />
+                        handleDescargarConvenio(
+                          convenio?.archivo,
+                          `convenio-${id}.pdf`
+                        );
+                      },
+                    },
+                  ]}
+                  emptyMessage="No hay convenios registrados."
+                  pageSize={3}
+                />
               </div>
             </div>
 
+            {/* =================================================
+                COLUMNA DERECHA
+            ================================================= */}
+
+            <div className="flex flex-col gap-4">
+
+              <EstadoPanel estado={estado} />
+
+              <div className="flex-1 flex flex-col min-h-0">
+                <h2 className="text-sm font-bold text-slate-800 mb-2">
+                  Trazabilidad
+                </h2>
+
+                <div className="
+                  flex-1 bg-white border border-slate-200
+                  rounded-2xl p-4 min-h-[300px] max-h-[420px]
+                ">
+                  <TrazabilidadTimeline eventos={trazabilidad} />
+                </div>
+              </div>
+
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* =========================================================

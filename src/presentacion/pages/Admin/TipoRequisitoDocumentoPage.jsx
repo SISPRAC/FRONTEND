@@ -7,10 +7,7 @@ import AddButton from "../../components/buttons/AddButton";
 import DeleteModal from "../../components/modals/DeleteModal";
 import TipoRequisitoDocumentoModal from "../../components/modals/TipoRequisitoDocumentoModal.jsx";
 
-import { rolRepository } from "../../../infraestructura/repository/rolRepository.js";
 import { tipoRequisitoDocumentoRepository } from "../../../infraestructura/repository/tipoRequisitoDocumentoRepository.js";
-
-import { getRoles } from "../../../aplicacion/rol/getRoles.js";
 
 import { crearTipoRequisitoDocumento } from "../../../aplicacion/tipoRequisitoDocumento/crearTipoRequisitoDocumento.js";
 import { obtenerTiposRequisitoDocumento } from "../../../aplicacion/tipoRequisitoDocumento/obtenerTiposRequisitoDocumento.js";
@@ -18,14 +15,11 @@ import { obtenerTipoRequisitoDocumento } from "../../../aplicacion/tipoRequisito
 import { actualizarTipoRequisitoDocumento } from "../../../aplicacion/tipoRequisitoDocumento/actualizarTipoRequisitoDocumento.js";
 import { eliminarTipoRequisitoDocumento } from "../../../aplicacion/tipoRequisitoDocumento/eliminarTipoRequisitoDocumento.js";
 
+const ROL_PRACTICANTE_ID = 4;
 
 export default function TipoRequisitoDocumentoPage() {
-
-    const [roles, setRoles] = useState([]);
-
-    const [rolSeleccionado, setRolSeleccionado] = useState("");
-
     const [rows, setRows] = useState([]);
+    const [busqueda, setBusqueda] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -35,419 +29,169 @@ export default function TipoRequisitoDocumentoPage() {
     const [deleteModal, setDeleteModal] = useState(false);
     const [requisitoToDelete, setRequisitoToDelete] = useState(null);
 
-
     useEffect(() => {
-
-        loadRoles();
         loadRequisitos();
-
     }, []);
 
-
-    const loadRoles = async () => {
-
-        try {
-
-            const data = await getRoles(
-                rolRepository
-            );
-
-            setRoles(data.roles);
-
-        } catch (error) {
-
-            console.log(error);
-
-            toast.error(
-                "Error al cargar los roles"
-            );
-
-        }
-
-    };
-
-
     const loadRequisitos = async () => {
-
         try {
+            const data = await obtenerTiposRequisitoDocumento({
+                tipoRequisitoDocumentoRepository
+            });
 
-            const data =
-                await obtenerTiposRequisitoDocumento(
-                    {
-                        tipoRequisitoDocumentoRepository
-                    }
-                );
-
-            console.log(data);
-
-            setRows(data);
+            setRows(Array.isArray(data) ? data : data?.data || []);
             setCurrentPage(1);
-
         } catch (error) {
-
             console.log(error);
-
-            toast.error(
-                "Error al cargar los requisitos documentales"
-            );
-
+            toast.error("No fue posible cargar los requisitos documentales.");
         }
-
     };
 
-
+    // Solo practicantes + filtro por búsqueda
     const rowsFiltradas = useMemo(() => {
+        const termino = busqueda.trim().toLowerCase();
 
-        if (!rolSeleccionado)
-            return rows;
+        return rows.filter(row => {
+            if (Number(row.rol_id) !== ROL_PRACTICANTE_ID) return false;
+            if (!termino) return true;
 
-        return rows.filter(
-            row =>
-                row.rol_id === Number(
-                    rolSeleccionado
-                )
-        );
+            return (
+                row.nombre?.toLowerCase().includes(termino) ||
+                row.descripcion?.toLowerCase().includes(termino)
+            );
+        });
+    }, [rows, busqueda]);
 
-    }, [rows, rolSeleccionado]);
+    const buildFormData = (formData) => {
+        const data = new FormData();
 
+        data.append("nombre", formData.nombre);
+        data.append("descripcion", formData.descripcion);
+        data.append("rol_id", ROL_PRACTICANTE_ID);
+        data.append("obligatorio", formData.obligatorio);
+        data.append("estado", formData.estado);
+
+        if (formData.archivo) {
+            data.append("archivo", formData.archivo);
+        }
+
+        return data;
+    };
 
     const handleCreate = () => {
-
         setSelectedRequisito(null);
-
         setMode("create");
-
         setIsOpen(true);
-
     };
-
 
     const handleEdit = async (id) => {
-
         try {
+            const data = await obtenerTipoRequisitoDocumento(
+                { tipoRequisitoDocumentoRepository },
+                id
+            );
 
-            const requisito =
-                await obtenerTipoRequisitoDocumento(
-                    {
-                        tipoRequisitoDocumentoRepository
-                    },
-                    id
-                );
+            const requisito = data?.data || data;
 
             if (!requisito) {
-
-                toast.error(
-                    "No se encontró el requisito."
-                );
-
+                toast.error("No se encontró el requisito.");
                 return;
-
             }
 
-            setSelectedRequisito(
-                requisito
-            );
-
+            setSelectedRequisito(requisito);
             setMode("edit");
-
             setIsOpen(true);
-
         } catch (error) {
-
             console.log(error);
-
             toast.error(
-                error.response?.data?.message ||
-                "Error al cargar el requisito."
+                error.response?.data?.message || "Error al cargar el requisito."
             );
-
         }
-
     };
-
 
     const handleSave = async (formData) => {
-
         try {
-
-            const data = new FormData();
-
-            data.append(
-                "nombre",
-                formData.nombre
-            );
-
-            data.append(
-                "descripcion",
-                formData.descripcion
-            );
-
-            data.append(
-                "rol_id",
-                formData.rol_id
-            );
-
-            data.append(
-                "obligatorio",
-                formData.obligatorio
-            );
-
-            data.append(
-                "estado",
-                formData.estado
-            );
-
-
-            if (formData.archivo) {
-
-                data.append(
-                    "archivo",
-                    formData.archivo
-                );
-
-            }
-
-
             await crearTipoRequisitoDocumento(
-                {
-                    tipoRequisitoDocumentoRepository
-                },
-                data
+                { tipoRequisitoDocumentoRepository },
+                buildFormData(formData)
             );
-
 
             await loadRequisitos();
-
-            toast.success(
-                "Tipo de requisito creado."
-            );
-
+            toast.success("Requisito creado.");
             setIsOpen(false);
-
         } catch (error) {
-
             console.log(error);
-
             toast.error(
-                error.response?.data?.message ||
-                "Error al crear el requisito."
+                error.response?.data?.message || "Error al crear el requisito."
             );
-
         }
-
     };
 
-
     const handleUpdate = async (formData) => {
-
         try {
-
-            const data = new FormData();
-
-            data.append(
-                "nombre",
-                formData.nombre
-            );
-
-            data.append(
-                "descripcion",
-                formData.descripcion
-            );
-
-            data.append(
-                "rol_id",
-                formData.rol_id
-            );
-
-            data.append(
-                "obligatorio",
-                formData.obligatorio
-            );
-
-            data.append(
-                "estado",
-                formData.estado
-            );
-
-
-            if (formData.archivo) {
-
-                data.append(
-                    "archivo",
-                    formData.archivo
-                );
-
-            }
-
-
             await actualizarTipoRequisitoDocumento(
-                {
-                    tipoRequisitoDocumentoRepository
-                },
+                { tipoRequisitoDocumentoRepository },
                 formData.id,
-                data
+                buildFormData(formData)
             );
-
 
             await loadRequisitos();
-
-            toast.success(
-                "Tipo de requisito actualizado."
-            );
-
+            toast.success("Requisito actualizado.");
             setIsOpen(false);
-
         } catch (error) {
-
             console.log(error);
-
             toast.error(
-                error.response?.data?.message ||
-                "Error al actualizar."
+                error.response?.data?.message || "Error al actualizar."
             );
-
         }
-
     };
 
     const deleteRow = (id) => {
-
-        const requisito =
-            rows.find(
-                row => row.id === id
-            );
-
-        setRequisitoToDelete(
-            requisito
-        );
-
+        setRequisitoToDelete(rows.find(row => row.id === id));
         setDeleteModal(true);
-
     };
 
-
     const handleDelete = async () => {
-
         try {
-
             await eliminarTipoRequisitoDocumento(
-                {
-                    tipoRequisitoDocumentoRepository
-                },
+                { tipoRequisitoDocumentoRepository },
                 requisitoToDelete.id
             );
 
             await loadRequisitos();
-
-            toast.success(
-                "Tipo de requisito eliminado."
-            );
-
+            toast.success("Requisito eliminado.");
             setDeleteModal(false);
-
             setRequisitoToDelete(null);
-
         } catch (error) {
-
             console.log(error);
-
             toast.error(
-                error.response?.data?.message ||
-                "Error al eliminar."
+                error.response?.data?.message || "Error al eliminar."
             );
-
         }
-
     };
 
-
     return (
-
         <div>
-
-            <h1
-                className="
-                    text-[26px]
-                    font-extrabold
-                    text-slate-800
-                    text-center
-                    mb-7
-                    tracking-tight
-                "
-            >
-                Tipos de Requisitos Documentales
+            <h1 className="text-[26px] font-extrabold text-slate-800 text-center mb-7 tracking-tight">
+                Requisitos Documentales
             </h1>
 
+            <div className="bg-white rounded-2xl shadow-sm border p-5 mb-6">
+                <label className="block mb-2 font-semibold text-slate-700">
+                    Buscar documento
+                </label>
 
-            <div
-                className="
-                    bg-white
-                    rounded-2xl
-                    shadow-sm
-                    border
-                    p-5
-                    mb-6
-                "
-            >
-
-                <div>
-
-                    <label
-                        className="
-                            block
-                            mb-2
-                            font-semibold
-                            text-slate-700
-                        "
-                    >
-                        Rol
-                    </label>
-
-
-                    <select
-                        value={rolSeleccionado}
-                        onChange={(e) =>
-                            setRolSeleccionado(
-                                e.target.value
-                            )
-                        }
-                        className="
-                            w-full
-                            rounded-xl
-                            border
-                            p-3
-                            focus:outline-none
-                            focus:ring-2
-                            focus:ring-[#e8192c]
-                        "
-                    >
-
-                        <option value="">
-                            Todos los roles
-                        </option>
-
-
-                        {
-                            roles.map(
-                                rol => (
-
-                                    <option
-                                        key={rol.id}
-                                        value={rol.id}
-                                    >
-                                        {rol.nombre}
-                                    </option>
-
-                                )
-                            )
-                        }
-
-                    </select>
-
-                </div>
-
+                <input
+                    type="text"
+                    value={busqueda}
+                    onChange={(e) => {
+                        setBusqueda(e.target.value);
+                        setCurrentPage(1);
+                    }}
+                    placeholder="Buscar por nombre o descripción..."
+                    className="w-full rounded-xl border p-3 focus:outline-none focus:ring-2 focus:ring-[#e8192c]"
+                />
             </div>
-
 
             <GenericTable
                 rows={rowsFiltradas}
@@ -455,110 +199,67 @@ export default function TipoRequisitoDocumentoPage() {
                 onPageChange={setCurrentPage}
                 pageSize={8}
                 emptyMessage={
-                    rolSeleccionado
-                        ? "No existen requisitos para este rol."
-                        : "No existen tipos de requisitos documentales."
+                    busqueda
+                        ? "No se encontraron documentos con ese nombre."
+                        : "No hay requisitos documentales registrados para practicantes."
                 }
                 columns={[
-                    {
-                        key: "nombre",
-                        label: "Documento",
-                        primary: true
-                    },
-                    {
-                        key: "rol",
-                        label: "Rol",
-                        render: row =>
-                            row.rol?.nombre ||
-                            ""
-                    },
+                    { key: "nombre", label: "Documento", primary: true },
                     {
                         key: "descripcion",
-                        label: "Descripción"
+                        label: "Descripción",
+                        render: row => row.descripcion || "Sin descripción"
                     },
                     {
                         key: "obligatorio",
                         label: "Obligatorio",
-                        render: row =>
-                            row.obligatorio
-                                ? "Sí"
-                                : "No"
+                        render: row => (row.obligatorio ? "Sí" : "No")
                     },
                     {
                         key: "plantilla",
                         label: "Plantilla",
-                        render: row =>
-                            row.plantilla
-                                ? "Disponible"
-                                : "Sin plantilla"
+                        render: row => (row.plantilla ? "Disponible" : "Sin plantilla")
                     },
                     {
                         key: "estado",
                         label: "Estado",
-                        render: row =>
-                            row.estado
-                                ? "Activo"
-                                : "Inactivo"
+                        render: row => (row.estado ? "Activo" : "Inactivo")
                     }
                 ]}
                 actions={[
                     {
-                        icon:
-                            <SquarePen size={22} />,
-                        className:
-                            "hover:bg-blue-100",
+                        icon: <SquarePen size={22} />,
+                        className: "hover:bg-blue-100",
                         onClick: handleEdit
                     },
                     {
-                        icon:
-                            <Trash size={22} />,
-                        className:
-                            "hover:bg-red-100",
+                        icon: <Trash size={22} />,
+                        className: "hover:bg-red-100",
                         onClick: deleteRow
                     }
                 ]}
             />
 
-
-            <AddButton
-                onClick={handleCreate}
-            />
-
+            <AddButton onClick={handleCreate} />
 
             <TipoRequisitoDocumentoModal
                 isOpen={isOpen}
-                onClose={() =>
-                    setIsOpen(false)
-                }
-                onSubmit={
-                    mode === "edit"
-                        ? handleUpdate
-                        : handleSave
-                }
-                requisito={
-                    selectedRequisito
-                }
-                roles={roles}
+                onClose={() => setIsOpen(false)}
+                onSubmit={mode === "edit" ? handleUpdate : handleSave}
+                requisito={selectedRequisito}
+                mode={mode}
             />
-
 
             <DeleteModal
                 isOpen={deleteModal}
                 onClose={() => {
-
                     setDeleteModal(false);
                     setRequisitoToDelete(null);
-
                 }}
                 onConfirm={handleDelete}
-                title="Eliminar tipo de requisito documental"
-                message={
-                    `¿Desea eliminar el documento "${requisitoToDelete?.nombre}"?`
-                }
+                title="Eliminar requisito documental"
+                message={`¿Desea eliminar el documento "${requisitoToDelete?.nombre}"?`}
             />
-
         </div>
-
     );
-
 }

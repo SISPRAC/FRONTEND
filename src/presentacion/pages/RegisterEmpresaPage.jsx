@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import EmpresaForm from "../components/EmpresaForm";
+import EmpresaForm, { normalizarNombre } from "../components/EmpresaForm";
 
 import { registerEmpresa } from "../../aplicacion/empresa/RegistrarEmpresa.js";
 import { EmpresaRepository } from "../../infraestructura/repository/empresaRepository.js";
@@ -9,9 +9,22 @@ import { validarInvitacionService } from "../../aplicacion/services/invitacionSe
 
 import toast from "react-hot-toast";
 
+// Campos de texto que no pueden ir vacíos (el logo se valida aparte)
+const CAMPOS_OBLIGATORIOS = [
+  "nit",
+  "nombre",
+  "nombres",
+  "apellidos",
+  "cedula",
+  "correo",
+  "direccion",
+  "telefono",
+  "password",
+  "tipo_documento",
+  "descripcion_perfil",
+];
 
 export default function RegisterEmpresaPage() {
-
   const navigate = useNavigate();
 
   const [params] = useSearchParams();
@@ -22,14 +35,13 @@ export default function RegisterEmpresaPage() {
 
   const token = params.get("token");
 
-  console.log("Token de la URL:", token);
-
-
   // =========================================================
   // ESTADOS
   // =========================================================
 
   const [valido, setValido] = useState(null);
+
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     nit: "",
@@ -41,430 +53,210 @@ export default function RegisterEmpresaPage() {
     direccion: "",
     telefono: "",
     password: "",
-    tipo_documento: "",
+    tipo_documento: "CC",
+    es_publica: true, // por defecto la empresa inicia como pública
+    descripcion_perfil: "",
     logo: null,
   });
 
   const [errors, setErrors] = useState({});
-
-  const [backendError, setBackendError] = useState("");
-
 
   // =========================================================
   // VALIDAR TOKEN AL ENTRAR
   // =========================================================
 
   useEffect(() => {
-
     if (!token) {
-
       setValido(false);
-
       return;
-
     }
 
-
     const validar = async () => {
-
       try {
-
-        const res =
-          await validarInvitacionService(token);
-
-        console.log(
-          "Respuesta validación invitación:",
-          res.data
-        );
-
+        const res = await validarInvitacionService(token);
 
         if (res.data.valid) {
-
           setValido(true);
 
-
-          // =================================================
-          // DATOS DE LA INVITACIÓN
-          // =================================================
-
-          const invitacion =
-            res.data.invitacion;
-
-
-          // =================================================
-          // CORREO DE LA INVITACIÓN
-          // =================================================
+          // Correo de la invitación
+          const invitacion = res.data.invitacion;
 
           if (invitacion?.correo) {
-
             setForm((prev) => ({
               ...prev,
-              correo: invitacion.correo
+              correo: invitacion.correo,
             }));
-
           }
-
         } else {
-
           setValido(false);
-
         }
-
       } catch (error) {
-
-        console.error(
-          "Error validando invitación:",
-          error
-        );
-
+        console.error("Error validando invitación:", error);
         setValido(false);
-
       }
-
     };
 
-
     validar();
-
   }, [token]);
-
 
   // =========================================================
   // CAMBIOS DEL FORMULARIO
   // =========================================================
 
   const handleChange = (e) => {
-
     let { name, value } = e.target;
 
-
-    // =====================================================
-    // CORREO VIENE DE LA INVITACIÓN
-    // =====================================================
-
+    // El correo viene de la invitación
     if (name === "correo") {
-
       return;
-
     }
 
-
-    // =====================================================
-    // SOLO NÚMEROS
-    // =====================================================
-
-    if (
-      name === "nit" ||
-      name === "cedula" ||
-      name === "telefono"
-    ) {
-
-      value = value.replace(
-        /\D/g,
-        ""
-      );
-
+    // Solo números
+    if (name === "nit" || name === "cedula" || name === "telefono") {
+      value = value.replace(/\D/g, "");
     }
 
-
-    // =====================================================
-    // SOLO LETRAS
-    // =====================================================
-
-    if (
-      name === "nombres" ||
-      name === "apellidos"
-    ) {
-
-      value = value.replace(
-        /[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g,
-        ""
-      );
-
+    // Solo letras
+    if (name === "nombres" || name === "apellidos") {
+      value = value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, "");
     }
-
-
-    // =====================================================
-    // ACTUALIZAR FORMULARIO
-    // =====================================================
 
     setForm((prev) => ({
       ...prev,
       [name]: value,
     }));
 
-
-    // =====================================================
-    // LIMPIAR ERROR
-    // =====================================================
-
+    // Limpiar error del campo
     if (errors[name]) {
-
       setErrors((prev) => ({
         ...prev,
         [name]: undefined,
       }));
-
     }
-
   };
-
 
   // =========================================================
   // SELECCIONAR LOGO
   // =========================================================
 
   const handleFileSelect = (file) => {
-
     setForm((prev) => ({
       ...prev,
-      logo: file
+      logo: file,
     }));
 
-
     if (errors.logo) {
-
       setErrors((prev) => ({
         ...prev,
-        logo: undefined
+        logo: undefined,
       }));
-
     }
-
   };
-
 
   // =========================================================
   // REGISTRAR EMPRESA
   // =========================================================
 
   const handleSubmit = async (e) => {
-
     e.preventDefault();
 
+    if (loading) return;
 
     const newErrors = {};
 
-
-    // =====================================================
-    // CAMPOS OBLIGATORIOS
-    // =====================================================
-
-    Object.keys(form).forEach((key) => {
-
-      // El logo se valida aparte
-
-      if (
-        key !== "logo" &&
-        !form[key]
-      ) {
-
-        newErrors[key] =
-          "Este campo es obligatorio";
-
+    // Campos obligatorios
+    CAMPOS_OBLIGATORIOS.forEach((key) => {
+      if (!String(form[key] ?? "").trim()) {
+        newErrors[key] = "Este campo es obligatorio";
       }
-
     });
 
-
-    // =====================================================
-    // VALIDAR LOGO
-    // =====================================================
-
+    // Logo
     if (!form.logo) {
-
-      newErrors.logo =
-        "El logo de la empresa es obligatorio";
-
+      newErrors.logo = "El logo de la empresa es obligatorio";
     }
 
-
-    // =====================================================
-    // MOSTRAR ERRORES
-    // =====================================================
-
-    if (
-      Object.keys(newErrors).length > 0
-    ) {
-
+    // Mostrar errores
+    if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
 
-      return;
+      const soloLogo =
+        Object.keys(newErrors).length === 1 && newErrors.logo;
 
+      toast.error(
+        soloLogo
+          ? newErrors.logo
+          : "Completa todos los campos obligatorios"
+      );
+
+      return;
     }
 
-
-    // =====================================================
-    // REGISTRO
-    // =====================================================
+    // Registro
+    setLoading(true);
 
     try {
-
       const data = new FormData();
 
-
-      // =====================================================
-      // DATOS DE LA EMPRESA
-      // =====================================================
-
-      data.append(
-        "nit",
-        form.nit
-      );
-
-      data.append(
-        "nombre",
-        form.nombre
-      );
-
-      data.append(
-        "nombres",
-        form.nombres
-      );
-
-      data.append(
-        "apellidos",
-        form.apellidos
-      );
-
-      data.append(
-        "cedula",
-        form.cedula
-      );
-
-      data.append(
-        "correo",
-        form.correo
-      );
-
-      data.append(
-        "direccion",
-        form.direccion
-      );
-
-      data.append(
-        "telefono",
-        form.telefono
-      );
-
-      data.append(
-        "password",
-        form.password
-      );
-
-      data.append(
-        "tipo_documento",
-        form.tipo_documento
-      );
-
-
-      // =====================================================
-      // LOGO
-      // =====================================================
-
-      data.append(
-        "logo",
-        form.logo
-      );
-
-
-      // =====================================================
-      // DEBUG
-      // =====================================================
-
-      console.log(
-        "Datos enviados:"
-      );
-
-      for (
-        const [key, value]
-        of data.entries()
-      ) {
-
-        console.log(
-          key,
-          value
-        );
-
-      }
-
-
-      // =====================================================
-      // REGISTRAR + TOKEN
-      // =====================================================
+      data.append("nit", form.nit);
+      data.append("nombre", form.nombre.trim());
+      data.append("nombres", normalizarNombre(form.nombres));
+      data.append("apellidos", normalizarNombre(form.apellidos));
+      data.append("cedula", form.cedula);
+      data.append("correo", form.correo);
+      data.append("direccion", form.direccion.trim());
+      data.append("telefono", form.telefono);
+      data.append("password", form.password);
+      data.append("tipo_documento", form.tipo_documento);
+      data.append("es_publica", String(form.es_publica)); // "true" | "false"
+      data.append("descripcion_perfil", form.descripcion_perfil.trim());
+      data.append("logo", form.logo);
 
       await registerEmpresa(
         {
-          EmpresaRepository
+          EmpresaRepository,
         },
         data,
         token
       );
 
-
-      // =====================================================
-      // ÉXITO
-      // =====================================================
-
-      toast.success(
-        "Registro exitoso"
-      );
+      toast.success("Registro exitoso");
 
       navigate("/");
-
     } catch (error) {
-
-      console.error(
-        "Error en registro:",
-        error
-      );
-
+      console.error("Error en registro:", error);
 
       const mensaje =
-        error.response?.data?.message ||
-        "Error en el registro";
-
+        error.response?.data?.message || "Error en el registro";
 
       toast.error(mensaje);
-
-
-      setBackendError(mensaje);
-
+    } finally {
+      setLoading(false);
     }
-
   };
-
 
   // =========================================================
   // CARGANDO
   // =========================================================
 
   if (valido === null) {
-
     return (
       <div className="h-screen flex items-center justify-center">
-
         <p className="text-gray-700 font-semibold">
           Validando invitación...
         </p>
-
       </div>
     );
-
   }
-
 
   // =========================================================
   // TOKEN INVÁLIDO
   // =========================================================
 
   if (valido === false) {
-
     return (
       <div className="h-screen flex items-center justify-center bg-gray-100">
-
         <div className="bg-white shadow-lg rounded-2xl p-8 text-center max-w-md">
-
           <h1 className="text-2xl font-bold text-red-600 mb-3">
             Invitación no disponible
           </h1>
@@ -472,14 +264,10 @@ export default function RegisterEmpresaPage() {
           <p className="text-gray-600">
             El enlace de invitación no es válido o ha expirado.
           </p>
-
         </div>
-
       </div>
     );
-
   }
-
 
   // =========================================================
   // FORMULARIO
@@ -492,8 +280,7 @@ export default function RegisterEmpresaPage() {
       onChange={handleChange}
       handleFileSelect={handleFileSelect}
       errors={errors}
-      backendError={backendError}
+      loading={loading}
     />
   );
-
 }

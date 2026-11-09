@@ -2,8 +2,16 @@ import bg from "../../assets/images/backgrounds/fondo.jpg";
 import fondo from "../../assets/images/logo/logo login.png";
 import programa from "../../assets/images/logo/Programa_Ingeniería_de_Sistemas.png";
 import { LoaderCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 
-export default function LoginForm({ onSubmit, onChange, loading = false }) {
+export default function LoginForm({
+    onSubmit,
+    onChange,
+    onGoogleSuccess,
+    onGoogleError,
+    loading = false
+}) {
 
     return (
         <div
@@ -81,9 +89,9 @@ export default function LoginForm({ onSubmit, onChange, loading = false }) {
                                     </label>
                                 </div>
 
-                                <a className="text-sm underline" href="#">
+                                <Link className="text-sm underline" to="/recuperar-password">
                                     ¿Olvidaste la contraseña?
-                                </a>
+                                </Link>
                             </div>
 
                             {/* Botón iniciar sesión */}
@@ -109,21 +117,20 @@ export default function LoginForm({ onSubmit, onChange, loading = false }) {
                             <div className="flex items-center gap-4 w-full my-5">
                                 <div className="w-full h-px bg-gray-300/90"></div>
                                 <p className="w-full text-nowrap text-sm text-gray-500/90">
-                                    o ingresa con email
+                                    o continúa con Google
                                 </p>
                                 <div className="w-full h-px bg-gray-300/90"></div>
                             </div>
 
-                            <button
-                                type="button"
-                                disabled={loading}
-                                className="w-full bg-white flex items-center justify-center h-12 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50"
-                            >
-                                <img
-                                    src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/googleLogo.svg"
-                                    alt="googleLogo"
+                            <div className={`w-full flex justify-center ${loading ? "pointer-events-none opacity-50" : ""}`}>
+                                <GoogleLogin
+                                    onSuccess={(cred) => onGoogleSuccess(cred.credential)}
+                                    onError={onGoogleError}
+                                    shape="pill"
+                                    text="signin_with"
+                                    width="320"
                                 />
-                            </button>
+                            </div>
 
                         </form>
 

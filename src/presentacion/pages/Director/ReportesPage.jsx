@@ -16,13 +16,13 @@ import { obtenerGruposParaReportePorPeriodo } from "../../../aplicacion/grupos/o
 
 import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";
 import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos.js";
-// ⚠️ Ajusta los "../" según dónde esté tu archivo
+
 import logoSisprac from "../../../assets/images/logo/LogoReportes.png";
 import logoSispracPDF from "../../../assets/images/logo/solo_logo.png";
 import logoPrograma from "../../../assets/images/logo/Programa_Ingeniería_de_Sistemas.png";
 
 import GenericTable from "../../components/Table/GenericTable.jsx";
-// ⚠️ Ajusta esta ruta a donde tengas EstadoBadge
+
 import EstadoBadge from "../../components/estadoBadge/EstadoBadge.jsx";
 
 import * as XLSX from "xlsx";
@@ -245,16 +245,17 @@ const TABS = {
     columns: [
       { key: "codigo", label: "Código", primary: true },
       { key: "cedula", label: "Cédula" },
-      { key: "nombreEstudiante", label: "Estudiante" },
+      { key: "nombreEstudiante", label: "Practicante" },
       { key: "correo", label: "Correo" },
       { key: "grupo", label: "Grupo" },
-      {
+      { key: "empresa", label: "Empresa" },
+       { key: "objetivo", label: "Objetivo" },
+        {
         key: "estado",
         label: "Estado",
         render: renderEstado,
         exportValue: exportEstado,
       },
-      { key: "empresa", label: "Empresa" },
 
     ],
   },
@@ -638,7 +639,7 @@ function DescargarMenu({
     }
 
     doc.save(`${fileName}.pdf`);
-  }; // <- cierra descargarPdf
+  }; 
 
   const botonClase = `
   group inline-flex items-center justify-center gap-2

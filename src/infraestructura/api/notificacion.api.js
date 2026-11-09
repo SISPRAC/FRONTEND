@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const notificacionApi = axios.create({
-  baseURL: "http://localhost:3000/api/notificaciones",
-  withCredentials: true
-});
+const notificacionApi = createApi("/notificaciones");
 
 
 const getToken = () => {

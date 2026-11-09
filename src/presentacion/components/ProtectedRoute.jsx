@@ -63,6 +63,7 @@ export default function ProtectedRoute({ roles }) {
 
       setCargandoPerfil(true);
 
+
       try {
 
         const usuarioPerfil = await userRepository.getMe();
@@ -84,7 +85,9 @@ export default function ProtectedRoute({ roles }) {
           error
         );
 
-        if (!cancelado) {
+        // Si es 401, la sesión expiró: el interceptor ya muestra la ventana,
+        // así que no marcamos el perfil como incompleto
+        if (!cancelado && error.response?.status !== 401) {
           setPerfilCompletado(false);
         }
 

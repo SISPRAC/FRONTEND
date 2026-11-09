@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const empresaApi = axios.create({
-    baseURL: "http://localhost:3000/api/empresa",
-    withCredentials: true
-});
+const empresaApi = createApi("/empresa");
 
 
 // =========================================================

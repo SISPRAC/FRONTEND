@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+    useNavigate,
+    useOutletContext
+} from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { userRepository } from "../../infraestructura/repository/userRepository";
@@ -48,7 +51,9 @@ function FieldRow({
     options = null,
     placeholder = "",
     required = false,
-    error = false
+    error = false,
+    min,
+    max
 }) {
 
     const bloqueado = readOnly || disabled;
@@ -117,6 +122,8 @@ function FieldRow({
                     value={value || ""}
                     onChange={onChange}
                     readOnly={bloqueado}
+                    min={min}
+                    max={max}
                     placeholder={placeholder}
                     className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
                         ${bloqueado
@@ -194,6 +201,7 @@ function FieldLarge({
 export default function ActualizarPerfil() {
 
     const navigate = useNavigate();
+    const { setPerfilCompletado } = useOutletContext();
 
     const [form, setForm] = useState({});
     const [perfilOriginal, setPerfilOriginal] = useState({});
@@ -231,7 +239,11 @@ export default function ActualizarPerfil() {
                 const candidato = usuario?.candidato;
                 const practicante = candidato?.practicante;
 
-                setEsPracticante(!!practicante);
+                const rolActivo = localStorage.getItem("rolActivo");
+
+                const esUsuarioPracticante = rolActivo === "Practicante";
+
+                setEsPracticante(esUsuarioPracticante);
 
                 let departamentoId = "";
                 let municipioId = "";
@@ -436,6 +448,36 @@ export default function ActualizarPerfil() {
 
         });
 
+        if (esPracticante && form.fecha_nacimiento) {
+
+            const fechaNacimiento = new Date(
+                `${form.fecha_nacimiento}T00:00:00`
+            );
+
+            const hoy = new Date();
+
+            const fechaMaxima = new Date(
+                hoy.getFullYear() - 18,
+                hoy.getMonth(),
+                hoy.getDate()
+            );
+
+            const fechaMinima = new Date("1900-01-01T00:00:00");
+
+            if (
+                Number.isNaN(fechaNacimiento.getTime()) ||
+                fechaNacimiento > fechaMaxima ||
+                fechaNacimiento < fechaMinima
+            ) {
+                nuevosErrores.fecha_nacimiento = true;
+                hayErrores = true;
+
+                toast.error(
+                    "Debes tener mínimo 18 años y registrar una fecha válida."
+                );
+            }
+        }
+
         setErrors(nuevosErrores);
 
         return !hayErrores;
@@ -489,38 +531,33 @@ export default function ActualizarPerfil() {
                 form
             );
 
-            toast.success(
-                "Perfil actualizado correctamente"
-            );
+            // ACTUALIZAR ESTADO GLOBAL DE LA RUTA PROTEGIDA
+            setPerfilCompletado(true);
+
+            toast.success("Perfil actualizado correctamente");
 
             setPerfilOriginal(form);
             setEditando(false);
 
-            const rolActivo =
-                localStorage.getItem("rolActivo");
+            const rolActivo = localStorage.getItem("rolActivo");
 
             if (rolActivo === "Practicante") {
 
-                navigate(
-                    "/homePracticante",
-                    { replace: true }
-                );
+                navigate("/homePracticante", {
+                    replace: true
+                });
 
             } else {
 
-                navigate(
-                    "/homeCandidato",
-                    { replace: true }
-                );
+                navigate("/homeCandidato", {
+                    replace: true
+                });
 
             }
 
         } catch (error) {
 
-            console.error(
-                "Error actualizando perfil:",
-                error
-            );
+            console.error("Error actualizando perfil:", error);
 
             toast.error(
                 error.response?.data?.message ||
@@ -533,7 +570,6 @@ export default function ActualizarPerfil() {
 
         }
     };
-
 
     if (loading) {
 
@@ -768,6 +804,12 @@ export default function ActualizarPerfil() {
                                     value={form.fecha_nacimiento}
                                     onChange={handleChange}
                                     disabled={!editando}
+                                    max={new Date(
+                                        new Date().setFullYear(
+                                            new Date().getFullYear() - 18
+                                        )
+                                    ).toISOString().split("T")[0]}
+                                    min="1900-01-01"
                                     required
                                     error={errors.fecha_nacimiento}
                                 />

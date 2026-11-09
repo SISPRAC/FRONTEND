@@ -1,671 +1,481 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Download,
-    Upload,
-    X,
-    Paperclip,
     FileSpreadsheet,
     FileText,
-    File,
     Clock,
-    CheckCircle2
+    CheckCircle2,
+    CalendarDays,
+    CalendarCheck,
+    Users,
+    ChevronDown,
+    Loader2
 } from "lucide-react";
 
 import GenericTable from "../../components/Table/GenericTable";
 
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 import { practicanteRepository } from "../../../infraestructura/repository/practicanteRepository.js";
 import { practicaRepository } from "../../../infraestructura/repository/practicaRepository.js";
 
-import { getPracticantes } from "../../../aplicacion/practicante/getPracticantes.js";
-import { actualizarArlPractica } from "../../../aplicacion/practica/actualizarArlPractica.js";
 import { obtenerPracticantesPorPractica } from "../../../aplicacion/practicante/obtenerPracticantesPorPractica.js";
 import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";
+
+import logoSisprac from "../../../assets/images/logo/LogoReportes.png";
+import logoSispracPDF from "../../../assets/images/logo/solo_logo.png";
+import logoPrograma from "../../../assets/images/logo/Programa_Ingeniería_de_Sistemas.png";
 
 import toast from "react-hot-toast";
 
 
 // -----------------------------------------------------------------------
-// Encabezados para exportar
+// Configuración de columnas (se usa en la tabla, el Excel y el PDF)
 // -----------------------------------------------------------------------
 
-const FIELDS = [
-    "tipoDoc",
-    "numDoc",
-    "nombres",
-    "apellidos",
-    "fechaNac",
-    "sexo",
-    "eps",
-    "codDepto",
-    "codMunicipio",
-    "direccion",
-    "telefono",
-    "correo",
+const COLUMNS = [
+    { key: "numDoc", label: "Cédula", primary: true },
+    { key: "tipoDoc", label: "Tipo de documento" },
+    { key: "nombres", label: "Nombres" },
+    { key: "apellidos", label: "Apellidos" },
+    { key: "fechaNac", label: "F. Nacimiento" },
+    { key: "sexo", label: "Género" },
+    { key: "eps", label: "EPS" },
+    { key: "codDepto", label: "Cód. depto" },
+    { key: "codMunicipio", label: "Cód. municipio" },
+    { key: "direccion", label: "Dirección" },
+    { key: "telefono", label: "Teléfono" },
+    { key: "correo", label: "Correo" },
 ];
 
-const HEADERS = {
-    tipoDoc: "Tipo de documento",
-    numDoc: "Número de documento",
-    nombres: "Nombres",
-    apellidos: "Apellidos",
-    fechaNac: "Fecha de nacimiento",
-    sexo: "Genero",
-    eps: "EPS",
-    codDepto: "Código departamento",
-    codMunicipio: "Código municipio",
-    direccion: "Dirección",
-    telefono: "Teléfono",
-    correo: "Correo electrónico",
+const TITULO_REPORTE = "Datos para ARL";
+const COLOR_PRIMARIO = [239, 68, 68]; // rojo
+const ROJO_ARGB = "FFEF4444";
+
+
+// -----------------------------------------------------------------------
+// Utilidades
+// -----------------------------------------------------------------------
+
+const formatCell = (row, column) => row[column.key] ?? "";
+
+const formatFecha = (valor) =>
+    valor ? new Date(valor).toLocaleDateString("es-CO") : "—";
+
+// Carga una imagen y devuelve { dataUrl, ratio } (ancho / alto)
+const cargarLogo = (src) =>
+    new Promise((resolve) => {
+        const img = new Image();
+
+        img.onload = () => {
+            const canvas = document.createElement("canvas");
+
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+
+            canvas.getContext("2d").drawImage(img, 0, 0);
+
+            resolve({
+                dataUrl: canvas.toDataURL("image/png"),
+                ratio: img.naturalWidth / img.naturalHeight,
+            });
+        };
+
+        img.onerror = () => resolve(null);
+
+        img.src = src;
+    });
+
+const descargarBlob = (blob, nombre) => {
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement("a");
+
+    enlace.href = url;
+    enlace.download = nombre;
+    enlace.click();
+
+    URL.revokeObjectURL(url);
 };
 
 
 // -----------------------------------------------------------------------
-// Modal para enviar ARL
+// Exportar a Excel (con logos y encabezado)
 // -----------------------------------------------------------------------
 
-function EnviarArlModal({
-    open,
-    onClose,
-    onEnviar,
-    bloqueado,
-    fechaFinTexto,
-    arlExistente
-}) {
+async function exportarXlsx({ rows, periodo, fileName }) {
 
-    const [file, setFile] = useState(null);
-    const [enviando, setEnviando] = useState(false);
-    const [dragOver, setDragOver] = useState(false);
-    const [editando, setEditando] = useState(false);
+    const [logo, logoProg] = await Promise.all([
+        cargarLogo(logoSisprac),
+        cargarLogo(logoPrograma),
+    ]);
 
-    const inputRef = useRef(null);
+    const wb = new ExcelJS.Workbook();
 
-    if (!open) return null;
+    const ws = wb.addWorksheet("Datos ARL", {
+        views: [{ state: "frozen", ySplit: 6 }],
+    });
 
-    const handleFile = (f) => {
+    const totalColumnas = COLUMNS.length;
+    const totalEncabezado = Math.max(totalColumnas, 6);
 
-        if (!f) return;
+    const altoFila = 24;
+    const filasLogo = 4;
+    const columnasLogo = 2;
+    const EMU = 9525;
 
-        setFile(f);
-    };
+    const anchos = Array.from({ length: totalEncabezado }, (_, i) =>
+        COLUMNS[i]?.key === "correo" || COLUMNS[i]?.key === "direccion" ? 30 : 20
+    );
 
-    const handleDrop = (e) => {
+    const pxAncho = (w) => w * 7 + 5;
+    const pxFila = altoFila * (96 / 72);
 
-        e.preventDefault();
+    ws.columns = anchos.map((width) => ({ width }));
 
-        setDragOver(false);
+    for (let fila = 1; fila <= filasLogo; fila++) {
+        ws.getRow(fila).height = altoFila;
+    }
 
-        handleFile(e.dataTransfer.files?.[0]);
-    };
+    ws.getRow(5).height = 8;
 
-    const reset = () => {
+    const agregarImagen = (img, colIni, nCols) => {
 
-        setFile(null);
+        if (!img) return;
 
-        setEnviando(false);
-        setEditando(false);
-    };
+        const pxCols = anchos.slice(colIni, colIni + nCols).map(pxAncho);
+        const cajaAncho = pxCols.reduce((a, b) => a + b, 0);
+        const cajaAlto = pxFila * filasLogo;
 
-    const handleCancelar = () => {
+        const margen = 10;
+        const maxAncho = cajaAncho - margen * 2;
+        const maxAlto = cajaAlto - margen * 2;
 
-        reset();
+        let alto = maxAlto;
+        let ancho = alto * img.ratio;
 
-        onClose();
-    };
-
-    const handleEnviar = async () => {
-
-        if (!file) {
-
-            toast.error("Selecciona un archivo para continuar.");
-
-            return;
+        if (ancho > maxAncho) {
+            ancho = maxAncho;
+            alto = ancho / img.ratio;
         }
 
-        setEnviando(true);
+        const offsetX = (cajaAncho - ancho) / 2;
+        const offsetY = (cajaAlto - alto) / 2;
 
-        try {
+        let acumulado = 0;
+        let idx = 0;
 
-            await onEnviar?.({
-                file
-            });
-
-            toast.success(
-                arlExistente
-                    ? "ARL actualizado correctamente."
-                    : "ARL enviado correctamente."
-            );
-
-            reset();
-            onClose();
-
-        } catch (err) {
-
-            console.error(
-                "Error al enviar ARL:",
-                err
-            );
-
-            toast.error(
-                err?.response?.data?.message ||
-                err?.message ||
-                "Ocurrió un error al enviar el ARL."
-            );
-
-            setEnviando(false);
+        while (idx < pxCols.length - 1 && acumulado + pxCols[idx] <= offsetX) {
+            acumulado += pxCols[idx];
+            idx++;
         }
+
+        const filaInicio = Math.floor(offsetY / pxFila);
+
+        const idImagen = wb.addImage({
+            base64: img.dataUrl.split(",")[1],
+            extension: "png",
+        });
+
+        ws.addImage(idImagen, {
+            tl: {
+                nativeCol: colIni + idx,
+                nativeColOff: Math.round((offsetX - acumulado) * EMU),
+                nativeRow: filaInicio,
+                nativeRowOff: Math.round((offsetY - filaInicio * pxFila) * EMU),
+            },
+            ext: { width: ancho, height: alto },
+        });
     };
 
-    return (
-
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-
-            <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
-
-                <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-
-                    <h2 className="text-base font-semibold text-gray-900">
-
-                        {arlExistente && !editando
-                            ? "ARL enviada"
-                            : arlExistente
-                                ? "Actualizar ARL"
-                                : "Enviar ARL"}
-
-                    </h2>
-
-                    <button
-                        onClick={handleCancelar}
-                        className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                    >
-                        <X size={18} />
-                    </button>
-
-                </div>
-
-                {bloqueado ? (
-
-                    <>
-
-                        <div className="flex flex-col items-center gap-3 px-5 py-10 text-center">
-
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-500">
-                                <Clock size={22} />
-                            </div>
-
-                            <p className="text-sm font-semibold text-gray-800">
-                                Ya no puedes modificar el ARL
-                            </p>
-
-                            <p className="max-w-xs text-sm text-gray-500">
-
-                                La práctica ya finalizó
-                                {fechaFinTexto ? ` el ${fechaFinTexto}` : ""}
-                                , por lo que ya no es posible subir o actualizar el archivo.
-
-                            </p>
-
-                        </div>
-
-                        <div className="flex justify-end border-t border-gray-100 px-5 py-4">
-
-                            <button
-                                onClick={handleCancelar}
-                                className="rounded-full border border-gray-200 px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                            >
-                                Entendido
-                            </button>
-
-                        </div>
-
-                    </>
-
-                ) : arlExistente && !editando ? (
-
-                    // ------------------------------------------------
-                    // YA EXISTE UN ARL
-                    // ------------------------------------------------
-
-                    <>
-
-                        <div className="space-y-4 px-5 py-6">
-
-                            <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-4">
-
-                                <div className="flex items-center gap-3">
-
-                                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-emerald-500">
-                                        <CheckCircle2 size={20} />
-                                    </div>
-
-                                    <div className="min-w-0">
-
-                                        <p className="text-sm font-semibold text-emerald-700">
-                                            ARL enviado correctamente
-                                        </p>
-
-                                        <p className="text-xs text-emerald-600">
-                                            Ya existe un archivo asociado a esta práctica.
-                                        </p>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-                            {arlExistente.url && (
-
-                                <a
-                                    href={arlExistente.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-3 rounded-xl border border-gray-200 px-4 py-3 hover:bg-gray-50"
-                                >
-
-                                    <Paperclip
-                                        size={18}
-                                        className="text-red-500"
-                                    />
-
-                                    <div className="min-w-0 flex-1">
-
-                                        <p className="truncate text-sm font-medium text-gray-700">
-                                            {arlExistente.nombre || "Archivo ARL"}
-                                        </p>
-
-                                        <p className="text-xs text-gray-400">
-                                            Ver archivo
-                                        </p>
-
-                                    </div>
-
-                                </a>
-
-                            )}
-
-                        </div>
-
-                        <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
-
-                            <button
-                                onClick={handleCancelar}
-                                className="rounded-full border border-gray-200 px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50"
-                            >
-                                Cerrar
-                            </button>
-
-                            <button
-                                onClick={() => setEditando(true)}
-                                className="rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white hover:bg-red-600"
-                            >
-                                Editar ARL
-                            </button>
-
-                        </div>
-
-                    </>
-
-                ) : (
-
-                    // ------------------------------------------------
-                    // SUBIR / ACTUALIZAR
-                    // ------------------------------------------------
-
-                    <>
-
-                        <div className="space-y-4 px-5 py-5">
-
-                            {arlExistente && (
-
-                                <div className="rounded-lg bg-gray-50 px-3 py-2">
-
-                                    <p className="text-xs text-gray-400">
-                                        Archivo actual
-                                    </p>
-
-                                    <p className="truncate text-sm font-medium text-gray-700">
-                                        {arlExistente.nombre || "ARL actual"}
-                                    </p>
-
-                                </div>
-
-                            )}
-
-                            <p className="text-sm text-gray-500">
-
-                                {arlExistente
-                                    ? "Selecciona el nuevo archivo para reemplazar el ARL actual."
-                                    : "Adjunta el archivo con los datos de la ARL que deseas enviar."}
-
-                            </p>
-
-                            <div
-                                onDragOver={(e) => {
-                                    e.preventDefault();
-                                    setDragOver(true);
-                                }}
-                                onDragLeave={() => setDragOver(false)}
-                                onDrop={handleDrop}
-                                onClick={() => inputRef.current?.click()}
-                                className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-8 text-center transition-colors ${dragOver
-                                        ? "border-red-400 bg-red-50"
-                                        : "border-gray-200 hover:border-gray-300"
-                                    }`}
-                            >
-
-                                <input
-                                    ref={inputRef}
-                                    type="file"
-                                    accept=".xlsx,.xls,.csv,.pdf"
-                                    className="hidden"
-                                    onChange={(e) =>
-                                        handleFile(e.target.files?.[0])
-                                    }
-                                />
-
-                                {file ? (
-
-                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-
-                                        <Paperclip
-                                            size={16}
-                                            className="text-red-500"
-                                        />
-
-                                        {file.name}
-
-                                    </div>
-
-                                ) : (
-
-                                    <>
-
-                                        <Upload
-                                            size={20}
-                                            className="text-gray-400"
-                                        />
-
-                                        <p className="text-sm text-gray-500">
-
-                                            Arrastra el archivo aquí o{" "}
-
-                                            <span className="text-red-500 underline">
-                                                selecciónalo
-                                            </span>
-
-                                        </p>
-
-                                        <p className="text-xs text-gray-400">
-                                            .xlsx, .csv o .pdf
-                                        </p>
-
-                                    </>
-
-                                )}
-
-                            </div>
-
-                        </div>
-
-                        <div className="flex justify-end gap-2 border-t border-gray-100 px-5 py-4">
-
-                            <button
-                                onClick={() => {
-
-                                    if (arlExistente) {
-
-                                        setEditando(false);
-                                        setFile(null);
-
-                                    } else {
-
-                                        handleCancelar();
-
-                                    }
-
-                                }}
-                                disabled={enviando}
-                                className="rounded-full border border-gray-200 px-5 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                            >
-                                Cancelar
-                            </button>
-
-                            <button
-                                onClick={handleEnviar}
-                                disabled={!file || enviando}
-                                className="rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-
-                                {enviando
-                                    ? arlExistente
-                                        ? "Actualizando..."
-                                        : "Enviando..."
-                                    : arlExistente
-                                        ? "Actualizar ARL"
-                                        : "Enviar ARL"}
-
-                            </button>
-
-                        </div>
-
-                    </>
-
-                )}
-
-            </div>
-
-        </div>
+    const colDerecha = totalEncabezado - columnasLogo + 1;
+
+    ws.mergeCells(1, 1, filasLogo, columnasLogo);
+    ws.mergeCells(1, colDerecha, filasLogo, totalEncabezado);
+
+    agregarImagen(logo, 0, columnasLogo);
+    agregarImagen(logoProg, colDerecha - 1, columnasLogo);
+
+    const colTexto = columnasLogo + 1;
+    const colTextoFin = colDerecha - 1;
+
+    const escribirTexto = (fila, valor, font) => {
+
+        ws.mergeCells(fila, colTexto, fila, colTextoFin);
+
+        const celda = ws.getCell(fila, colTexto);
+
+        celda.value = valor;
+        celda.font = font;
+        celda.alignment = { vertical: "middle", horizontal: "center" };
+    };
+
+    escribirTexto(1, TITULO_REPORTE, {
+        bold: true,
+        size: 18,
+        color: { argb: "FF1F2937" },
+    });
+
+    escribirTexto(
+        2,
+        periodo ? `Período lectivo: ${periodo}` : "Todos los períodos",
+        { bold: true, size: 12, color: { argb: ROJO_ARGB } }
+    );
+
+    escribirTexto(
+        3,
+        `Generado el ${new Date().toLocaleDateString("es-CO", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+        })}`,
+        { size: 10, color: { argb: "FF6B7280" } }
+    );
+
+    escribirTexto(4, `Total de registros: ${rows.length}`, {
+        size: 10,
+        color: { argb: "FF6B7280" },
+    });
+
+    for (let col = 1; col <= totalEncabezado; col++) {
+        ws.getCell(filasLogo, col).border = {
+            bottom: { style: "medium", color: { argb: ROJO_ARGB } },
+        };
+    }
+
+    // Fila 6: encabezados de la tabla
+    const encabezado = ws.getRow(6);
+
+    encabezado.values = COLUMNS.map((c) => c.label);
+    encabezado.height = 26;
+
+    encabezado.eachCell((celda) => {
+        celda.font = { bold: true, color: { argb: "FFFFFFFF" } };
+        celda.fill = { type: "pattern", pattern: "solid", fgColor: { argb: ROJO_ARGB } };
+        celda.alignment = { vertical: "middle", horizontal: "center" };
+    });
+
+    // Filas de datos
+    const borde = { style: "thin", color: { argb: "FFE5E7EB" } };
+
+    rows.forEach((row, i) => {
+
+        const fila = ws.addRow(COLUMNS.map((c) => formatCell(row, c)));
+
+        fila.eachCell((celda) => {
+
+            celda.alignment = {
+                vertical: "middle",
+                horizontal: "center",
+                wrapText: true,
+            };
+
+            celda.border = { top: borde, bottom: borde, left: borde, right: borde };
+
+            if (i % 2 === 1) {
+                celda.fill = {
+                    type: "pattern",
+                    pattern: "solid",
+                    fgColor: { argb: "FFF9FAFB" },
+                };
+            }
+        });
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+
+    descargarBlob(
+        new Blob([buffer], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        }),
+        `${fileName}.xlsx`
     );
 }
 
 
+// -----------------------------------------------------------------------
+// Exportar a PDF (con logos y encabezado)
+// -----------------------------------------------------------------------
+
+async function exportarPdf({ rows, periodo, fileName }) {
+
+    const [logo, logoProg] = await Promise.all([
+        cargarLogo(logoSispracPDF),
+        cargarLogo(logoPrograma),
+    ]);
+
+    const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "pt",
+        format: "a4",
+    });
+
+    const anchoPagina = doc.internal.pageSize.getWidth();
+    const altoPagina = doc.internal.pageSize.getHeight();
+    const margenX = 30;
+    const altoLogoIzq = 60;
+    const altoLogoDer = 34;
+
+    const fecha = new Date().toLocaleDateString("es-CO", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+    });
+
+    const dibujarEncabezado = () => {
+
+        let textoX = margenX;
+        let derechaX = anchoPagina - margenX;
+
+        if (logoProg) {
+            const anchoIzq = altoLogoIzq * logoProg.ratio;
+
+            doc.addImage(logoProg.dataUrl, "PNG", margenX, 15, anchoIzq, altoLogoIzq);
+
+            textoX = margenX + anchoIzq + 14;
+        }
+
+        if (logo) {
+            const anchoDer = altoLogoDer * logo.ratio;
+            const xDer = anchoPagina - margenX - anchoDer;
+
+            doc.addImage(logo.dataUrl, "PNG", xDer, 24, anchoDer, altoLogoDer);
+
+            derechaX = xDer - 14;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.setTextColor(31, 41, 55);
+        doc.text(TITULO_REPORTE, textoX, 40);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...COLOR_PRIMARIO);
+        doc.text(
+            periodo ? `Período lectivo: ${periodo}` : "Todos los períodos",
+            textoX,
+            57
+        );
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(107, 114, 128);
+        doc.text(`Generado el ${fecha}`, derechaX, 40, { align: "right" });
+        doc.text(`Total de registros: ${rows.length}`, derechaX, 55, {
+            align: "right",
+        });
+
+        doc.setDrawColor(...COLOR_PRIMARIO);
+        doc.setLineWidth(1.5);
+        doc.line(margenX, 70, anchoPagina - margenX, 70);
+    };
+
+    autoTable(doc, {
+        head: [COLUMNS.map((c) => c.label)],
+        body: rows.map((row) => COLUMNS.map((c) => formatCell(row, c))),
+        startY: 84,
+        margin: { top: 84, left: margenX, right: margenX, bottom: 40 },
+        styles: {
+            font: "helvetica",
+            fontSize: 7.5,
+            cellPadding: 4,
+            textColor: [55, 65, 81],
+            lineColor: [229, 231, 235],
+            lineWidth: 0.5,
+            valign: "middle",
+        },
+        headStyles: {
+            fillColor: COLOR_PRIMARIO,
+            textColor: 255,
+            fontStyle: "bold",
+            halign: "center",
+        },
+        bodyStyles: { halign: "center" },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+        didDrawPage: dibujarEncabezado,
+    });
+
+    const totalPaginas = doc.internal.getNumberOfPages();
+
+    for (let i = 1; i <= totalPaginas; i++) {
+
+        doc.setPage(i);
+
+        doc.setDrawColor(229, 231, 235);
+        doc.setLineWidth(0.5);
+        doc.line(margenX, altoPagina - 28, anchoPagina - margenX, altoPagina - 28);
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(156, 163, 175);
+        doc.text("SISPRAC · Sistema de Prácticas", margenX, altoPagina - 14);
+        doc.text(
+            `Página ${i} de ${totalPaginas}`,
+            anchoPagina - margenX,
+            altoPagina - 14,
+            { align: "right" }
+        );
+    }
+
+    doc.save(`${fileName}.pdf`);
+}
+
 
 // -----------------------------------------------------------------------
-// Menú de descarga
+// Menú de descarga (solo Excel y PDF)
 // -----------------------------------------------------------------------
 
-function DescargarMenu({ rows }) {
+function DescargarMenu({ rows, periodo, disabled }) {
 
     const [open, setOpen] = useState(false);
+    const [generando, setGenerando] = useState(null); // "xlsx" | "pdf" | null
 
-    const toAoa = () => [
+    const fileName = `datos_arl${periodo ? `_${String(periodo).replace(/\s+/g, "_")}` : ""}`;
 
-        FIELDS.map((f) => HEADERS[f]),
+    const ejecutar = async (tipo, fn, etiqueta) => {
 
-        ...rows.map((r) =>
-            FIELDS.map((f) => r[f] ?? "")
-        )
+        try {
 
+            setGenerando(tipo);
+
+            await fn({ rows, periodo, fileName });
+
+            toast.success(`Archivo ${etiqueta} descargado correctamente.`);
+
+            setOpen(false);
+
+        } catch (error) {
+
+            console.error(`Error al descargar ${etiqueta}:`, error);
+
+            toast.error(`No se pudo descargar el archivo ${etiqueta}.`);
+
+        } finally {
+
+            setGenerando(null);
+        }
+    };
+
+    const opciones = [
+        {
+            tipo: "xlsx",
+            titulo: "Excel",
+            detalle: "Hoja de cálculo (.xlsx)",
+            icono: FileSpreadsheet,
+            estilo: "bg-emerald-50 text-emerald-600",
+            accion: () => ejecutar("xlsx", exportarXlsx, "Excel"),
+        },
+        {
+            tipo: "pdf",
+            titulo: "PDF",
+            detalle: "Documento imprimible (.pdf)",
+            icono: FileText,
+            estilo: "bg-red-50 text-red-500",
+            accion: () => ejecutar("pdf", exportarPdf, "PDF"),
+        },
     ];
-
-    const descargarXlsx = () => {
-
-        try {
-
-            const ws = XLSX.utils.aoa_to_sheet(toAoa());
-
-            ws["!cols"] = FIELDS.map(() => ({
-                wch: 18
-            }));
-
-            const wb = XLSX.utils.book_new();
-
-            XLSX.utils.book_append_sheet(
-                wb,
-                ws,
-                "Datos ARL"
-            );
-
-            XLSX.writeFile(
-                wb,
-                "datos_arl.xlsx"
-            );
-
-            toast.success(
-                "Archivo Excel descargado correctamente."
-            );
-
-            setOpen(false);
-
-        } catch (error) {
-
-            console.error(
-                "Error al descargar Excel:",
-                error
-            );
-
-            toast.error(
-                "No se pudo descargar el archivo Excel."
-            );
-        }
-    };
-
-    const descargarCsv = () => {
-
-        try {
-
-            const aoa = toAoa();
-
-            const csv = aoa
-                .map((row) =>
-                    row
-                        .map((cell) => {
-
-                            const s = String(cell ?? "");
-
-                            return /[",\n;]/.test(s)
-                                ? `"${s.replace(/"/g, '""')}"`
-                                : s;
-
-                        })
-                        .join(";")
-                )
-                .join("\n");
-
-            const blob = new Blob(
-                ["\uFEFF" + csv],
-                {
-                    type: "text/csv;charset=utf-8;"
-                }
-            );
-
-            const url = URL.createObjectURL(blob);
-
-            const a = document.createElement("a");
-
-            a.href = url;
-
-            a.download = "datos_arl.csv";
-
-            a.click();
-
-            URL.revokeObjectURL(url);
-
-            toast.success(
-                "Archivo CSV descargado correctamente."
-            );
-
-            setOpen(false);
-
-        } catch (error) {
-
-            console.error(
-                "Error al descargar CSV:",
-                error
-            );
-
-            toast.error(
-                "No se pudo descargar el archivo CSV."
-            );
-        }
-    };
-
-    const descargarPdf = () => {
-
-        try {
-
-            const doc = new jsPDF({
-                orientation: "landscape",
-                unit: "pt",
-                format: "a4"
-            });
-
-            doc.setFontSize(16);
-
-            doc.text(
-                "Datos para ARL",
-                40,
-                40
-            );
-
-            doc.setFontSize(9);
-
-            doc.setTextColor(120);
-
-            doc.text(
-                `Generado el ${new Date().toLocaleDateString("es-CO")}`,
-                40,
-                56
-            );
-
-            autoTable(doc, {
-
-                head: [
-                    FIELDS.map((f) => HEADERS[f])
-                ],
-
-                body: rows.map((r) =>
-                    FIELDS.map((f) => r[f] ?? "")
-                ),
-
-                startY: 72,
-
-                styles: {
-                    fontSize: 7.5,
-                    cellPadding: 4
-                },
-
-                headStyles: {
-                    fillColor: [232, 51, 44],
-                    textColor: 255,
-                    fontStyle: "bold"
-                },
-
-                alternateRowStyles: {
-                    fillColor: [250, 250, 251]
-                },
-
-                margin: {
-                    left: 30,
-                    right: 30
-                }
-
-            });
-
-            doc.save("datos_arl.pdf");
-
-            toast.success(
-                "Archivo PDF descargado correctamente."
-            );
-
-            setOpen(false);
-
-        } catch (error) {
-
-            console.error(
-                "Error al descargar PDF:",
-                error
-            );
-
-            toast.error(
-                "No se pudo descargar el archivo PDF."
-            );
-        }
-    };
 
     return (
 
@@ -673,12 +483,18 @@ function DescargarMenu({ rows }) {
 
             <button
                 onClick={() => setOpen((o) => !o)}
-                className="flex items-center gap-2 rounded-full bg-red-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-600"
+                disabled={disabled}
+                className="flex items-center gap-2 rounded-full bg-red-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-red-500/20 transition-colors hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
 
                 <Download size={16} />
 
                 Descargar
+
+                <ChevronDown
+                    size={14}
+                    className={`transition-transform ${open ? "rotate-180" : ""}`}
+                />
 
             </button>
 
@@ -688,43 +504,43 @@ function DescargarMenu({ rows }) {
 
                     <div
                         className="fixed inset-0 z-10"
-                        onClick={() => setOpen(false)}
+                        onClick={() => !generando && setOpen(false)}
                     />
 
-                    <div className="absolute bottom-12 right-0 z-20 w-56 rounded-xl border border-gray-100 bg-white p-1.5 shadow-lg">
+                    <div className="absolute bottom-14 right-0 z-20 w-64 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl">
 
-                        <button
-                            onClick={descargarXlsx}
-                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600"
-                        >
+                        {opciones.map(({ tipo, titulo, detalle, icono: Icono, estilo, accion }) => (
 
-                            <FileSpreadsheet size={16} />
+                            <button
+                                key={tipo}
+                                onClick={accion}
+                                disabled={Boolean(generando)}
+                                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-gray-50 disabled:cursor-wait disabled:opacity-60"
+                            >
 
-                            Descargar Excel (.xlsx)
+                                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${estilo}`}>
 
-                        </button>
+                                    {generando === tipo
+                                        ? <Loader2 size={18} className="animate-spin" />
+                                        : <Icono size={18} />}
 
-                        <button
-                            onClick={descargarPdf}
-                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600"
-                        >
+                                </span>
 
-                            <FileText size={16} />
+                                <span className="min-w-0">
 
-                            Descargar PDF
+                                    <span className="block text-sm font-semibold text-gray-800">
+                                        {titulo}
+                                    </span>
 
-                        </button>
+                                    <span className="block text-xs text-gray-400">
+                                        {detalle}
+                                    </span>
 
-                        <button
-                            onClick={descargarCsv}
-                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600"
-                        >
+                                </span>
 
-                            <File size={16} />
+                            </button>
 
-                            Descargar CSV
-
-                        </button>
+                        ))}
 
                     </div>
 
@@ -738,27 +554,47 @@ function DescargarMenu({ rows }) {
 
 
 // -----------------------------------------------------------------------
+// Tarjeta de dato de la práctica
+// -----------------------------------------------------------------------
+
+function InfoItem({ icon: Icon, label, children }) {
+
+    return (
+
+        <div className="flex items-center gap-3">
+
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-red-500 shadow-sm">
+                <Icon size={17} />
+            </span>
+
+            <div className="min-w-0">
+
+                <p className="text-xs text-gray-400">{label}</p>
+
+                <div className="text-sm font-semibold text-gray-800">
+                    {children}
+                </div>
+
+            </div>
+
+        </div>
+    );
+}
+
+
+// -----------------------------------------------------------------------
 // COMPONENTE PRINCIPAL
 // -----------------------------------------------------------------------
 
 export default function DatosArl() {
 
-    const [modalOpen, setModalOpen] = useState(false);
-
     const [rows, setRows] = useState([]);
-
-    // URL/archivo de ARL ya subido para la práctica seleccionada (si existe)
-    const [arl, setArl] = useState(null);
-
     const [currentPage, setCurrentPage] = useState(1);
 
-    // Prácticas
     const [practicas, setPracticas] = useState([]);
-
     const [practicaSeleccionada, setPracticaSeleccionada] = useState("");
 
     const [cargandoPracticas, setCargandoPracticas] = useState(false);
-
     const [cargandoPracticantes, setCargandoPracticantes] = useState(false);
 
 
@@ -767,11 +603,8 @@ export default function DatosArl() {
     // ---------------------------------------------------------------
 
     useEffect(() => {
-
         loadPracticas();
-
     }, []);
-
 
     const loadPracticas = async () => {
 
@@ -779,20 +612,13 @@ export default function DatosArl() {
 
             setCargandoPracticas(true);
 
-            const data = await getPracticas({
-                practicaRepository
-            });
-
-            console.log("PRACTICAS:", data);
+            const data = await getPracticas({ practicaRepository });
 
             setPracticas(data || []);
 
         } catch (error) {
 
-            console.error(
-                "Error al cargar las prácticas:",
-                error
-            );
+            console.error("Error al cargar las prácticas:", error);
 
             toast.error(
                 error?.response?.data?.message ||
@@ -803,9 +629,7 @@ export default function DatosArl() {
         } finally {
 
             setCargandoPracticas(false);
-
         }
-
     };
 
 
@@ -816,35 +640,14 @@ export default function DatosArl() {
     useEffect(() => {
 
         if (!practicaSeleccionada) {
-
             setRows([]);
             setCurrentPage(1);
-            setArl(null);
-
             return;
         }
 
-        loadPracticantesPorPractica(
-            practicaSeleccionada
-        );
+        loadPracticantesPorPractica(practicaSeleccionada);
 
     }, [practicaSeleccionada]);
-
-
-    // Cuando cambia la práctica seleccionada (o llegan las prácticas),
-    // revisamos si esa práctica ya tiene un ARL subido previamente.
-    useEffect(() => {
-
-        const practica = practicas.find(
-            (p) => String(p.id) === String(practicaSeleccionada)
-        );
-
-        const archivoExistente = practica?.archivoArl || null;
-
-        setArl(archivoExistente);
-
-    }, [practicaSeleccionada, practicas]);
-
 
     const loadPracticantesPorPractica = async (practicaId) => {
 
@@ -852,17 +655,9 @@ export default function DatosArl() {
 
             setCargandoPracticantes(true);
 
-            const data =
-                await obtenerPracticantesPorPractica(
-                    {
-                        practicanteRepository
-                    },
-                    practicaId
-                );
-
-            console.log(
-                "PRACTICANTES DE LA PRÁCTICA:",
-                data
+            const data = await obtenerPracticantesPorPractica(
+                { practicanteRepository },
+                practicaId
             );
 
             const formattedData = (data || []).map((practicante) => {
@@ -870,52 +665,28 @@ export default function DatosArl() {
                 const usuario = practicante.candidato?.Usuario;
 
                 return {
-
                     id: practicante.id,
-
                     tipoDoc: usuario?.tipo_documento ?? "",
-
                     numDoc: usuario?.cedula ?? "",
-
                     nombres: usuario?.nombres ?? "",
-
                     apellidos: usuario?.apellidos ?? "",
-
                     fechaNac: practicante.fecha_nacimiento ?? "",
-
                     sexo: practicante.genero ?? "",
-
                     eps: practicante.eps ?? "",
-
                     codDepto: practicante.codigoDepResidencia ?? "",
-
                     codMunicipio: practicante.codigoMunResidencia ?? "",
-
                     direccion: practicante.direccion ?? "",
-
                     telefono: usuario?.telefono ?? "",
-
                     correo: usuario?.correo ?? "",
-
                 };
-
             });
 
-            console.log(
-                "FORMATTED DATA:",
-                formattedData
-            );
-
             setRows(formattedData);
-
             setCurrentPage(1);
 
         } catch (error) {
 
-            console.error(
-                "Error al cargar los practicantes de la práctica:",
-                error
-            );
+            console.error("Error al cargar los practicantes de la práctica:", error);
 
             toast.error(
                 error?.response?.data?.message ||
@@ -928,32 +699,23 @@ export default function DatosArl() {
         } finally {
 
             setCargandoPracticantes(false);
-
         }
-
     };
 
 
     // ---------------------------------------------------------------
-    // Obtener práctica seleccionada
+    // Práctica seleccionada y su estado
     // ---------------------------------------------------------------
 
     const practicaActual = practicas.find(
-        (practica) =>
-            String(practica.id) ===
-            String(practicaSeleccionada)
+        (practica) => String(practica.id) === String(practicaSeleccionada)
     );
 
-
-    // ---------------------------------------------------------------
-    // Validar fecha de finalización
-    // ---------------------------------------------------------------
+    const periodo = practicaActual?.Periodo?.nombre || "";
 
     const fechaFinPractica = practicaActual?.fecha_fin
         ? new Date(practicaActual.fecha_fin)
         : null;
-
-    const fechaActual = new Date();
 
     const estadoBackend = practicaActual?.estado
         ? String(practicaActual.estado).toUpperCase()
@@ -961,146 +723,31 @@ export default function DatosArl() {
 
     const practicaFinalizada = estadoBackend
         ? estadoBackend === "FINALIZADA"
-        : Boolean(
-            fechaFinPractica && fechaFinPractica <= fechaActual
-        );
-
-    const fechaFinTexto = fechaFinPractica
-        ? fechaFinPractica.toLocaleDateString("es-CO")
-        : null;
-
-    // ¿Ya existe un ARL subido para esta práctica?
-    const arlYaSubido = Boolean(arl);
-
-
-    // ---------------------------------------------------------------
-    // Subir / descargar ARL
-    // ---------------------------------------------------------------
-
-    const handleClickArl = () => {
-
-        if (!practicaSeleccionada) {
-
-            toast.error(
-                "Primero debes seleccionar una práctica."
-            );
-
-            return;
-        }
-
-        if (practicaFinalizada && arlYaSubido) {
-
-            handleDescargarArl();
-
-            return;
-        }
-
-        setModalOpen(true);
-    };
-
-
-    const handleDescargarArl = () => {
-
-        if (!arl?.url) {
-
-            toast.error(
-                "No se encontró el archivo ARL para descargar."
-            );
-
-            return;
-        }
-
-        try {
-
-            const a = document.createElement("a");
-
-            a.href = arl.url;
-
-            a.target = "_blank";
-
-            a.rel = "noopener noreferrer";
-
-            a.download = "";
-
-            document.body.appendChild(a);
-
-            a.click();
-
-            document.body.removeChild(a);
-
-            toast.success(
-                "ARL descargado correctamente."
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Error al descargar ARL:",
-                error
-            );
-
-            toast.error(
-                "No se pudo descargar el ARL."
-            );
-        }
-    };
-
-
-    const handleEnviar = async ({ file }) => {
-
-        try {
-
-            const resultado = await actualizarArlPractica(
-                { practicaRepository },
-                practicaSeleccionada,
-                file
-            );
-
-            if (resultado) {
-
-                setArl(
-                    resultado?.arl ||
-                    resultado?.archivo ||
-                    resultado
-                );
-            }
-
-        } catch (error) {
-
-            console.error(
-                "Error al actualizar ARL:",
-                error
-            );
-
-            throw error;
-        }
-    };
+        : Boolean(fechaFinPractica && fechaFinPractica <= new Date());
 
 
     return (
 
-        <div>
+        <div className="mx-auto max-w-6xl px-4 py-8">
 
-            <div className="mx-auto max-w-6xl px-4 py-8">
+            {/* Encabezado */}
+            <div className="mb-8 text-center">
 
-                <div className="mb-6 text-center">
+                <h1 className="text-2xl font-bold text-gray-900">
+                    Datos para ARL
+                </h1>
 
-                    <h1 className="text-2xl font-bold text-gray-900">
-                        Datos para ARL
-                    </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                    Selecciona una práctica para consultar y descargar los datos de sus practicantes.
+                </p>
 
-                    <p className="mt-1 text-sm text-gray-500">
-                        Selecciona una práctica para consultar sus practicantes.
-                    </p>
-
-                </div>
+            </div>
 
 
-                {/* ---------------------------------------------------
-                    SELECT DE PRÁCTICA + INFO
-                ---------------------------------------------------- */}
+            {/* Selector + información */}
+            <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
 
-                <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-end">
 
                     <div>
 
@@ -1110,35 +757,21 @@ export default function DatosArl() {
 
                         <select
                             value={practicaSeleccionada}
-                            onChange={(e) =>
-                                setPracticaSeleccionada(
-                                    e.target.value
-                                )
-                            }
+                            onChange={(e) => setPracticaSeleccionada(e.target.value)}
                             disabled={cargandoPracticas}
-                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400"
+                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
                         >
 
                             <option value="">
-
                                 {cargandoPracticas
                                     ? "Cargando prácticas..."
                                     : "Selecciona una práctica"}
-
                             </option>
 
                             {practicas.map((practica) => (
-
-                                <option
-                                    key={practica.id}
-                                    value={practica.id}
-                                >
-
-                                    {practica.Periodo?.nombre ||
-                                        `Práctica ${practica.id}`}
-
+                                <option key={practica.id} value={practica.id}>
+                                    {practica.Periodo?.nombre || `Práctica ${practica.id}`}
                                 </option>
-
                             ))}
 
                         </select>
@@ -1148,68 +781,36 @@ export default function DatosArl() {
 
                     {practicaActual ? (
 
-                        <div className="flex items-center rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+                        <div className="grid grid-cols-2 gap-4 rounded-xl bg-gray-50 px-4 py-3 sm:grid-cols-4">
 
-                            <div className="grid w-full grid-cols-3 gap-3">
+                            <InfoItem icon={CalendarDays} label="Inicio">
+                                {formatFecha(practicaActual.fecha_inicio)}
+                            </InfoItem>
 
-                                <div>
+                            <InfoItem icon={CalendarCheck} label="Finalización">
+                                {formatFecha(practicaActual.fecha_fin)}
+                            </InfoItem>
 
-                                    <p className="text-xs text-gray-400">
-                                        Fecha de inicio
-                                    </p>
+                            <InfoItem icon={Users} label="Practicantes">
+                                {cargandoPracticantes ? "…" : rows.length}
+                            </InfoItem>
 
-                                    <p className="text-sm font-semibold text-gray-700">
+                            <div className="flex items-center">
 
-                                        {practicaActual.fecha_inicio
-                                            ? new Date(
-                                                practicaActual.fecha_inicio
-                                            ).toLocaleDateString("es-CO")
-                                            : "—"}
+                                <span
+                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${practicaFinalizada
+                                        ? "bg-emerald-50 text-emerald-600"
+                                        : "bg-amber-50 text-amber-600"
+                                        }`}
+                                >
 
-                                    </p>
+                                    {practicaFinalizada
+                                        ? <CheckCircle2 size={13} />
+                                        : <Clock size={13} />}
 
-                                </div>
+                                    {practicaFinalizada ? "Finalizada" : "En curso"}
 
-
-                                <div>
-
-                                    <p className="text-xs text-gray-400">
-                                        Fecha de finalización
-                                    </p>
-
-                                    <p className="text-sm font-semibold text-gray-700">
-                                        {fechaFinTexto || "—"}
-                                    </p>
-
-                                </div>
-
-
-                                <div>
-
-                                    <p className="text-xs text-gray-400">
-                                        Estado
-                                    </p>
-
-                                    <span
-                                        className={`mt-0.5 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${practicaFinalizada
-                                                ? "bg-emerald-50 text-emerald-600"
-                                                : "bg-amber-50 text-amber-600"
-                                            }`}
-                                    >
-
-                                        {practicaFinalizada ? (
-                                            <CheckCircle2 size={12} />
-                                        ) : (
-                                            <Clock size={12} />
-                                        )}
-
-                                        {practicaFinalizada
-                                            ? "Finalizada"
-                                            : "En curso"}
-
-                                    </span>
-
-                                </div>
+                                </span>
 
                             </div>
 
@@ -1217,24 +818,24 @@ export default function DatosArl() {
 
                     ) : (
 
-                        <div className="flex items-center justify-center rounded-xl border border-dashed border-gray-200 px-4 py-3 text-center text-sm text-gray-400">
-
+                        <div className="flex items-center justify-center rounded-xl border border-dashed border-gray-200 px-4 py-4 text-center text-sm text-gray-400">
                             Aquí verás la información de la práctica seleccionada.
-
                         </div>
 
                     )}
 
                 </div>
 
+            </div>
 
-                {/* ---------------------------------------------------
-                    TABLA
-                ---------------------------------------------------- */}
+
+            {/* Tabla */}
+            <div className="rounded-2xl border border-gray-100 bg-white p-2 shadow-sm">
 
                 {cargandoPracticantes ? (
 
-                    <div className="py-10 text-center text-sm text-gray-500">
+                    <div className="flex items-center justify-center gap-2 py-14 text-sm text-gray-500">
+                        <Loader2 size={18} className="animate-spin text-red-500" />
                         Cargando practicantes...
                     </div>
 
@@ -1244,57 +845,11 @@ export default function DatosArl() {
                         rows={rows}
                         currentPage={currentPage}
                         onPageChange={setCurrentPage}
-                        columns={[
-                            {
-                                key: "numDoc",
-                                label: "Cedula",
-                                primary: true
-                            },
-                            {
-                                key: "tipoDoc",
-                                label: "Tipo."
-                            },
-                            {
-                                key: "nombres",
-                                label: "Nombres"
-                            },
-                            {
-                                key: "apellidos",
-                                label: "Apellidos"
-                            },
-                            {
-                                key: "fechaNac",
-                                label: "F. Nacimiento"
-                            },
-                            {
-                                key: "sexo",
-                                label: "Genero"
-                            },
-                            {
-                                key: "eps",
-                                label: "EPS"
-                            },
-                            {
-                                key: "codDepto",
-                                label: "Cód. depto"
-                            },
-                            {
-                                key: "codMunicipio",
-                                label: "Cód. municipio"
-                            },
-                            {
-                                key: "direccion",
-                                label: "Dirección"
-                            },
-                            {
-                                key: "telefono",
-                                label: "Teléfono"
-                            },
-                            {
-                                key: "correo",
-                                label: "Correo"
-                            },
-                        ]}
+                        columns={COLUMNS.map(({ key, label, primary }) => ({
+                            key,
+                            label: key === "tipoDoc" ? "Tipo" : label,
+                            ...(primary ? { primary: true } : {}),
+                        }))}
                         emptyMessage={
                             practicaSeleccionada
                                 ? "No hay practicantes registrados en esta práctica."
@@ -1305,64 +860,26 @@ export default function DatosArl() {
 
                 )}
 
-
-                {/* ---------------------------------------------------
-                    BOTONES
-                ---------------------------------------------------- */}
-
-                <div className="mt-6 flex justify-end gap-3">
-
-                    <button
-                        onClick={handleClickArl}
-                        disabled={!practicaSeleccionada}
-                        title={
-                            !practicaSeleccionada
-                                ? "Selecciona una práctica primero."
-                                : practicaFinalizada && arlYaSubido
-                                    ? "Descargar el ARL ya enviado"
-                                    : practicaFinalizada
-                                        ? "La práctica ya finalizó, no es posible subir el ARL."
-                                        : "Subir ARL"
-                        }
-                        className="flex items-center gap-2 rounded-full bg-red-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-
-                        {practicaFinalizada && arlYaSubido ? (
-
-                            <>
-                                <Download size={16} />
-                                Descargar ARL
-                            </>
-
-                        ) : (
-
-                            <>
-                                <Upload size={16} />
-                                Subir ARL
-                            </>
-
-                        )}
-
-                    </button>
-
-                    <DescargarMenu rows={rows} />
-
-                </div>
+            </div>
 
 
-                <EnviarArlModal
-                    open={modalOpen}
-                    onClose={() => setModalOpen(false)}
-                    onEnviar={handleEnviar}
-                    bloqueado={practicaFinalizada}
-                    fechaFinTexto={fechaFinTexto}
-                    arlExistente={arl}
+            {/* Acciones */}
+            <div className="mt-6 flex items-center justify-between gap-3">
+
+                <p className="text-xs text-gray-400">
+                    {rows.length > 0
+                        ? `${rows.length} practicante${rows.length === 1 ? "" : "s"} listos para exportar`
+                        : ""}
+                </p>
+
+                <DescargarMenu
+                    rows={rows}
+                    periodo={periodo}
+                    disabled={!practicaSeleccionada || cargandoPracticantes || rows.length === 0}
                 />
 
             </div>
 
         </div>
-
     );
-
 }

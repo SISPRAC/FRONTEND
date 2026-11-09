@@ -25,6 +25,11 @@ import {
 // ==========================
 export const Director_NAV = [
   {
+    label: "Candidatos",
+    icon: <UserRound />,
+    href: "/candidatosAPracticas",
+  },
+  {
     label: "Grupos",
     icon: <Users />,
     href: "/grupos",
@@ -74,11 +79,11 @@ export const Director_NAV = [
     icon: <Bell />,
     href: "/notificaciones",
   },
-  /*  {
+    {
      label: "Perfil",
      icon: <UserCog />,
      href: "/perfil",
-   }, */
+   }, 
 ];
 
 
@@ -101,12 +106,6 @@ export const Empresa_NAV = [
     icon: <UserRound />,
     href: "/candidatos",
   },
-  {
-    label: "Protocolos",
-    icon: <ClipboardPlus />,
-    href: "/protocolosEmpresa",
-  },
-
   {
     label: "Vacantes",
     icon: <FileUser />,
@@ -269,6 +268,11 @@ export const Admin_NAV = [
     label: "Gestion de Tipos de Documentos",
     icon: <FileStack />,
     href: "/tipoDocumentos",
+  },
+  {
+    label: "Requisitos Convenio",
+    icon: <FileStack />,
+    href: "/requisitos-convenio",
   },
   {
     label: "Notificaciones",
