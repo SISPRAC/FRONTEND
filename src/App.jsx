@@ -132,16 +132,8 @@ export default function App() {
 
               <Route path="/homeAdmin" element={<HomeAdmin />} />
 
-              <Route path="/periodos" element={<PeriodosAcademicos />} />
-
-              <Route path="/practicas" element={<Practicas />} />
-
               <Route path="/usuarios" element={<UsersPage />} />
 
-              <Route path="/documentos" element={<PracticaRequisitoDocumentoPage />} />
-
-              <Route path="/tipoDocumentos" element={<TipoDocumentosPage />} />
-              <Route path="/requisitos-convenio" element={<RequisitosConvenio />} />
 
             </Route>
 
@@ -156,7 +148,12 @@ export default function App() {
 
               <Route path="/homeDirector" element={<DashboardDirector />} />
 
+              <Route path="/requisitos-convenio" element={<RequisitosConvenio />} />
+
               <Route path="/grupos" element={<GruposDirector />} />
+              <Route path="/periodos" element={<PeriodosAcademicos />} />
+
+              <Route path="/practicas" element={<Practicas />} />
 
               <Route path="/grupos/:id/candidatos" element={<GrupoVistaGrupo />} />
 
@@ -178,7 +175,6 @@ export default function App() {
 
               <Route path="/visitas" element={<VistaVisita />} />
 
-              <Route path="/protocolos" element={<ProtocolosPage />} />
 
               <Route path="/tutorDocente" element={<TutoresDocentes />} />
               <Route path="/candidatosAPracticas" element={<CandidatosPracticas />} />
@@ -296,6 +292,12 @@ export default function App() {
               <Route path="/homeTutorDocente" element={<HomeTutorDocente />} />
 
               <Route path="/misGrupos" element={<MisGrupos />} />
+
+              <Route path="/protocolos" element={<ProtocolosPage />} />
+
+              <Route path="/documentos" element={<PracticaRequisitoDocumentoPage />} />
+
+              <Route path="/tipoDocumentos" element={<TipoDocumentosPage />} />
 
               <Route path="/grupos/:id/practicantes" element={<GrupoVistaTutorDocente />} />
 

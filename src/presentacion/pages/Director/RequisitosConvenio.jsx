@@ -5,7 +5,6 @@ import { Trash, SquarePen } from "lucide-react";
 import GenericTable from "../../components/Table/GenericTable";
 import AddButton from "../../components/buttons/AddButton";
 import DeleteModal from "../../components/modals/DeleteModal";
-import TipoRequisitoDocumentoModal from "../../components/modals/TipoRequisitoDocumentoModal.jsx";
 
 import { rolRepository } from "../../../infraestructura/repository/rolRepository.js";
 import { tipoRequisitoDocumentoRepository } from "../../../infraestructura/repository/tipoRequisitoDocumentoRepository.js";

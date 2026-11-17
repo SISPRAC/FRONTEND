@@ -27,7 +27,7 @@ import { revisarDocumentoConvenioEmpresa } from "../../../aplicacion/empresaRequ
 import { aprobarConvenio } from "../../../aplicacion/convenio/aprobarConvenio";
 
 import EstadoBadge from "../../components/estadoBadge/EstadoBadge";
-import ConfirmModal from "../../components/modals/DeleteModal.jsx";
+import ConfirmModal from "../../components/modals/ConfirmModal.jsx";
 
 // ===============================================================
 // UTILIDADES
@@ -68,6 +68,31 @@ const conParametrosPDF = (url) => {
   return `${url}#view=FitH&navpanes=0`;
 };
 
+const descargarArchivo = async (url, nombreArchivo) => {
+  try {
+    const respuesta = await fetch(url);
+
+    if (!respuesta.ok) {
+      throw new Error("No se pudo descargar el archivo");
+    }
+
+    const blob = await respuesta.blob();
+    const urlTemporal = URL.createObjectURL(blob);
+
+    const enlace = document.createElement("a");
+    enlace.href = urlTemporal;
+    enlace.download = nombreArchivo;
+
+    document.body.appendChild(enlace);
+    enlace.click();
+    enlace.remove();
+
+    URL.revokeObjectURL(urlTemporal);
+  } catch (error) {
+    console.error("Error descargando archivo:", error);
+    toast.error("No se pudo descargar el documento");
+  }
+};
 // ===============================================================
 // VISOR PDF
 // ===============================================================
@@ -207,11 +232,12 @@ export default function VistaConvenio() {
 
   const handleRevisarRequisito = async () => {
     const estado = modalReq;
-    setModalReq(null);
 
-    if (!docSel) return;
+    if (!docSel) {
+      toast.error("No se encontró el documento seleccionado");
+      return;
+    }
 
-    // El motivo solo es obligatorio al rechazar
     if (estado === "RECHAZADO" && !comentarioReq.trim()) {
       toast.error("Debes escribir un motivo para rechazar");
       return;
@@ -223,18 +249,29 @@ export default function VistaConvenio() {
       await revisarDocumentoConvenioEmpresa(
         { empresaRequisitoDocumentoRepository },
         docSel.id,
-        { estado, observacion: comentarioReq.trim() }
+        {
+          estado,
+          observacion: comentarioReq.trim(),
+        }
       );
 
       toast.success(
-        estado === "APROBADO" ? "Documento aprobado" : "Documento rechazado"
+        estado === "APROBADO"
+          ? "Documento aprobado"
+          : "Documento rechazado"
       );
 
+      // Cerrar solamente cuando la operación haya terminado correctamente.
+      setModalReq(null);
+
       await cargarRequisitos(convenio.empresaId);
+
     } catch (error) {
-      console.error(error);
+      console.error("Error revisando documento:", error);
+
       toast.error(
-        error.response?.data?.message || "No se pudo registrar la revisión"
+        error.response?.data?.message ||
+        "No se pudo registrar la revisión"
       );
     } finally {
       setEnviandoReq(false);
@@ -349,6 +386,7 @@ export default function VistaConvenio() {
   // APROBAR / RECHAZAR / COMENTAR CONVENIO
   // ===============================================================
 
+
   const handleAprobar = async () => {
     if (!archivoFinal) {
       toast.error("Sube el convenio firmado antes de aprobar");
@@ -369,12 +407,18 @@ export default function VistaConvenio() {
       formData.append("usuario_id", usuarioSesion.id);
       formData.append("archivo", archivoFinal);
 
-      await aprobarConvenio({ convenioRepository }, convenio.id, formData);
+      await aprobarConvenio(
+        { convenioRepository },
+        convenio.id,
+        formData
+      );
 
+      setModalAccion(null);
       toast.success("Convenio aprobado");
 
       handleQuitarFinal();
       await cargarConvenio();
+
     } catch (error) {
       console.error(error);
       toast.error(
@@ -399,14 +443,21 @@ export default function VistaConvenio() {
     setEnviando(true);
 
     try {
-      await actualizarEstadoConvenio({ convenioRepository }, convenio.id, {
-        estado: "RECHAZADO",
-        comentario,
-        usuario_id: usuarioSesion.id,
-      });
+      await actualizarEstadoConvenio(
+        { convenioRepository },
+        convenio.id,
+        {
+          estado: "RECHAZADO",
+          comentario: comentario.trim(),
+          usuario_id: usuarioSesion.id,
+        }
+      );
 
+      setModalAccion(null);
       toast.success("Convenio rechazado");
+
       await cargarConvenio();
+
     } catch (error) {
       console.error(error);
       toast.error(
@@ -416,6 +467,7 @@ export default function VistaConvenio() {
       setEnviando(false);
     }
   };
+
 
   const handleHistorial = async () => {
     try {
@@ -502,20 +554,18 @@ export default function VistaConvenio() {
             <button
               type="button"
               onClick={() => setPaso("requisitos")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-bold transition-colors ${
-                paso === "requisitos"
-                  ? "bg-[#e8192c] text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-bold transition-colors ${paso === "requisitos"
+                ? "bg-[#e8192c] text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
             >
               <ClipboardList size={16} />
               1. Requisitos
               <span
-                className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                  paso === "requisitos"
-                    ? "bg-white/25 text-white"
-                    : "bg-white text-slate-500"
-                }`}
+                className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${paso === "requisitos"
+                  ? "bg-white/25 text-white"
+                  : "bg-white text-slate-500"
+                  }`}
               >
                 {aprobados}/{obligatorios.length}
               </span>
@@ -525,11 +575,10 @@ export default function VistaConvenio() {
               type="button"
               disabled={!requisitosCompletos && !esFinal}
               onClick={() => setPaso("convenio")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                paso === "convenio"
-                  ? "bg-[#e8192c] text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${paso === "convenio"
+                ? "bg-[#e8192c] text-white"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
             >
               {requisitosCompletos || esFinal ? (
                 <FileText size={16} />
@@ -579,11 +628,10 @@ export default function VistaConvenio() {
                         key={tipo.id}
                         type="button"
                         onClick={() => setSeleccionadoId(tipo.id)}
-                        className={`text-left rounded-xl border px-3 py-2.5 transition-colors ${
-                          activo
-                            ? "border-[#e8192c] bg-red-50/40"
-                            : "border-gray-200 bg-white hover:bg-gray-50"
-                        }`}
+                        className={`text-left rounded-xl border px-3 py-2.5 transition-colors ${activo
+                          ? "border-[#e8192c] bg-red-50/40"
+                          : "border-gray-200 bg-white hover:bg-gray-50"
+                          }`}
                       >
                         <p className="text-sm font-semibold text-gray-800 truncate">
                           {tipo.nombre}
@@ -680,11 +728,10 @@ export default function VistaConvenio() {
                   <>
                     {!puedeRevisarReq && (
                       <div
-                        className={`flex-shrink-0 rounded-lg border px-3 py-2 text-sm font-medium ${
-                          docSel.estado === "APROBADO"
-                            ? "text-emerald-600 bg-emerald-50 border-emerald-200"
-                            : "text-red-600 bg-red-50 border-red-200"
-                        }`}
+                        className={`flex-shrink-0 rounded-lg border px-3 py-2 text-sm font-medium ${docSel.estado === "APROBADO"
+                          ? "text-emerald-600 bg-emerald-50 border-emerald-200"
+                          : "text-red-600 bg-red-50 border-red-200"
+                          }`}
                       >
                         {docSel.estado === "APROBADO"
                           ? "✓ Documento aprobado"
@@ -763,11 +810,10 @@ export default function VistaConvenio() {
                   <button
                     type="button"
                     onClick={() => setVista("borrador")}
-                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
-                      vista === "borrador"
-                        ? "bg-[#e8192c] text-white"
-                        : "text-gray-500 hover:text-gray-800"
-                    }`}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${vista === "borrador"
+                      ? "bg-[#e8192c] text-white"
+                      : "text-gray-500 hover:text-gray-800"
+                      }`}
                   >
                     {esFinal ? "Documento" : "Borrador de la empresa"}
                   </button>
@@ -777,11 +823,10 @@ export default function VistaConvenio() {
                       type="button"
                       disabled={!previewFinal}
                       onClick={() => setVista("final")}
-                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                        vista === "final"
-                          ? "bg-[#e8192c] text-white"
-                          : "text-gray-500 hover:text-gray-800"
-                      }`}
+                      className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${vista === "final"
+                        ? "bg-[#e8192c] text-white"
+                        : "text-gray-500 hover:text-gray-800"
+                        }`}
                     >
                       Versión firmada
                     </button>
@@ -789,14 +834,19 @@ export default function VistaConvenio() {
                 </div>
 
                 {convenio.archivo && (
-                  <a
-                    href={convenio.archivo}
-                    download
+                  <button
+                    type="button"
+                    onClick={() =>
+                      descargarArchivo(
+                        convenio.archivo,
+                        `Convenio-${limpiarNombre(convenio.empresa)}.pdf`
+                      )
+                    }
                     className="flex items-center gap-1.5 text-xs text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
                   >
                     <Download size={14} />
                     Descargar
-                  </a>
+                  </button>
                 )}
               </div>
 
@@ -911,11 +961,10 @@ export default function VistaConvenio() {
               <div className="flex flex-col gap-2 flex-shrink-0">
                 {esFinal ? (
                   <div
-                    className={`text-center text-sm font-medium rounded-xl px-4 py-3 border ${
-                      estadoConvenio === "APROBADO"
-                        ? "text-emerald-600 bg-emerald-50 border-emerald-200"
-                        : "text-red-600 bg-red-50 border-red-200"
-                    }`}
+                    className={`text-center text-sm font-medium rounded-xl px-4 py-3 border ${estadoConvenio === "APROBADO"
+                      ? "text-emerald-600 bg-emerald-50 border-emerald-200"
+                      : "text-red-600 bg-red-50 border-red-200"
+                      }`}
                   >
                     {estadoConvenio === "APROBADO"
                       ? "✓ Convenio aprobado"
@@ -972,7 +1021,7 @@ export default function VistaConvenio() {
       {/* MODAL: REVISIÓN DE REQUISITO */}
       <ConfirmModal
         isOpen={modalReq !== null}
-        onClose={() => setModalReq(null)}
+        onCancel={() => setModalReq(null)}
         title={
           modalReq === "APROBADO"
             ? "¿Aprobar documento?"
@@ -983,14 +1032,18 @@ export default function VistaConvenio() {
             ? "Al aprobar este documento no podrás revertir la decisión."
             : "La empresa deberá subir nuevamente este documento con las correcciones."
         }
-        confirmText={modalReq === "APROBADO" ? "Aprobar" : "Rechazar"}
+        confirmLabel={modalReq === "APROBADO" ? "Aprobar" : "Rechazar"}
+        loading={enviandoReq}
         onConfirm={handleRevisarRequisito}
       />
 
       {/* MODAL: CONVENIO */}
+      {/* MODAL: CONVENIO */}
       <ConfirmModal
         isOpen={modalAccion !== null}
-        onClose={() => setModalAccion(null)}
+        onCancel={() => {
+          if (!enviando) setModalAccion(null);
+        }}
         title={
           modalAccion === "APROBADO"
             ? "¿Aprobar convenio?"
@@ -1001,13 +1054,14 @@ export default function VistaConvenio() {
             ? "Esta acción no se puede deshacer. El borrador de la empresa se reemplazará por el convenio firmado y el convenio quedará finalizado."
             : "Al rechazar el convenio se registrará la decisión y no podrá continuar el proceso."
         }
-        confirmText={modalAccion === "APROBADO" ? "Aprobar" : "Rechazar"}
-        onConfirm={() => {
-          const accion = modalAccion;
-          setModalAccion(null);
-
-          if (accion === "APROBADO") handleAprobar();
-          if (accion === "RECHAZADO") handleRechazar();
+        confirmLabel={modalAccion === "APROBADO" ? "Aprobar" : "Rechazar"}
+        loading={enviando}
+        onConfirm={async () => {
+          if (modalAccion === "APROBADO") {
+            await handleAprobar();
+          } else if (modalAccion === "RECHAZADO") {
+            await handleRechazar();
+          }
         }}
       />
     </div>

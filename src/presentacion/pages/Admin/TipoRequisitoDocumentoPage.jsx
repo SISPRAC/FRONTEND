@@ -4,7 +4,7 @@ import { Trash, SquarePen } from "lucide-react";
 
 import GenericTable from "../../components/Table/GenericTable";
 import AddButton from "../../components/buttons/AddButton";
-import DeleteModal from "../../components/modals/DeleteModal";
+import ConfirmModal from "../../components/modals/ConfirmModal";
 import TipoRequisitoDocumentoModal from "../../components/modals/TipoRequisitoDocumentoModal.jsx";
 
 import { tipoRequisitoDocumentoRepository } from "../../../infraestructura/repository/tipoRequisitoDocumentoRepository.js";
@@ -17,6 +17,14 @@ import { eliminarTipoRequisitoDocumento } from "../../../aplicacion/tipoRequisit
 
 const ROL_PRACTICANTE_ID = 4;
 
+const normalizar = (texto = "") =>
+    texto
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, " ");
+
 export default function TipoRequisitoDocumentoPage() {
     const [rows, setRows] = useState([]);
     const [busqueda, setBusqueda] = useState("");
@@ -28,6 +36,7 @@ export default function TipoRequisitoDocumentoPage() {
 
     const [deleteModal, setDeleteModal] = useState(false);
     const [requisitoToDelete, setRequisitoToDelete] = useState(null);
+    const [eliminando, setEliminando] = useState(false);
 
     useEffect(() => {
         loadRequisitos();
@@ -47,20 +56,29 @@ export default function TipoRequisitoDocumentoPage() {
         }
     };
 
-    // Solo practicantes + filtro por búsqueda
+    // Solo practicantes
+    const rowsPracticante = useMemo(
+        () => rows.filter(row => Number(row.rol_id) === ROL_PRACTICANTE_ID),
+        [rows]
+    );
+
+    // Filtro por búsqueda
     const rowsFiltradas = useMemo(() => {
         const termino = busqueda.trim().toLowerCase();
+        if (!termino) return rowsPracticante;
 
-        return rows.filter(row => {
-            if (Number(row.rol_id) !== ROL_PRACTICANTE_ID) return false;
-            if (!termino) return true;
+        return rowsPracticante.filter(row =>
+            row.nombre?.toLowerCase().includes(termino) ||
+            row.descripcion?.toLowerCase().includes(termino)
+        );
+    }, [rowsPracticante, busqueda]);
 
-            return (
-                row.nombre?.toLowerCase().includes(termino) ||
-                row.descripcion?.toLowerCase().includes(termino)
-            );
-        });
-    }, [rows, busqueda]);
+    const nombreRepetido = (nombre, idActual = null) =>
+        rowsPracticante.some(
+            row =>
+                row.id !== idActual &&
+                normalizar(row.nombre) === normalizar(nombre)
+        );
 
     const buildFormData = (formData) => {
         const data = new FormData();
@@ -110,6 +128,11 @@ export default function TipoRequisitoDocumentoPage() {
     };
 
     const handleSave = async (formData) => {
+        if (nombreRepetido(formData.nombre)) {
+            toast.error("Ya existe un documento con ese nombre.");
+            return;
+        }
+
         try {
             await crearTipoRequisitoDocumento(
                 { tipoRequisitoDocumentoRepository },
@@ -128,6 +151,11 @@ export default function TipoRequisitoDocumentoPage() {
     };
 
     const handleUpdate = async (formData) => {
+        if (nombreRepetido(formData.nombre, formData.id)) {
+            toast.error("Ya existe un documento con ese nombre.");
+            return;
+        }
+
         try {
             await actualizarTipoRequisitoDocumento(
                 { tipoRequisitoDocumentoRepository },
@@ -151,8 +179,16 @@ export default function TipoRequisitoDocumentoPage() {
         setDeleteModal(true);
     };
 
+    const cerrarDelete = () => {
+        if (eliminando) return;
+        setDeleteModal(false);
+        setRequisitoToDelete(null);
+    };
+
     const handleDelete = async () => {
         try {
+            setEliminando(true);
+
             await eliminarTipoRequisitoDocumento(
                 { tipoRequisitoDocumentoRepository },
                 requisitoToDelete.id
@@ -167,13 +203,15 @@ export default function TipoRequisitoDocumentoPage() {
             toast.error(
                 error.response?.data?.message || "Error al eliminar."
             );
+        } finally {
+            setEliminando(false);
         }
     };
 
     return (
         <div>
             <h1 className="text-[26px] font-extrabold text-slate-800 text-center mb-7 tracking-tight">
-                Requisitos Documentales
+                Documentos Practicante
             </h1>
 
             <div className="bg-white rounded-2xl shadow-sm border p-5 mb-6">
@@ -247,18 +285,18 @@ export default function TipoRequisitoDocumentoPage() {
                 onClose={() => setIsOpen(false)}
                 onSubmit={mode === "edit" ? handleUpdate : handleSave}
                 requisito={selectedRequisito}
+                requisitos={rowsPracticante}
                 mode={mode}
             />
 
-            <DeleteModal
+            <ConfirmModal
                 isOpen={deleteModal}
-                onClose={() => {
-                    setDeleteModal(false);
-                    setRequisitoToDelete(null);
-                }}
-                onConfirm={handleDelete}
                 title="Eliminar requisito documental"
                 message={`¿Desea eliminar el documento "${requisitoToDelete?.nombre}"?`}
+                confirmLabel="Eliminar"
+                loading={eliminando}
+                onConfirm={handleDelete}
+                onCancel={cerrarDelete}
             />
         </div>
     );

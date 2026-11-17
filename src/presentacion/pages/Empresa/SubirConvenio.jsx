@@ -43,6 +43,20 @@ function getUsuarioSesion() {
 }
 
 // ===============================================================
+// FECHA ACTUAL LOCAL
+// ===============================================================
+
+function obtenerFechaActual() {
+  const hoy = new Date();
+
+  const anio = hoy.getFullYear();
+  const mes = String(hoy.getMonth() + 1).padStart(2, "0");
+  const dia = String(hoy.getDate()).padStart(2, "0");
+
+  return `${anio}-${mes}-${dia}`;
+}
+
+// ===============================================================
 // SKELETON
 // ===============================================================
 
@@ -184,7 +198,7 @@ function EstadoPanel({ estado }) {
     },
 
     VENCIDO: {
-      bg: "bg-slate-500",
+      bg: "bg-red-500",
       icon: <Clock size={20} className="text-white" />,
       title: "Vencido",
       subtitle: "El convenio llegó a su fecha de finalización",
@@ -501,9 +515,9 @@ export default function CargarConvenio() {
     }
   };
 
-  // =============================================================
+  // ===============================================================
   // PREPARAR NUEVO CONVENIO
-  // =============================================================
+  // ===============================================================
 
   const prepararNuevoConvenio = () => {
     setConvenioId(null);
@@ -511,7 +525,7 @@ export default function CargarConvenio() {
 
     setTrazabilidad([]);
 
-    setFechaInicio("");
+    setFechaInicio(obtenerFechaActual());
     setFechaFin("");
 
     setArchivo(null);
@@ -606,20 +620,24 @@ export default function CargarConvenio() {
     }
   };
 
-  // =============================================================
+  // ===============================================================
   // SELECCIONAR ARCHIVO
-  // =============================================================
+  // ===============================================================
 
   const setArchivoSeleccionado = (file) => {
     if (!file) return;
 
-    if (file.type !== "application/pdf") {
+    // Validar formato PDF
+    if (
+      file.type !== "application/pdf" ||
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
       setErrores((prev) => ({
         ...prev,
         archivo: true,
       }));
 
-      toast.error("El archivo debe ser un PDF");
+      toast.error("Solo se permiten archivos PDF");
 
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -628,6 +646,25 @@ export default function CargarConvenio() {
       return;
     }
 
+    // Validar tamaño máximo de 2 MB
+    const MAX_SIZE = 2 * 1024 * 1024;
+
+    if (file.size > MAX_SIZE) {
+      setErrores((prev) => ({
+        ...prev,
+        archivo: true,
+      }));
+
+      toast.error("El archivo no puede superar los 2 MB");
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
+      return;
+    }
+
+    // Liberar vista previa anterior
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -640,6 +677,16 @@ export default function CargarConvenio() {
       ...prev,
       archivo: false,
     }));
+  };
+
+  // ===============================================================
+  // CAMBIAR ARCHIVO
+  // ===============================================================
+
+  const handleCambiarArchivo = () => {
+    if (convenioBloqueado) return;
+
+    fileInputRef.current?.click();
   };
 
   // =============================================================
@@ -1013,8 +1060,8 @@ export default function CargarConvenio() {
             type="button"
             onClick={() => setPaso("requisitos")}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors ${paso === "requisitos"
-                ? "bg-[#e8192c] text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-[#e8192c] text-white"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
           >
             <ClipboardList size={16} />
@@ -1026,8 +1073,8 @@ export default function CargarConvenio() {
             disabled={!requisitosCompletos}
             onClick={() => setPaso("convenio")}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${paso === "convenio"
-                ? "bg-[#e8192c] text-white"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              ? "bg-[#e8192c] text-white"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
               }`}
           >
             {requisitosCompletos ? <FileText size={16} /> : <Lock size={16} />}
@@ -1131,6 +1178,7 @@ export default function CargarConvenio() {
                 </div>
               </div>
 
+
               {/* CARGAR FORMATO */}
 
               <div>
@@ -1140,26 +1188,39 @@ export default function CargarConvenio() {
                   </h2>
 
                   <button
+                    type="button"
                     onClick={handleDescargarFormato}
                     className="
-                      flex items-center gap-1
-                      text-xs font-semibold text-slate-500
-                      hover:text-red-600 transition-colors
-                    "
+        flex items-center gap-1
+        text-xs font-semibold text-slate-500
+        hover:text-red-600 transition-colors
+      "
                   >
                     <Download size={13} />
                     Descargar modelo (.docx)
                   </button>
                 </div>
 
-                {/* APROBADO */}
+                {/* INPUT PDF ÚNICO */}
+
+                <input
+                  id="convenio-pdf"
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  onChange={handleSelectFile}
+                />
+
+                {/* CONVENIO APROBADO */}
 
                 {estado === "APROBADO" ? (
+
                   <div className="
-                    w-full h-32 border-2 border-slate-200
-                    rounded-2xl bg-slate-50
-                    flex flex-col items-center justify-center
-                  ">
+      w-full h-32 border-2 border-slate-200
+      rounded-2xl bg-slate-50
+      flex flex-col items-center justify-center
+    ">
                     <CheckCircle2
                       size={24}
                       className="text-emerald-500 mb-1"
@@ -1175,17 +1236,15 @@ export default function CargarConvenio() {
 
                     {archivoActual && (
                       <button
+                        type="button"
                         onClick={() =>
-                          abrirModalPDF(
-                            archivoActual,
-                            "Convenio aprobado"
-                          )
+                          abrirModalPDF(archivoActual, "Convenio aprobado")
                         }
                         className="
-                          flex items-center gap-1
-                          text-xs font-bold text-blue-600
-                          hover:text-blue-800 mt-1
-                        "
+            flex items-center gap-1
+            text-xs font-bold text-blue-600
+            hover:text-blue-800 mt-1
+          "
                       >
                         <Eye size={13} />
                         Ver convenio
@@ -1195,13 +1254,13 @@ export default function CargarConvenio() {
 
                 ) : estado === "VENCIDO" ? (
 
-                  /* VENCIDO */
+                  /* CONVENIO VENCIDO */
 
                   <div className="
-                    w-full h-32 border-2 border-slate-300
-                    rounded-2xl bg-slate-50
-                    flex flex-col items-center justify-center px-6
-                  ">
+      w-full h-32 border-2 border-slate-300
+      rounded-2xl bg-slate-50
+      flex flex-col items-center justify-center px-6
+    ">
                     <Clock
                       size={24}
                       className="text-slate-500 mb-1"
@@ -1217,12 +1276,13 @@ export default function CargarConvenio() {
                     </p>
 
                     <button
+                      type="button"
                       onClick={prepararNuevoConvenio}
                       className="
-                        mt-2 flex items-center gap-1
-                        text-xs font-bold text-red-600
-                        hover:text-red-700
-                      "
+          mt-2 flex items-center gap-1
+          text-xs font-bold text-red-600
+          hover:text-red-700
+        "
                     >
                       <UploadCloud size={13} />
                       Cargar nuevo convenio
@@ -1231,20 +1291,21 @@ export default function CargarConvenio() {
 
                 ) : archivo ? (
 
-                  /* PDF NUEVO */
+                  /* NUEVO PDF SELECCIONADO */
 
                   <div className="
-                    w-full h-32 border-2 rounded-2xl bg-white
-                    flex flex-col items-center justify-center
-                    px-6 relative border-slate-200
-                  ">
+      w-full h-32 border-2 rounded-2xl bg-white
+      flex flex-col items-center justify-center
+      px-6 relative border-blue-200
+    ">
                     <button
+                      type="button"
                       onClick={handleQuitarArchivo}
                       className="
-                        absolute top-2 right-2
-                        text-slate-400 hover:text-red-600
-                      "
-                      title="Quitar archivo"
+          absolute top-2 right-2
+          text-slate-400 hover:text-red-600
+        "
+                      title="Quitar archivo seleccionado"
                     >
                       <X size={16} />
                     </button>
@@ -1255,70 +1316,103 @@ export default function CargarConvenio() {
                     />
 
                     <p className="
-                      text-sm font-semibold text-slate-700
-                      text-center truncate max-w-[220px]
-                    ">
+        text-sm font-semibold text-slate-700
+        text-center truncate max-w-[220px]
+      ">
                       {archivo.name}
                     </p>
 
                     <p className="text-xs text-slate-400 mb-1.5">
-                      {(archivo.size / 1024).toFixed(0)} KB
+                      {(archivo.size / (1024 * 1024)).toFixed(2)} MB
                     </p>
 
-                    <button
-                      onClick={handleVerPreview}
-                      className="
-                        flex items-center gap-1
-                        text-xs font-bold text-blue-600
-                        hover:text-blue-800
-                      "
-                    >
-                      <Eye size={13} />
-                      Ver
-                    </button>
+                    <div className="flex items-center gap-4">
+
+                      <button
+                        type="button"
+                        onClick={handleVerPreview}
+                        className="
+            flex items-center gap-1
+            text-xs font-bold text-blue-600
+            hover:text-blue-800
+          "
+                      >
+                        <Eye size={13} />
+                        Ver
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCambiarArchivo}
+                        className="
+            flex items-center gap-1
+            text-xs font-bold text-red-600
+            hover:text-red-700
+          "
+                      >
+                        <UploadCloud size={13} />
+                        Cambiar archivo
+                      </button>
+
+                    </div>
                   </div>
 
                 ) : archivoActual ? (
 
-                  /* ARCHIVO ACTUAL */
+                  /* PDF ACTUAL */
 
                   <div className="
-                    w-full h-32 border-2 rounded-2xl bg-white
-                    flex flex-col items-center justify-center
-                    px-6 relative border-slate-200
-                  ">
+      w-full h-32 border-2 rounded-2xl bg-white
+      flex flex-col items-center justify-center
+      px-6 relative border-slate-200
+    ">
                     <FileText
                       size={24}
                       className="text-red-500 mb-1"
                     />
 
                     <p className="
-                      text-sm font-semibold text-slate-700
-                      text-center truncate max-w-[260px]
-                    ">
+        text-sm font-semibold text-slate-700
+        text-center truncate max-w-[260px]
+      ">
                       Convenio actual
                     </p>
 
-                    <p className="text-xs text-slate-400 mb-1.5">
+                    <p className="text-xs text-slate-400 mb-2">
                       Se conservará si no seleccionas otro archivo
                     </p>
 
-                    <button
-                      onClick={() =>
-                        abrirModalPDF(
-                          archivoActual,
-                          "Convenio actual"
-                        )
-                      }
-                      className="
-                        flex items-center gap-1
-                        text-xs font-bold text-blue-600
-                        hover:text-blue-800
-                      "
-                    >
-                      <Eye size={13} />
-                      Ver
-                    </button>
+                    <div className="flex items-center gap-4">
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          abrirModalPDF(archivoActual, "Convenio actual")
+                        }
+                        className="
+            flex items-center gap-1
+            text-xs font-bold text-blue-600
+            hover:text-blue-800
+          "
+                      >
+                        <Eye size={13} />
+                        Ver
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleCambiarArchivo}
+                        className="
+            flex items-center gap-1
+            text-xs font-bold text-red-600
+            hover:text-red-700
+          "
+                      >
+                        <UploadCloud size={13} />
+                        Cambiar archivo
+                      </button>
+
+                    </div>
                   </div>
 
                 ) : (
@@ -1330,16 +1424,16 @@ export default function CargarConvenio() {
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleDrop}
                     className={`
-                      flex flex-col items-center justify-center
-                      w-full h-32 border-2 border-dashed
-                      rounded-2xl bg-white cursor-pointer
-                      transition-colors
+        flex flex-col items-center justify-center
+        w-full h-32 border-2 border-dashed
+        rounded-2xl bg-white cursor-pointer
+        transition-colors
 
-                      ${errores.archivo
+        ${errores.archivo
                         ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
                         : "border-red-300 hover:bg-red-50/40"
                       }
-                    `}
+      `}
                   >
                     <UploadCloud
                       size={24}
@@ -1350,23 +1444,20 @@ export default function CargarConvenio() {
                       Cargar el PDF
                     </span>
 
+                    <span className="text-[11px] text-slate-400 mt-1">
+                      PDF · Máximo 2 MB
+                    </span>
+
                     {errores.archivo && (
                       <span className="text-[11px] text-red-500 mt-1">
-                        Debes seleccionar un archivo PDF
+                        Selecciona un PDF válido de máximo 2 MB
                       </span>
                     )}
-
-                    <input
-                      id="convenio-pdf"
-                      ref={fileInputRef}
-                      type="file"
-                      accept="application/pdf"
-                      className="hidden"
-                      onChange={handleSelectFile}
-                    />
                   </label>
+
                 )}
               </div>
+
 
               {/* BOTÓN ENVIAR */}
 
@@ -1595,8 +1686,8 @@ function modoBoton(estado, tieneConvenio, enviando) {
   if (tieneConvenio) {
     return (
       <>
-        <FileText size={16} />
-        {enviando ? "Guardando..." : "Editar"}
+        <CheckCircle2 size={16} />
+        {enviando ? "Actualizando..." : "Actualizar convenio"}
       </>
     );
   }
@@ -1604,7 +1695,7 @@ function modoBoton(estado, tieneConvenio, enviando) {
   return (
     <>
       <Send size={16} />
-      {enviando ? "Enviando..." : "Enviar"}
+      {enviando ? "Enviando..." : "Enviar convenio"}
     </>
   );
 }

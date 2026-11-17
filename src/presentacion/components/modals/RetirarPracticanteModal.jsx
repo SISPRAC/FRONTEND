@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast"; // o: import { toast } from "sonner";
+import toast from "react-hot-toast"; 
 import {
   X,
   Upload,
@@ -10,6 +10,10 @@ import {
   EyeOff,
   Loader2,
   ExternalLink,
+  RefreshCw,
+  Trash2,
+  AlertTriangle,
+  BellRing,
 } from "lucide-react";
 
 const MAX_SIZE_MB = 2;
@@ -37,12 +41,17 @@ function esPdf(file) {
   );
 }
 
+function formatearPeso(bytes) {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
 export default function RetirarPracticanteModal({
   practicante,
   open = true,
   onClose = () => {},
   onRetirar = () => {},
-  urlPlantilla = "#",
+  urlPlantilla = "/plantillas/Formato_Retiro_Practica_Profesional.docx",
   mostrarDatosVacante = false,
 }) {
   const [motivo, setMotivo] = useState("");
@@ -50,6 +59,8 @@ export default function RetirarPracticanteModal({
   const [previewUrl, setPreviewUrl] = useState(null);
   const [mostrarVista, setMostrarVista] = useState(true);
   const [retirando, setRetirando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [entiendo, setEntiendo] = useState(false);
   const [errores, setErrores] = useState({
     motivo: false,
     archivo: false,
@@ -64,6 +75,8 @@ export default function RetirarPracticanteModal({
     setPreviewUrl(null);
     setMostrarVista(true);
     setRetirando(false);
+    setConfirmando(false);
+    setEntiendo(false);
     setErrores({ motivo: false, archivo: false });
 
     if (inputRef.current) {
@@ -98,7 +111,30 @@ export default function RetirarPracticanteModal({
     return () => URL.revokeObjectURL(url);
   }, [archivo]);
 
+  // Escape: cierra la confirmación primero y luego el modal.
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e) => {
+      if (e.key !== "Escape" || retirando) return;
+
+      if (confirmando) {
+        setConfirmando(false);
+        setEntiendo(false);
+      } else {
+        handleCerrar();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, confirmando, retirando]);
+
   if (!open) return null;
+
+  const abrirSelector = () => inputRef.current?.click();
 
   const handleArchivoChange = (e) => {
     const file = e.target.files?.[0];
@@ -123,12 +159,24 @@ export default function RetirarPracticanteModal({
       return;
     }
 
+    const eraReemplazo = Boolean(archivo);
+
     setArchivo(file);
     setMostrarVista(true);
     setErrores((prev) => ({ ...prev, archivo: false }));
+
+    if (eraReemplazo) {
+      toast.success("PDF reemplazado correctamente", { id: "retiro-ok" });
+    }
   };
 
-  const handleRetirar = async () => {
+  const handleQuitarArchivo = () => {
+    setArchivo(null);
+    setMostrarVista(true);
+  };
+
+  // Paso 1: valida y abre la confirmación.
+  const handlePedirConfirmacion = () => {
     if (retirando) return;
 
     const nuevosErrores = {
@@ -157,6 +205,14 @@ export default function RetirarPracticanteModal({
       return;
     }
 
+    setEntiendo(false);
+    setConfirmando(true);
+  };
+
+  // Paso 2: ejecuta el retiro tras confirmar.
+  const handleConfirmarRetiro = async () => {
+    if (retirando || !entiendo) return;
+
     setRetirando(true);
 
     try {
@@ -167,6 +223,8 @@ export default function RetirarPracticanteModal({
       });
     } finally {
       setRetirando(false);
+      setConfirmando(false);
+      setEntiendo(false);
     }
   };
 
@@ -292,40 +350,81 @@ export default function RetirarPracticanteModal({
                 className="hidden"
               />
 
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                disabled={retirando}
-                title={archivo ? archivo.name : undefined}
-                className={`flex w-full items-center justify-center rounded-xl border-2 px-4 py-3 transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                  archivo
-                    ? "border-red-300 bg-red-50 text-gray-700"
-                    : errores.archivo
-                      ? "border-red-500 bg-red-50 text-red-500"
-                      : "border-gray-300 bg-white text-gray-500 hover:border-red-300 hover:bg-red-50"
-                }`}
-              >
-                {archivo ? (
-                  <div className="relative flex w-full items-center justify-center">
-                    <span className="max-w-[80%] truncate text-sm font-medium">
-                      {truncarNombreArchivo(archivo.name)}
-                    </span>
+              {archivo ? (
+                <>
+                  {/* Tarjeta del archivo cargado */}
+                  <div
+                    className="flex w-full items-center gap-3 rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3"
+                    title={archivo.name}
+                  >
+                    <FileText size={20} className="shrink-0 text-red-500" />
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-gray-700">
+                        {truncarNombreArchivo(archivo.name, 28)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        PDF · {formatearPeso(archivo.size)}
+                      </p>
+                    </div>
 
                     <CheckCircle2
                       size={20}
-                      className="absolute right-0 fill-emerald-500 text-white"
+                      className="shrink-0 fill-emerald-500 text-white"
                     />
                   </div>
-                ) : (
+
+                  {/* Acciones sobre el archivo */}
+                  <div className="mt-2 flex flex-wrap justify-center gap-2">
+                    <button
+                      type="button"
+                      onClick={abrirSelector}
+                      disabled={retirando}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <RefreshCw size={14} />
+                      Cambiar PDF
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setMostrarVista((v) => !v)}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200"
+                    >
+                      {mostrarVista ? <EyeOff size={14} /> : <Eye size={14} />}
+                      {mostrarVista ? "Ocultar vista previa" : "Ver vista previa"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleQuitarArchivo}
+                      disabled={retirando}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Trash2 size={14} />
+                      Quitar
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={abrirSelector}
+                  disabled={retirando}
+                  className={`flex w-full items-center justify-center rounded-xl border-2 border-dashed px-4 py-4 transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                    errores.archivo
+                      ? "border-red-500 bg-red-50 text-red-500"
+                      : "border-gray-300 bg-white text-gray-500 hover:border-red-300 hover:bg-red-50"
+                  }`}
+                >
                   <div className="flex items-center gap-2">
                     <Upload size={18} />
-
                     <span className="text-sm font-medium">
                       Subir formato de retiro
                     </span>
                   </div>
-                )}
-              </button>
+                </button>
+              )}
 
               <p
                 className={`mt-1.5 text-center text-xs ${
@@ -339,27 +438,6 @@ export default function RetirarPracticanteModal({
                   : ""}
                 Solo PDF, máx. {MAX_SIZE_MB} MB
               </p>
-
-              {/* Mostrar u ocultar vista previa */}
-              {archivo && (
-                <div className="mt-2 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setMostrarVista((v) => !v)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-200"
-                  >
-                    {mostrarVista ? (
-                      <EyeOff size={14} />
-                    ) : (
-                      <Eye size={14} />
-                    )}
-
-                    {mostrarVista
-                      ? "Ocultar vista previa"
-                      : "Ver vista previa"}
-                  </button>
-                </div>
-              )}
 
               {/* Descargar plantilla */}
               <div className="mt-2 flex justify-center">
@@ -425,18 +503,11 @@ export default function RetirarPracticanteModal({
           <div className="mt-4 flex gap-3 md:col-start-1 md:row-start-2">
             <button
               type="button"
-              onClick={handleRetirar}
+              onClick={handlePedirConfirmacion}
               disabled={retirando}
               className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#e8192c] py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#c8111f] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70 disabled:active:scale-100"
             >
-              {retirando ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Retirando...
-                </>
-              ) : (
-                "Retirar"
-              )}
+              Retirar
             </button>
 
             <button
@@ -450,6 +521,94 @@ export default function RetirarPracticanteModal({
           </div>
         </div>
       </div>
+
+      {/* Confirmación final */}
+      {confirmando && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="retiro-confirm-title"
+        >
+          <div className="w-full max-w-sm rounded-[28px] bg-white p-6 shadow-2xl">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+              <AlertTriangle size={28} className="text-[#e8192c]" />
+            </div>
+
+            <h3
+              id="retiro-confirm-title"
+              className="text-center text-lg font-bold text-gray-800"
+            >
+              ¿Confirmas el retiro?
+            </h3>
+
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Vas a retirar a{" "}
+              <span className="font-semibold">
+                {nombreCompleto || "este practicante"}
+              </span>
+              .
+            </p>
+
+            <div className="mt-4 space-y-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+              <p className="flex items-start gap-2">
+                <BellRing size={16} className="mt-0.5 shrink-0" />
+                <span>
+                  Se notificará a todos los involucrados en el proceso.
+                </span>
+              </p>
+
+              <p className="flex items-start gap-2">
+                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+                <span>
+                  Esta acción <strong>no se puede revertir</strong>.
+                </span>
+              </p>
+            </div>
+
+            <label className="mt-4 flex cursor-pointer items-start gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={entiendo}
+                disabled={retirando}
+                onChange={(e) => setEntiendo(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[#e8192c]"
+              />
+              <span>Entiendo que el retiro es definitivo.</span>
+            </label>
+
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={handleConfirmarRetiro}
+                disabled={!entiendo || retirando}
+                className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#e8192c] py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#c8111f] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+              >
+                {retirando ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Retirando...
+                  </>
+                ) : (
+                  "Sí, retirar"
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmando(false);
+                  setEntiendo(false);
+                }}
+                disabled={retirando}
+                className="flex-1 rounded-full bg-gray-200 py-2.5 text-sm font-semibold text-gray-700 shadow-sm transition hover:bg-gray-300 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100"
+              >
+                Volver
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

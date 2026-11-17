@@ -127,7 +127,7 @@ const CandidatosPracticas = () => {
                         { key: "correo", label: "Correo" },
                         { key: "telefono", label: "Teléfono" },
                     ]}
-                    emptyMessage="No hay candidatos que coincidan con la búsqueda."
+                    emptyMessage="No hay candidatos registrado"
                     pageSize={6}
                 />
             )}

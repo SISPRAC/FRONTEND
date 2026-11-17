@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -26,10 +27,17 @@ export default function PracticaModal({
 
   const [periodos, setPeriodos] = useState([]);
 
+  const [loading, setLoading] = useState(false);
+
   const [errors, setErrors] = useState({
     periodo_id: false,
     fecha_inicio: false,
     fecha_fin: false,
+  });
+
+  // Fecha actual en formato YYYY-MM-DD
+  const fechaHoy = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Bogota"
   });
 
   useEffect(() => {
@@ -43,8 +51,8 @@ export default function PracticaModal({
       setFormData({
         id: practica.id,
         periodo_id: practica.periodo_id,
-        fecha_inicio: practica.fecha_inicio,
-        fecha_fin: practica.fecha_fin,
+        fecha_inicio: practica.fecha_inicio?.slice(0, 10),
+        fecha_fin: practica.fecha_fin?.slice(0, 10),
       });
 
     }
@@ -74,7 +82,10 @@ export default function PracticaModal({
 
   };
 
+
   const handleClose = () => {
+
+    if (loading) return;
 
     if (mode !== "edit") {
       setFormData(initialForm);
@@ -95,22 +106,46 @@ export default function PracticaModal({
 
     e.preventDefault();
 
+    if (loading) return;
+
     const newErrors = {
       periodo_id: !formData.periodo_id,
       fecha_inicio: !formData.fecha_inicio,
-      fecha_fin: !formData.fecha_fin,
+      fecha_fin:
+        !formData.fecha_fin ||
+        formData.fecha_fin < fechaHoy ||
+        formData.fecha_fin < formData.fecha_inicio,
     };
 
     setErrors(newErrors);
 
     if (Object.values(newErrors).includes(true)) {
-      toast.error("Datos requeridos");
+
+      if (newErrors.fecha_fin) {
+        toast.error(
+          "La fecha final no puede ser anterior a hoy ni a la fecha inicial"
+        );
+      } else {
+        toast.error("Datos requeridos");
+      }
+
       return;
     }
 
-    await onSubmit(formData);
+    try {
+
+      setLoading(true);
+
+      await onSubmit(formData);
+
+    } finally {
+
+      setLoading(false);
+
+    }
 
   };
+
 
   const periodoTienePractica = (id) => {
 
@@ -126,6 +161,7 @@ export default function PracticaModal({
     );
 
   };
+
 
   if (!isOpen) return null;
 
@@ -152,13 +188,17 @@ export default function PracticaModal({
       >
 
         <button
+          type="button"
           onClick={handleClose}
+          disabled={loading}
           className="
             absolute
             top-4
             right-4
             text-slate-400
             hover:text-red-500
+            disabled:opacity-50
+            disabled:cursor-not-allowed
           "
         >
           ✕
@@ -193,6 +233,7 @@ export default function PracticaModal({
 
             <select
               value={formData.periodo_id}
+              disabled={mode === "edit" || loading}
               onChange={(e) => {
 
                 setFormData({
@@ -206,10 +247,17 @@ export default function PracticaModal({
                 });
 
               }}
-              className={`border p-2 rounded w-full ${errors.periodo_id
-                ? "border-red-500"
-                : "border-gray-300"
-                }`}
+              className={`
+                border p-2 rounded w-full
+                ${errors.periodo_id
+                  ? "border-red-500"
+                  : "border-gray-300"
+                }
+                ${mode === "edit" || loading
+                  ? "bg-slate-100 text-slate-500 cursor-not-allowed"
+                  : "bg-white"
+                }
+              `}
             >
 
               <option value="" disabled>
@@ -222,18 +270,34 @@ export default function PracticaModal({
                   <option
                     key={periodo.id}
                     value={periodo.id}
-                    disabled={periodoTienePractica(periodo.id)}
+                    disabled={
+                      mode !== "edit" &&
+                      periodoTienePractica(periodo.id)
+                    }
                   >
                     {periodo.nombre}
-                    {periodoTienePractica(periodo.id)
-                      ? " (Ya tiene práctica)"
-                      : ""}
+
+                    {
+                      mode !== "edit" &&
+                      periodoTienePractica(periodo.id)
+                        ? " (Ya tiene práctica)"
+                        : ""
+                    }
+
                   </option>
 
                 ))
               }
 
             </select>
+
+            {
+              mode === "edit" && (
+                <p className="text-xs text-slate-400 mt-1">
+                  El período no se puede modificar después de crear la práctica.
+                </p>
+              )
+            }
 
           </div>
 
@@ -246,6 +310,7 @@ export default function PracticaModal({
             <input
               type="date"
               value={formData.fecha_inicio}
+              disabled={loading}
               onChange={(e) => {
 
                 setFormData({
@@ -256,13 +321,18 @@ export default function PracticaModal({
                 setErrors({
                   ...errors,
                   fecha_inicio: false,
+                  fecha_fin: false,
                 });
 
               }}
-              className={`border p-2 rounded w-full ${errors.fecha_inicio
-                ? "border-red-500"
-                : "border-gray-300"
-                }`}
+              className={`
+                border p-2 rounded w-full
+                ${errors.fecha_inicio
+                  ? "border-red-500"
+                  : "border-gray-300"
+                }
+                disabled:bg-slate-100
+              `}
             />
 
           </div>
@@ -275,7 +345,13 @@ export default function PracticaModal({
 
             <input
               type="date"
+              min={
+                fechaHoy > formData.fecha_inicio
+                  ? fechaHoy
+                  : formData.fecha_inicio || fechaHoy
+              }
               value={formData.fecha_fin}
+              disabled={loading}
               onChange={(e) => {
 
                 setFormData({
@@ -289,11 +365,19 @@ export default function PracticaModal({
                 });
 
               }}
-              className={`border p-2 rounded w-full ${errors.fecha_fin
-                ? "border-red-500"
-                : "border-gray-300"
-                }`}
+              className={`
+                border p-2 rounded w-full
+                ${errors.fecha_fin
+                  ? "border-red-500"
+                  : "border-gray-300"
+                }
+                disabled:bg-slate-100
+              `}
             />
+
+            <p className="text-xs text-slate-400 mt-1">
+              La fecha final debe ser igual o posterior a hoy y a la fecha inicial.
+            </p>
 
           </div>
 
@@ -302,12 +386,15 @@ export default function PracticaModal({
             <button
               type="button"
               onClick={handleClose}
+              disabled={loading}
               className="
                 px-5
                 py-2
                 rounded-xl
                 bg-slate-200
                 hover:bg-slate-300
+                disabled:opacity-50
+                disabled:cursor-not-allowed
               "
             >
               Cancelar
@@ -315,6 +402,7 @@ export default function PracticaModal({
 
             <button
               type="submit"
+              disabled={loading}
               className="
                 px-5
                 py-2
@@ -322,12 +410,18 @@ export default function PracticaModal({
                 bg-[#e8192c]
                 text-white
                 hover:bg-[#c8111f]
+                disabled:opacity-60
+                disabled:cursor-not-allowed
               "
             >
               {
-                mode === "edit"
-                  ? "Actualizar"
-                  : "Guardar"
+                loading
+                  ? mode === "edit"
+                    ? "Actualizando..."
+                    : "Creando..."
+                  : mode === "edit"
+                    ? "Actualizar"
+                    : "Crear"
               }
             </button>
 

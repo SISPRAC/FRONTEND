@@ -24,7 +24,7 @@ import { rechazarDocumentoRequisito } from "../../../aplicacion/practicaRequisit
 import { obtenerDocumentosPracticantePorPractica } from "../../../aplicacion/practicaRequisitoDocumentoSubido/obtenerDocumentosPracticantePorPractica.js";
 
 import { practicaRequisitoDocumentoSubidoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoSubidoRepository.js";
-
+import { getPracticaActual } from "../../../presentacion/components/utils/getPracticaActual.js";
 // -----------------------------------------------------------------------
 // Badge de estado
 // -----------------------------------------------------------------------
@@ -418,6 +418,8 @@ const selectClass =
 // Vista de practicantes
 // -----------------------------------------------------------------------
 
+
+
 export default function PracticantesProtocolos() {
     // Prácticas
     const [practicas, setPracticas] = useState([]);
@@ -457,13 +459,19 @@ export default function PracticantesProtocolos() {
             try {
                 setLoadingPracticas(true);
                 setError(null);
-
                 const data = await getPracticas({
                     practicaRepository,
                 });
 
                 if (!cancelled) {
-                    setPracticas(data || []);
+                    const lista = data || [];
+                    setPracticas(lista);
+
+                    // seleccionar automáticamente la práctica en curso
+                    const actual = getPracticaActual(lista);
+                    if (actual) {
+                        setPracticaId(String(actual.id));
+                    }
                 }
             } catch (err) {
                 console.error("Error cargando prácticas:", err);

@@ -515,7 +515,7 @@ export default function AgregarEncuestaPage() {
                         </p>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-end gap-2">
+                   {/*  <div className="flex flex-wrap items-center justify-end gap-2">
 
                         <label
                             title={archivoNombre}
@@ -544,7 +544,7 @@ export default function AgregarEncuestaPage() {
                             Descargar plantilla
                         </a>
 
-                    </div>
+                    </div> */}
 
                 </div>
 

@@ -1,19 +1,38 @@
 import { useEffect, useState, useRef } from "react";
 import GenericTable from "../Table/GenericTable";
-import { Trash, X, Plus, Paperclip, Check, AlertTriangle } from "lucide-react";
+import {
+  Trash,
+  X,
+  Plus,
+  Paperclip,
+  Check,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import * as pdfjsLib from "pdfjs-dist";
 import pdfWorker from "pdfjs-dist/build/pdf.worker?url";
 import InviteModal from "./InviteModal";
-import ConfirmModal from "./ConfirmModal";
 import { candidatoRepository } from "../../../infraestructura/repository/candidatoRepository";
 import { tutorDocenteRepository } from "../../../infraestructura/repository/tutorDocenteRepository";
 import { verificarCandidatosPdf } from "../../../aplicacion/candidato/verificarCandidatosPdf";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
+// ── Constantes ───────────────────────────────────────────────────────────────
+const MAX_NOMBRE_GRUPO = 80;
+// Ajusta este valor al que devuelve tu backend para una práctica activa
+const ESTADO_PRACTICA_ACTIVA = "EN_CURSO";
+
 const normalizar = (s = "") =>
   s.toLowerCase().replace(/\s+/g, " ").trim();
+
+// "  grupo   a " -> "Grupo a" (solo la primera letra en mayúscula,
+// no toca el resto para respetar "Grupo A")
+const formatearNombreGrupo = (s = "") => {
+  const limpio = s.replace(/\s+/g, " ").trim();
+  return limpio.charAt(0).toUpperCase() + limpio.slice(1);
+};
 
 // ── GrupoModal ───────────────────────────────────────────────────────────────
 export default function GrupoModal({
@@ -47,7 +66,7 @@ export default function GrupoModal({
   const [mostrarBusqueda, setMostrarBusqueda] = useState(false);
 
   const [mostrarInviteModal, setMostrarInviteModal] = useState(false);
-  const [mostrarConfirmarDocente, setMostrarConfirmarDocente] = useState(false);
+  const [analizandoPdf, setAnalizandoPdf] = useState(false);
   const [enviandoInvitaciones, setEnviandoInvitaciones] = useState(false);
   const [progresoInvitaciones, setProgresoInvitaciones] = useState({
     actual: 0,
@@ -60,6 +79,14 @@ export default function GrupoModal({
 
   const fileInputRef = useRef(null);
 
+  // Solo prácticas en curso. En modo editar se conserva la práctica actual
+  // del grupo aunque esté finalizada, para que el select no quede vacío.
+  const practicasDisponibles = practicas.filter(
+    (p) =>
+      p.estado === ESTADO_PRACTICA_ACTIVA ||
+      String(p.id) === String(formData.practica_id)
+  );
+
   const handleSeleccionarPDF = async (e) => {
     const file = e.target.files?.[0];
 
@@ -70,6 +97,8 @@ export default function GrupoModal({
       e.target.value = "";
       return;
     }
+
+    setAnalizandoPdf(true);
 
     try {
       const texto = await leerPDF(file);
@@ -104,8 +133,9 @@ export default function GrupoModal({
 
         setFormData((prev) => ({
           ...prev,
-          nombre: datos.grupo,
+          nombre: formatearNombreGrupo(datos.grupo),
         }));
+        setErrors((prev) => ({ ...prev, nombre: false }));
       }
 
       if (datos.alumnos.length === 0) {
@@ -147,9 +177,10 @@ export default function GrupoModal({
       toast.error(
         error.response?.data?.message || "No fue posible leer el PDF."
       );
+    } finally {
+      setAnalizandoPdf(false);
+      e.target.value = "";
     }
-
-    e.target.value = "";
   };
 
   // ── Cargar datos al abrir ────────────────────────────────────────────────
@@ -221,6 +252,14 @@ export default function GrupoModal({
     setErrors((prev) => ({ ...prev, [field]: false }));
   };
 
+  // Al salir del campo nombre se limpia y capitaliza
+  const handleNombreBlur = () => {
+    setFormData((prev) => ({
+      ...prev,
+      nombre: formatearNombreGrupo(prev.nombre),
+    }));
+  };
+
   const handleAddPracticante = () => {
     if (!selectedCandidato) {
       toast.error("Seleccione un practicante");
@@ -242,12 +281,22 @@ export default function GrupoModal({
 
     if (guardando) return;
 
+    const nombreFormateado = formatearNombreGrupo(formData.nombre);
+
     const newErrors = {
-      nombre: !formData.nombre.trim(),
+      nombre:
+        !nombreFormateado || nombreFormateado.length > MAX_NOMBRE_GRUPO,
       practica_id: !formData.practica_id,
       tutorDocente_id: !formData.tutorDocente_id,
     };
     setErrors(newErrors);
+
+    if (nombreFormateado.length > MAX_NOMBRE_GRUPO) {
+      toast.error(
+        `El nombre no puede superar ${MAX_NOMBRE_GRUPO} caracteres`
+      );
+      return;
+    }
 
     if (Object.values(newErrors).includes(true)) {
       toast.error("Completa todos los campos requeridos");
@@ -271,6 +320,7 @@ export default function GrupoModal({
     try {
       grupoGuardado = await onSubmit({
         ...formData,
+        nombre: nombreFormateado,
         candidatos: practicantes.map((p) => p.id),
       });
     } catch (error) {
@@ -317,7 +367,7 @@ export default function GrupoModal({
     const grupoMatch = texto.match(/Materia:\s*\d+-([A-Z])/i);
 
     if (grupoMatch) {
-      nombreGrupo = `Grupo ${grupoMatch[1]}`;
+      nombreGrupo = `Grupo ${grupoMatch[1].toUpperCase()}`;
     }
 
     const alumnos = [];
@@ -367,6 +417,10 @@ export default function GrupoModal({
     setEnviandoInvitaciones(true);
     setProgresoInvitaciones({ actual: 0, total: lista.length });
 
+    const toastId = toast.loading(
+      `Enviando invitaciones... 0/${lista.length}`
+    );
+
     try {
       for (let i = 0; i < lista.length; i++) {
         const candidato = lista[i];
@@ -379,9 +433,16 @@ export default function GrupoModal({
         });
 
         setProgresoInvitaciones({ actual: i + 1, total: lista.length });
+        toast.loading(
+          `Enviando invitaciones... ${i + 1}/${lista.length}`,
+          { id: toastId }
+        );
       }
 
-      toast.success(`${lista.length} invitación(es) enviada(s) correctamente.`);
+      toast.success(
+        `${lista.length} invitación(es) enviada(s) correctamente.`,
+        { id: toastId }
+      );
 
       setNoEncontrados([]);
       setInvitacionesEnviadas(true);
@@ -391,7 +452,8 @@ export default function GrupoModal({
       console.error(error);
       toast.error(
         error.response?.data?.message ||
-          "No fue posible enviar las invitaciones."
+          "No fue posible enviar las invitaciones.",
+        { id: toastId }
       );
 
       return false;
@@ -400,18 +462,13 @@ export default function GrupoModal({
     }
   };
 
-  const handleInvitar = () => {
-    if (noEncontrados.length === 0 && !docenteNoRegistrado) {
-      toast.error("No hay personas pendientes por invitar.");
+  // Solo se usa en modo editar (en crear se invita automáticamente al guardar)
+  const handleInvitarCandidatos = () => {
+    if (noEncontrados.length === 0) {
+      toast.error("No hay candidatos pendientes por invitar.");
       return;
     }
 
-    if (docenteNoRegistrado) {
-      setMostrarConfirmarDocente(true);
-      return;
-    }
-
-    // Solo llega aquí en modo editar (en crear el botón no aparece sin docente)
     enviarInvitaciones(noEncontrados, formData.id);
   };
 
@@ -428,7 +485,7 @@ export default function GrupoModal({
       errors[field] ? "border-red-500" : "border-gray-300"
     }`;
 
-  const ocupado = guardando || enviandoInvitaciones;
+  const ocupado = guardando || enviandoInvitaciones || analizandoPdf;
 
   const textoBotonGuardar = enviandoInvitaciones
     ? `Enviando invitaciones... ${progresoInvitaciones.actual}/${progresoInvitaciones.total}`
@@ -479,10 +536,15 @@ export default function GrupoModal({
                 <input
                   type="text"
                   value={formData.nombre}
+                  maxLength={MAX_NOMBRE_GRUPO}
                   placeholder="Ingrese el nombre del grupo"
                   onChange={handleField("nombre")}
+                  onBlur={handleNombreBlur}
                   className={inputCls("nombre")}
                 />
+                <p className="text-xs text-slate-400 text-right mt-1">
+                  {formData.nombre.length}/{MAX_NOMBRE_GRUPO}
+                </p>
               </div>
 
               {/* Práctica y Tutor Docente */}
@@ -501,7 +563,7 @@ export default function GrupoModal({
                       Seleccione una práctica
                     </option>
 
-                    {practicas.map((p) => (
+                    {practicasDisponibles.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.Periodo.nombre}
                       </option>
@@ -547,8 +609,12 @@ export default function GrupoModal({
                     disabled={ocupado}
                     className="flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-semibold hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Paperclip size={18} />
-                    Importar PDF
+                    {analizandoPdf ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <Paperclip size={18} />
+                    )}
+                    {analizandoPdf ? "Analizando PDF..." : "Importar PDF"}
                   </button>
 
                   <button
@@ -561,6 +627,13 @@ export default function GrupoModal({
                     Agregar manualmente
                   </button>
                 </div>
+
+                {analizandoPdf && (
+                  <div className="flex items-center justify-center gap-2 mb-3 rounded-lg bg-slate-50 border py-3 text-sm text-slate-600">
+                    <Loader2 size={18} className="animate-spin" />
+                    Leyendo el PDF y verificando candidatos...
+                  </div>
+                )}
 
                 <p className="font-semibold text-sm mb-2">Practicantes</p>
 
@@ -680,6 +753,23 @@ export default function GrupoModal({
                   </p>
                 )}
 
+                {docenteNoRegistrado && (
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 space-y-2">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-orange-700">
+                      <AlertTriangle size={18} className="shrink-0" />
+                      Tutor docente no registrado
+                    </p>
+                    <button
+                      type="button"
+                      disabled={ocupado}
+                      onClick={() => setMostrarInviteModal(true)}
+                      className="px-4 py-2 rounded-lg text-white text-sm font-semibold bg-[#e8192c] hover:bg-[#c8111f] disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    >
+                      Invitar tutor docente
+                    </button>
+                  </div>
+                )}
+
                 <p className="flex items-center gap-2 text-sm">
                   <Check size={18} className="shrink-0 text-green-600" />
                   <span>
@@ -731,8 +821,7 @@ export default function GrupoModal({
                       </p>
                     )}
 
-                    {((mode === "edit" && noEncontrados.length > 0) ||
-                      docenteNoRegistrado) && (
+                    {mode === "edit" && noEncontrados.length > 0 && (
                       <button
                         type="button"
                         disabled={ocupado}
@@ -741,13 +830,11 @@ export default function GrupoModal({
                             ? "bg-gray-400 cursor-not-allowed"
                             : "bg-[#e8192c] hover:bg-[#c8111f]"
                         }`}
-                        onClick={handleInvitar}
+                        onClick={handleInvitarCandidatos}
                       >
                         {enviandoInvitaciones
                           ? `Enviando... ${progresoInvitaciones.actual}/${progresoInvitaciones.total}`
-                          : mode === "create" && docenteNoRegistrado
-                            ? "Invitar tutor docente"
-                            : "Enviar invitaciones"}
+                          : "Enviar invitaciones"}
                       </button>
                     )}
                   </>
@@ -758,29 +845,6 @@ export default function GrupoModal({
         </form>
       </div>
 
-      <ConfirmModal
-        isOpen={mostrarConfirmarDocente}
-        title="Tutor docente no registrado"
-        message={
-          mode === "create"
-            ? `¿Desea invitar al tutor docente ${docenteNoRegistrado?.nombre}? Los ${noEncontrados.length} candidato(s) se invitarán al guardar el grupo.`
-            : `¿Está seguro de que desea enviar invitaciones a ${noEncontrados.length} candidato(s) y al tutor docente ${docenteNoRegistrado?.nombre}?`
-        }
-        confirmLabel="Sí, invitar docente"
-        cancelLabel={mode === "create" ? "No, cancelar" : "No, solo candidatos"}
-        onConfirm={() => {
-          setMostrarConfirmarDocente(false);
-          setMostrarInviteModal(true);
-        }}
-        onCancel={async () => {
-          setMostrarConfirmarDocente(false);
-
-          if (mode === "edit" && noEncontrados.length > 0) {
-            await enviarInvitaciones(noEncontrados, formData.id);
-          }
-        }}
-      />
-
       <InviteModal
         isOpen={mostrarInviteModal}
         onClose={() => setMostrarInviteModal(false)}
@@ -788,10 +852,6 @@ export default function GrupoModal({
         onSubmit={async (correo) => {
           try {
             await tutorDocenteRepository.invitar(correo);
-
-            if (mode === "edit" && noEncontrados.length > 0) {
-              await enviarInvitaciones(noEncontrados, formData.id);
-            }
 
             setDocenteNoRegistrado(null);
             setMostrarInviteModal(false);

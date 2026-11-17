@@ -30,7 +30,7 @@ export default function LoginPage() {
         toast.success("Inicio de sesión exitoso");
 
         switch (rol) {
-            case "Administrador":        navigate("/periodos"); break;
+            case "Administrador":        navigate("/usuarios"); break;
             case "Director de programa": navigate("/homeDirector"); break;
             case "Empresa":              navigate("/subirConvenio"); break;
             case "Practicante":          navigate("/homePracticante"); break;

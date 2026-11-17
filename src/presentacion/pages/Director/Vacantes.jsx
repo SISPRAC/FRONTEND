@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 import { Building2, ChevronDown, Search, X } from "lucide-react";
@@ -49,7 +50,7 @@ const VacanteCardSkeleton = () => (
 
 const VacantesSkeleton = ({ cantidad = 3 }) => (
   <div
-    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch"
     aria-busy="true"
     aria-label="Cargando vacantes"
   >
@@ -126,10 +127,10 @@ export default function VacantesDirector() {
   const [vacantes, setVacantes] = useState([]);
   const [empresas, setEmpresas] = useState([]);
 
-  const [empresaSeleccionada, setEmpresaSeleccionada] = useState(null);   // null = "Todas"
+  const [empresaSeleccionada, setEmpresaSeleccionada] = useState(null);
   const [busqueda, setBusqueda] = useState("");
 
-  const [vacanteFocus, setVacanteFocus] = useState(null); // para el modal futuro
+  const [vacanteFocus, setVacanteFocus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [postularModalOpen, setPostularModalOpen] = useState(false);
 
@@ -146,7 +147,8 @@ export default function VacantesDirector() {
           { EmpresaRepository },
           "activo"
         );
-        console.log("empresas recibidas:", lista); // quitar cuando funcione
+
+        console.log("empresas recibidas:", lista);
 
         // Acepta el arreglo directo o la respuesta { success, data }
         const arreglo = Array.isArray(lista) ? lista : lista?.data;
@@ -166,7 +168,7 @@ export default function VacantesDirector() {
       setLoading(true);
 
       const vacantesData = await getAperturasVacantes(vacanteRepository);
-
+      console.log("Vacantes", vacantesData);
 
       const vacantesNormalizadas = vacantesData.map((item) => ({
         id: item.id,
@@ -213,6 +215,7 @@ export default function VacantesDirector() {
       }));
 
       setVacantes(vacantesNormalizadas);
+      return vacantesNormalizadas;
     } catch (error) {
       console.error(error);
       toast.error("Error cargando datos");
@@ -225,6 +228,9 @@ export default function VacantesDirector() {
   const vacantesFiltradas = vacantes.filter((v) => {
     if (v.convenio?.estado !== "APROBADO") return false;
 
+    if (v.practica?.estado !== "EN_CURSO") return false;
+    if (v.estado === "CERRADA") return false;
+
     if (empresaSeleccionada !== null && v.empresa?.id !== empresaSeleccionada) {
       return false;
     }
@@ -235,6 +241,7 @@ export default function VacantesDirector() {
         .filter(Boolean)
         .join(" ")
         .toLowerCase();
+
       if (!texto.includes(termino)) return false;
     }
 
@@ -267,27 +274,29 @@ export default function VacantesDirector() {
             size={16}
             className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
           />
+
           <input
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por vacante, empresa o descripción..."
             className="
-        w-full h-11
-        pl-11 pr-10
-        rounded-xl
-        border border-slate-200
-        bg-white
-        text-sm text-slate-700
-        shadow-sm
-        transition
-        placeholder:text-slate-400
-        hover:border-slate-300
-        focus:outline-none
-        focus:border-blue-400
-        focus:ring-4 focus:ring-blue-100
-      "
+              w-full h-11
+              pl-11 pr-10
+              rounded-xl
+              border border-slate-200
+              bg-white
+              text-sm text-slate-700
+              shadow-sm
+              transition
+              placeholder:text-slate-400
+              hover:border-slate-300
+              focus:outline-none
+              focus:border-blue-400
+              focus:ring-4 focus:ring-blue-100
+            "
           />
+
           {busqueda && (
             <button
               type="button"
@@ -331,10 +340,12 @@ export default function VacantesDirector() {
       ) : vacantesFiltradas.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <Building2 size={36} className="mx-auto mb-3 opacity-40" />
-          <p className="text-sm">No se encontraron vacantes con estos filtros</p>
+          <p className="text-sm">
+            No se encontraron vacantes con estos filtros
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
           {vacantesFiltradas.map((vacante, index) => (
             <VacanteCard
               key={vacante.id}
@@ -349,8 +360,22 @@ export default function VacantesDirector() {
       {postularModalOpen && (
         <PostularCandidatoModal
           vacante={vacanteFocus}
-          onClose={() => setPostularModalOpen(false)}
-          onSuccess={() => { cargarDatos(); setPostularModalOpen(false); }}
+          onClose={() => {
+            setPostularModalOpen(false);
+            setVacanteFocus(null);
+          }}
+          onSuccess={async () => {
+            const vacantesActualizadas = await cargarDatos();
+
+            // Actualizar la vacante que está abierta en el modal.
+            const vacanteActualizada = vacantesActualizadas?.find(
+              (v) => Number(v.id) === Number(vacanteFocus?.id)
+            );
+
+            if (vacanteActualizada) {
+              setVacanteFocus(vacanteActualizada);
+            }
+          }}
         />
       )}
     </div>

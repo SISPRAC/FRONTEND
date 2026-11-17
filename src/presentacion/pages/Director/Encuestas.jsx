@@ -224,9 +224,14 @@ const EncuestasDirector = () => {
                     practicaRepository
                 });
 
-            setPracticas(
-                practicasData || []
-            );
+            // Excluir prácticas finalizadas
+            const practicasDisponibles =
+                (practicasData || []).filter(
+                    practica =>
+                        String(practica.estado || "").toUpperCase() !== "FINALIZADA"
+                );
+
+            setPracticas(practicasDisponibles);
 
             const formattedData =
                 (data || []).map(encuesta => {
@@ -505,7 +510,7 @@ const EncuestasDirector = () => {
                 "
             >
 
-                Encuestas de Satisfacción
+                Seguimiento y Retroalimentación de Prácticas
 
             </h1>
 
@@ -586,7 +591,7 @@ const EncuestasDirector = () => {
                     ]}
 
 
-                    emptyMessage="No hay encuestas registradas."
+                    emptyMessage="No hay instrumentos de retroalimentación registrados."
 
 
                     pageSize={6}

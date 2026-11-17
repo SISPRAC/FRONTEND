@@ -5,9 +5,9 @@ import { Trash, SquarePen } from "lucide-react";
 
 import GenericTable from "../../components/Table/GenericTable";
 import AddButton from "../../components/buttons/AddButton";
-import DeleteModal from "../../components/modals/DeleteModal";
+import ConfirmModal from "../../components/modals/ConfirmModal";
 import PracticaRequisitoDocumentoModal from "../../components/modals/PracticaRequisitoDocumentoModal";
-
+import { getPracticaActual } from "../../../presentacion/components/utils/getPracticaActual.js";
 import { practicaRepository } from "../../../infraestructura/repository/practicaRepository.js";
 
 import { practicaRequisitoDocumentoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoRepository.js";
@@ -36,6 +36,7 @@ export default function PracticaRequisitoDocumentoPage() {
 
     const [deleteModal, setDeleteModal] = useState(false);
     const [requisitoToDelete, setRequisitoToDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
 
     useEffect(() => {
@@ -68,7 +69,15 @@ export default function PracticaRequisitoDocumentoPage() {
                 practicaRepository
             });
 
-            setPracticas(data);
+            const lista = data || [];
+            setPracticas(lista);
+
+            // seleccionar automáticamente la práctica en curso
+            const actual = getPracticaActual(lista);
+
+            if (actual) {
+                setPracticaSeleccionada(String(actual.id));
+            }
 
         } catch (error) {
 
@@ -174,7 +183,18 @@ export default function PracticaRequisitoDocumentoPage() {
 
 
     const handleSave = async (formData) => {
+        const yaExiste = rows.some(
+            r =>
+                Number(
+                    r.tipo_requisito_documento_id ??
+                    r.tipoRequisitoDocumento?.id
+                ) === Number(formData.tipo_requisito_documento_id)
+        );
 
+        if (yaExiste) {
+            toast.error("Ese documento ya está asignado a esta práctica.");
+            return;
+        }
         try {
 
             await crearPracticaRequisitoDocumento(
@@ -260,12 +280,14 @@ export default function PracticaRequisitoDocumentoPage() {
 
     const handleDelete = async () => {
 
+        if (!requisitoToDelete?.id) {
+            toast.error("No se encontró el ID del requisito.");
+            return;
+        }
+
         try {
 
-            if (!requisitoToDelete?.id) {
-                toast.error("No se encontró el ID del requisito.");
-                return;
-            }
+            setDeleting(true);
 
             await eliminarPracticaRequisitoDocumento(
                 {
@@ -285,15 +307,14 @@ export default function PracticaRequisitoDocumentoPage() {
 
             console.log("ERROR COMPLETO:", error);
 
-            console.log(
-                "RESPUESTA DEL BACKEND:",
-                error.response?.data
-            );
-
             toast.error(
                 error.response?.data?.message ||
                 "Error al eliminar."
             );
+
+        } finally {
+
+            setDeleting(false);
 
         }
     };
@@ -322,7 +343,7 @@ export default function PracticaRequisitoDocumentoPage() {
                     tracking-tight
                 "
             >
-                Requisitos Documentales
+                Gestión de Fechas Documentos Practicante
             </h1>
 
             <div
@@ -477,36 +498,30 @@ export default function PracticaRequisitoDocumentoPage() {
 
             <PracticaRequisitoDocumentoModal
                 isOpen={isOpen}
-                onClose={() =>
-                    setIsOpen(false)
-                }
-                onSubmit={
-                    mode === "edit"
-                        ? handleUpdate
-                        : handleSave
-                }
+                onClose={() => setIsOpen(false)}
+                onSubmit={mode === "edit" ? handleUpdate : handleSave}
                 requisito={selectedRequisito}
+                requisitosExistentes={rows}
                 practicaId={practicaSeleccionada}
-                practicaNombre={
-                    practicaActual?.Periodo?.nombre ||
-                    ""
-                }
+                practicaNombre={practicaActual?.Periodo?.nombre || ""}
             />
 
 
-            <DeleteModal
+            <ConfirmModal
                 isOpen={deleteModal}
-                onClose={() => {
-
-                    setDeleteModal(false);
-                    setRequisitoToDelete(null);
-
-                }}
-                onConfirm={handleDelete}
                 title="Eliminar requisito documental"
                 message={
                     `¿Desea eliminar el documento "${requisitoToDelete?.tipoRequisitoDocumento?.nombre || ""}"?`
                 }
+                confirmLabel="Eliminar"
+                cancelLabel="Cancelar"
+                loading={deleting}
+                onConfirm={handleDelete}
+                onCancel={() => {
+                    if (deleting) return;
+                    setDeleteModal(false);
+                    setRequisitoToDelete(null);
+                }}
             />
 
         </div>

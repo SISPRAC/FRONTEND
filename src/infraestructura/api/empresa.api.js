@@ -149,3 +149,39 @@ export const getEmpresasParaSelectRequest = (convenio = "activo") => {
     );
 
 };
+
+// =========================================================
+// SUBIR CERTIFICADO DE FINALIZACIÓN DE UN PRACTICANTE
+// =========================================================
+
+export const subirCertificadoFinalizacionRequest = (
+    practicanteId,
+    data
+) => {
+
+    return empresaApi.post(
+        `/practicantes/${practicanteId}/certificado`,
+        data,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        }
+    );
+
+};
+
+
+// =========================================================
+// OBTENER CERTIFICADO DE FINALIZACIÓN DE UN PRACTICANTE
+// =========================================================
+
+export const getCertificadoFinalizacionRequest = (
+    practicanteId
+) => {
+
+    return empresaApi.get(
+        `/practicantes/${practicanteId}/certificado`
+    );
+
+};

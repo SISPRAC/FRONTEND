@@ -1,18 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     Download,
     FileSpreadsheet,
     FileText,
-    Clock,
-    CheckCircle2,
     CalendarDays,
     CalendarCheck,
     Users,
     ChevronDown,
-    Loader2
+    Check,
+    Loader2,
+    ShieldCheck,
 } from "lucide-react";
 
 import GenericTable from "../../components/Table/GenericTable";
+import EstadoBadge from "../../components/estadoBadge/EstadoBadge.jsx"; // <-- ajusta esta ruta
 
 import ExcelJS from "exceljs";
 import jsPDF from "jspdf";
@@ -63,6 +64,22 @@ const formatCell = (row, column) => row[column.key] ?? "";
 
 const formatFecha = (valor) =>
     valor ? new Date(valor).toLocaleDateString("es-CO") : "—";
+
+// Devuelve las claves de ESTADOS_CONFIG: "EN_CURSO" | "FINALIZADA"
+const getEstadoPractica = (practica) => {
+
+    if (!practica) return null;
+
+    if (practica.estado) {
+        return String(practica.estado).toUpperCase() === "FINALIZADA"
+            ? "FINALIZADA"
+            : "EN_CURSO";
+    }
+
+    const fin = practica.fecha_fin ? new Date(practica.fecha_fin) : null;
+
+    return fin && fin <= new Date() ? "FINALIZADA" : "EN_CURSO";
+};
 
 // Carga una imagen y devuelve { dataUrl, ratio } (ancho / alto)
 const cargarLogo = (src) =>
@@ -507,7 +524,7 @@ function DescargarMenu({ rows, periodo, disabled }) {
                         onClick={() => !generando && setOpen(false)}
                     />
 
-                    <div className="absolute bottom-14 right-0 z-20 w-64 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl">
+                    <div className="absolute bottom-full right-0 z-20 mb-2 w-64 rounded-2xl border border-gray-100 bg-white p-2 shadow-xl">
 
                         {opciones.map(({ tipo, titulo, detalle, icono: Icono, estilo, accion }) => (
 
@@ -554,6 +571,131 @@ function DescargarMenu({ rows, periodo, disabled }) {
 
 
 // -----------------------------------------------------------------------
+// Select de prácticas (con estado en cada opción)
+// -----------------------------------------------------------------------
+
+function PracticaSelect({ practicas, value, onChange, loading }) {
+
+    const [open, setOpen] = useState(false);
+
+    const seleccionada = practicas.find((p) => String(p.id) === String(value));
+
+    const nombre = (p) => p.Periodo?.nombre || `Práctica ${p.id}`;
+
+    return (
+
+        <div className="relative">
+
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Práctica
+            </label>
+
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                disabled={loading || practicas.length === 0}
+                className="flex w-full items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition hover:border-gray-300 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+
+                {loading ? (
+
+                    <span className="flex items-center gap-2 text-sm text-gray-400">
+                        <Loader2 size={15} className="animate-spin" />
+                        Cargando prácticas...
+                    </span>
+
+                ) : seleccionada ? (
+
+                    <span className="flex min-w-0 items-center gap-3">
+                        <span className="truncate text-sm font-semibold text-gray-800">
+                            {nombre(seleccionada)}
+                        </span>
+                        <EstadoBadge estado={getEstadoPractica(seleccionada)} size="sm" />
+                    </span>
+
+                ) : (
+
+                    <span className="text-sm text-gray-400">
+                        {practicas.length === 0 ? "No hay prácticas" : "Selecciona una práctica"}
+                    </span>
+
+                )}
+
+                <ChevronDown
+                    size={16}
+                    className={`shrink-0 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`}
+                />
+
+            </button>
+
+            {open && (
+
+                <>
+
+                    <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+
+                    <ul className="absolute left-0 right-0 z-20 mt-2 max-h-72 overflow-auto rounded-xl border border-gray-100 bg-white p-1.5 shadow-xl">
+
+                        {practicas.map((practica) => {
+
+                            const estado = getEstadoPractica(practica);
+                            const activa = String(practica.id) === String(value);
+                            const finalizada = estado === "FINALIZADA";
+
+                            return (
+
+                                <li key={practica.id}>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            onChange(String(practica.id));
+                                            setOpen(false);
+                                        }}
+                                        className={`flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+                                            activa ? "bg-gray-50" : "hover:bg-gray-50"
+                                        }`}
+                                    >
+
+                                        <span className="min-w-0">
+
+                                            <span
+                                                className={`block truncate text-sm font-semibold ${
+                                                    finalizada ? "text-red-600" : "text-gray-800"
+                                                }`}
+                                            >
+                                                {nombre(practica)}
+                                            </span>
+
+                                            <span className="block text-xs text-gray-400">
+                                                {formatFecha(practica.fecha_inicio)} – {formatFecha(practica.fecha_fin)}
+                                            </span>
+
+                                        </span>
+
+                                        <span className="flex shrink-0 items-center gap-2">
+                                            <EstadoBadge estado={estado} size="sm" />
+                                            {activa && <Check size={15} className="text-gray-500" />}
+                                        </span>
+
+                                    </button>
+
+                                </li>
+                            );
+                        })}
+
+                    </ul>
+
+                </>
+
+            )}
+
+        </div>
+    );
+}
+
+
+// -----------------------------------------------------------------------
 // Tarjeta de dato de la práctica
 // -----------------------------------------------------------------------
 
@@ -561,17 +703,19 @@ function InfoItem({ icon: Icon, label, children }) {
 
     return (
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 rounded-xl border border-gray-100 bg-white px-3.5 py-3">
 
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-red-500 shadow-sm">
-                <Icon size={17} />
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-500">
+                <Icon size={18} />
             </span>
 
             <div className="min-w-0">
 
-                <p className="text-xs text-gray-400">{label}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                    {label}
+                </p>
 
-                <div className="text-sm font-semibold text-gray-800">
+                <div className="truncate text-sm font-bold text-gray-800">
                     {children}
                 </div>
 
@@ -599,7 +743,7 @@ export default function DatosArl() {
 
 
     // ---------------------------------------------------------------
-    // Cargar prácticas
+    // Cargar prácticas: "En curso" primero y seleccionada por defecto
     // ---------------------------------------------------------------
 
     useEffect(() => {
@@ -612,9 +756,24 @@ export default function DatosArl() {
 
             setCargandoPracticas(true);
 
-            const data = await getPracticas({ practicaRepository });
+            const data = (await getPracticas({ practicaRepository })) || [];
 
-            setPracticas(data || []);
+            const ordenadas = [...data].sort((a, b) => {
+
+                const ea = getEstadoPractica(a) === "EN_CURSO" ? 0 : 1;
+                const eb = getEstadoPractica(b) === "EN_CURSO" ? 0 : 1;
+
+                if (ea !== eb) return ea - eb;
+
+                return new Date(b.fecha_inicio || 0) - new Date(a.fecha_inicio || 0);
+            });
+
+            setPracticas(ordenadas);
+
+            // La primera es la "En curso" (si existe); si no, la más reciente
+            if (ordenadas.length > 0) {
+                setPracticaSeleccionada(String(ordenadas[0].id));
+            }
 
         } catch (error) {
 
@@ -708,22 +867,21 @@ export default function DatosArl() {
     // ---------------------------------------------------------------
 
     const practicaActual = practicas.find(
-        (practica) => String(practica.id) === String(practicaSeleccionada)
+        (p) => String(p.id) === String(practicaSeleccionada)
     );
 
     const periodo = practicaActual?.Periodo?.nombre || "";
+    const estadoActual = getEstadoPractica(practicaActual);
 
-    const fechaFinPractica = practicaActual?.fecha_fin
-        ? new Date(practicaActual.fecha_fin)
-        : null;
-
-    const estadoBackend = practicaActual?.estado
-        ? String(practicaActual.estado).toUpperCase()
-        : null;
-
-    const practicaFinalizada = estadoBackend
-        ? estadoBackend === "FINALIZADA"
-        : Boolean(fechaFinPractica && fechaFinPractica <= new Date());
+    const columns = useMemo(
+        () =>
+            COLUMNS.map(({ key, label, primary }) => ({
+                key,
+                label: key === "tipoDoc" ? "Tipo" : label,
+                ...(primary ? { primary: true } : {}),
+            })),
+        []
+    );
 
 
     return (
@@ -731,14 +889,14 @@ export default function DatosArl() {
         <div className="mx-auto max-w-6xl px-4 py-8">
 
             {/* Encabezado */}
-            <div className="mb-8 text-center">
+            <div className="mb-8 flex flex-col items-center text-center">
 
-                <h1 className="text-2xl font-bold text-gray-900">
-                    Datos para ARL
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                    Practicantes para la ARL
                 </h1>
 
-                <p className="mt-1 text-sm text-gray-500">
-                    Selecciona una práctica para consultar y descargar los datos de sus practicantes.
+                <p className="mt-1 max-w-md text-sm text-gray-500">
+                   Consulta y descarga la información de los practicantes para su vinculación con la ARL.
                 </p>
 
             </div>
@@ -747,41 +905,18 @@ export default function DatosArl() {
             {/* Selector + información */}
             <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
 
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,320px)_1fr] lg:items-end">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,340px)_1fr] lg:items-end">
 
-                    <div>
-
-                        <label className="mb-2 block text-sm font-semibold text-gray-700">
-                            Práctica
-                        </label>
-
-                        <select
-                            value={practicaSeleccionada}
-                            onChange={(e) => setPracticaSeleccionada(e.target.value)}
-                            disabled={cargandoPracticas}
-                            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100"
-                        >
-
-                            <option value="">
-                                {cargandoPracticas
-                                    ? "Cargando prácticas..."
-                                    : "Selecciona una práctica"}
-                            </option>
-
-                            {practicas.map((practica) => (
-                                <option key={practica.id} value={practica.id}>
-                                    {practica.Periodo?.nombre || `Práctica ${practica.id}`}
-                                </option>
-                            ))}
-
-                        </select>
-
-                    </div>
-
+                    <PracticaSelect
+                        practicas={practicas}
+                        value={practicaSeleccionada}
+                        onChange={setPracticaSeleccionada}
+                        loading={cargandoPracticas}
+                    />
 
                     {practicaActual ? (
 
-                        <div className="grid grid-cols-2 gap-4 rounded-xl bg-gray-50 px-4 py-3 sm:grid-cols-4">
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
 
                             <InfoItem icon={CalendarDays} label="Inicio">
                                 {formatFecha(practicaActual.fecha_inicio)}
@@ -795,30 +930,21 @@ export default function DatosArl() {
                                 {cargandoPracticantes ? "…" : rows.length}
                             </InfoItem>
 
-                            <div className="flex items-center">
-
-                                <span
-                                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${practicaFinalizada
-                                        ? "bg-emerald-50 text-emerald-600"
-                                        : "bg-amber-50 text-amber-600"
-                                        }`}
-                                >
-
-                                    {practicaFinalizada
-                                        ? <CheckCircle2 size={13} />
-                                        : <Clock size={13} />}
-
-                                    {practicaFinalizada ? "Finalizada" : "En curso"}
-
-                                </span>
-
+                            <div
+                                className={`flex items-center justify-center rounded-xl border px-3.5 py-3 ${
+                                    estadoActual === "FINALIZADA"
+                                        ? "border-red-100 bg-red-50/60"
+                                        : "border-blue-100 bg-blue-50/60"
+                                }`}
+                            >
+                                <EstadoBadge estado={estadoActual} />
                             </div>
 
                         </div>
 
                     ) : (
 
-                        <div className="flex items-center justify-center rounded-xl border border-dashed border-gray-200 px-4 py-4 text-center text-sm text-gray-400">
+                        <div className="flex items-center justify-center rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-400">
                             Aquí verás la información de la práctica seleccionada.
                         </div>
 
@@ -845,11 +971,7 @@ export default function DatosArl() {
                         rows={rows}
                         currentPage={currentPage}
                         onPageChange={setCurrentPage}
-                        columns={COLUMNS.map(({ key, label, primary }) => ({
-                            key,
-                            label: key === "tipoDoc" ? "Tipo" : label,
-                            ...(primary ? { primary: true } : {}),
-                        }))}
+                        columns={columns}
                         emptyMessage={
                             practicaSeleccionada
                                 ? "No hay practicantes registrados en esta práctica."
@@ -864,12 +986,17 @@ export default function DatosArl() {
 
 
             {/* Acciones */}
-            <div className="mt-6 flex items-center justify-between gap-3">
+            <div className="mt-6 flex items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-5 py-3 shadow-sm">
 
-                <p className="text-xs text-gray-400">
-                    {rows.length > 0
-                        ? `${rows.length} practicante${rows.length === 1 ? "" : "s"} listos para exportar`
-                        : ""}
+                <p className="text-sm text-gray-500">
+                    {rows.length > 0 ? (
+                        <>
+                            <span className="font-semibold text-gray-800">{rows.length}</span>{" "}
+                            practicante{rows.length === 1 ? "" : "s"} listos para exportar
+                        </>
+                    ) : (
+                        "Sin datos para exportar"
+                    )}
                 </p>
 
                 <DescargarMenu

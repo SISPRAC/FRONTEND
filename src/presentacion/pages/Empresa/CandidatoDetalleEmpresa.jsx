@@ -47,6 +47,10 @@ const CandidatoDetalleEmpresa = () => {
   const [comentarioRechazo, setComentarioRechazo] = useState("");
   const [procesando, setProcesando] = useState(false);
 
+  const contarPalabras = (texto) => {
+    return texto.trim() ? texto.trim().split(/\s+/).length : 0;
+  };
+
   // ACEPTAR POSTULACIÓN
   const handleAceptar = async () => {
     if (procesando) return;
@@ -168,31 +172,7 @@ const CandidatoDetalleEmpresa = () => {
                   </p>
                 </div>
 
-                {candidato.hojaVida?.url && (
-                  <a
-                    href={candidato.hojaVida.url}
-                    download
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="
-                      inline-flex
-                      items-center
-                      gap-1.5
-                      px-3
-                      py-2
-                      rounded-lg
-                      text-xs
-                      font-medium
-                      text-slate-600
-                      border border-slate-200
-                      hover:bg-slate-50
-                      transition-colors
-                    "
-                  >
-                    <Download size={14} />
-                    Descargar
-                  </a>
-                )}
+
               </div>
 
               {/* DOCUMENTO */}
@@ -344,17 +324,17 @@ const CandidatoDetalleEmpresa = () => {
                   value={
                     candidato.fechaPostulacion
                       ? new Date(candidato.fechaPostulacion).toLocaleString(
-                          "es-CO",
-                          {
-                            timeZone: "America/Bogota",
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }
-                        )
+                        "es-CO",
+                        {
+                          timeZone: "America/Bogota",
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        }
+                      )
                       : "-"
                   }
                 />
@@ -374,10 +354,9 @@ const CandidatoDetalleEmpresa = () => {
                     font-semibold
                     shadow-sm
                     transition-colors
-                    ${
-                      estadoFinalizado || procesando
-                        ? "bg-slate-300 cursor-not-allowed"
-                        : "bg-green-600 hover:bg-green-700"
+                    ${estadoFinalizado || procesando
+                      ? "bg-slate-300 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700"
                     }
                   `}
                 >
@@ -398,10 +377,9 @@ const CandidatoDetalleEmpresa = () => {
                     font-semibold
                     shadow-sm
                     transition-colors
-                    ${
-                      estadoFinalizado || procesando
-                        ? "bg-slate-300 cursor-not-allowed"
-                        : "bg-red-600 hover:bg-red-700"
+                    ${estadoFinalizado || procesando
+                      ? "bg-slate-300 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700"
                     }
                   `}
                 >
@@ -447,6 +425,7 @@ const CandidatoDetalleEmpresa = () => {
         textareaValue={comentarioRechazo}
         onTextareaChange={setComentarioRechazo}
         textareaPlaceholder="Indique el motivo por el cual se rechaza al candidato..."
+        maxWords={225}
       />
 
     </div>

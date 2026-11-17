@@ -1,9 +1,10 @@
+
 import { useEffect, useState } from "react";
 
 import AddButton from "../../components/buttons/AddButton";
 import GenericTable from "../../components/Table/GenericTable";
 import PracticaModal from "../../components/modals/PracticaModal";
-import DeleteModal from "../../components/modals/DeleteModal";
+import ConfirmModal from "../../components/modals/ConfirmModal";
 
 import { Trash, SquarePen } from "lucide-react";
 import toast from "react-hot-toast";
@@ -27,6 +28,7 @@ export default function PracticasPage() {
 
   const [deleteModal, setDeleteModal] = useState(false);
   const [practicaToDelete, setPracticaToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadPracticas();
@@ -144,7 +146,11 @@ export default function PracticasPage() {
 
   const handleDelete = async () => {
 
+    if (!practicaToDelete || deleting) return;
+
     try {
+
+      setDeleting(true);
 
       await deletePractica(
         { practicaRepository },
@@ -153,7 +159,7 @@ export default function PracticasPage() {
 
       await loadPracticas();
 
-      toast.success("Práctica eliminada");
+      toast.success("Práctica eliminada correctamente");
 
       setDeleteModal(false);
       setPracticaToDelete(null);
@@ -164,6 +170,10 @@ export default function PracticasPage() {
         error.response?.data?.message ||
         "Error al eliminar la práctica"
       );
+
+    } finally {
+
+      setDeleting(false);
 
     }
 
@@ -183,7 +193,7 @@ export default function PracticasPage() {
           tracking-tight
         "
       >
-        Prácticas
+        Gestión de Prácticas
       </h1>
 
       <GenericTable
@@ -224,25 +234,25 @@ export default function PracticasPage() {
               return (
                 <span
                   className={`
-            inline-flex
-            items-center
-            gap-2
-            px-3
-            py-1
-            rounded-full
-            text-sm
-            font-medium
-            ${estado.bg}
-            ${estado.text}
-          `}
+                    inline-flex
+                    items-center
+                    gap-2
+                    px-3
+                    py-1
+                    rounded-full
+                    text-sm
+                    font-medium
+                    ${estado.bg}
+                    ${estado.text}
+                  `}
                 >
                   <span
                     className={`
-              w-2
-              h-2
-              rounded-full
-              ${estado.dot}
-            `}
+                      w-2
+                      h-2
+                      rounded-full
+                      ${estado.dot}
+                    `}
                   />
 
                   {nombreEstado}
@@ -278,15 +288,23 @@ export default function PracticasPage() {
         practicas={rows}
       />
 
-      <DeleteModal
+      <ConfirmModal
         isOpen={deleteModal}
-        onClose={() => {
+        onCancel={() => {
+
+          if (deleting) return;
+
           setDeleteModal(false);
           setPracticaToDelete(null);
+
         }}
         onConfirm={handleDelete}
+        loading={deleting}
         title="Eliminar práctica"
-        message={`¿Desea eliminar la práctica del período "${practicaToDelete?.Periodo?.nombre}"?`}
+        message={`¿Está seguro de que desea eliminar la práctica del período "${practicaToDelete?.Periodo?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        confirmColor="bg-red-600 hover:bg-red-700"
       />
 
     </div>
