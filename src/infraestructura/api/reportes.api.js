@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const reporteApi = axios.create({
-    baseURL: "http://localhost:3000/api/reportes",
-    withCredentials: true
-});
+const reporteApi = createApi("/reportes");
 
 reporteApi.interceptors.request.use(
     (config) => {
@@ -21,9 +18,13 @@ reporteApi.interceptors.request.use(
 );
 
 
-// Obtener los datos del dashboard de un período
-export const obtenerDashboardReporteRequest = (periodoId) => {
+// Obtener los datos del dashboard de un período.
+// empresaId es opcional: si no viene, el backend devuelve la vista global.
+export const obtenerDashboardReporteRequest = (periodoId, empresaId) => {
     return reporteApi.get("/dashboard", {
-        params: { periodoId }
+        params: {
+            periodoId,
+            ...(empresaId ? { empresaId } : {}),
+        },
     });
 };

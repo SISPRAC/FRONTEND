@@ -1,11 +1,14 @@
+
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {
+    useNavigate,
+    useOutletContext
+} from "react-router-dom";
 import toast from "react-hot-toast";
 
 import { userRepository } from "../../infraestructura/repository/userRepository";
 import { actualizarPerfil } from "../../aplicacion/usuario/actualizarPerfil";
 import { departamentoMunicipioRepository } from "../../infraestructura/repository/departamentoMunicipioRepository";
-
 
 const tiposDocumento = ["CC", "CE", "PEP", "PA"];
 
@@ -15,9 +18,6 @@ const generos = [
     "Otro"
 ];
 
-
-
-// Campos que siempre son obligatorios
 const CAMPOS_OBLIGATORIOS_BASE = [
     "nombres",
     "apellidos",
@@ -26,7 +26,6 @@ const CAMPOS_OBLIGATORIOS_BASE = [
     "telefono"
 ];
 
-// Campos obligatorios solo si el usuario es practicante
 const CAMPOS_OBLIGATORIOS_PRACTICANTE = [
     "eps",
     "fecha_nacimiento",
@@ -35,7 +34,6 @@ const CAMPOS_OBLIGATORIOS_PRACTICANTE = [
     "municipioId",
     "direccion"
 ];
-
 
 function FieldRow({
     label,
@@ -48,17 +46,16 @@ function FieldRow({
     options = null,
     placeholder = "",
     required = false,
-    error = false
+    error = false,
+    min,
+    max
 }) {
-
     const bloqueado = readOnly || disabled;
 
     return (
         <div className="flex flex-col gap-1.5">
-
             <label className="text-sm font-semibold text-gray-700">
                 {label}
-
                 {required && (
                     <span className="ml-0.5 text-red-500">*</span>
                 )}
@@ -79,13 +76,11 @@ function FieldRow({
                         }
                     `}
                 >
-
                     <option value="" disabled>
                         {placeholder || "Seleccione..."}
                     </option>
 
                     {options.map((option) => {
-
                         const valueOption =
                             typeof option === "object"
                                 ? option.value
@@ -97,26 +92,21 @@ function FieldRow({
                                 : option;
 
                         return (
-                            <option
-                                key={valueOption}
-                                value={valueOption}
-                            >
+                            <option key={valueOption} value={valueOption}>
                                 {labelOption}
                             </option>
                         );
-
                     })}
-
                 </select>
-
             ) : (
-
                 <input
                     name={name}
                     type={type}
                     value={value || ""}
                     onChange={onChange}
                     readOnly={bloqueado}
+                    min={min}
+                    max={max}
                     placeholder={placeholder}
                     className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition
                         ${bloqueado
@@ -127,7 +117,6 @@ function FieldRow({
                         }
                     `}
                 />
-
             )}
 
             {error && !bloqueado && (
@@ -135,11 +124,9 @@ function FieldRow({
                     Este campo es obligatorio
                 </span>
             )}
-
         </div>
     );
 }
-
 
 function FieldLarge({
     label,
@@ -151,13 +138,10 @@ function FieldLarge({
     required = false,
     error = false
 }) {
-
     return (
         <div className="flex flex-col gap-1.5 md:col-span-2">
-
             <label className="text-sm font-semibold text-gray-700">
                 {label}
-
                 {required && (
                     <span className="ml-0.5 text-red-500">*</span>
                 )}
@@ -185,20 +169,25 @@ function FieldLarge({
                     Este campo es obligatorio
                 </span>
             )}
-
         </div>
     );
 }
 
-
 export default function ActualizarPerfil() {
-
     const navigate = useNavigate();
+    const { setPerfilCompletado } = useOutletContext();
 
     const [form, setForm] = useState({});
     const [perfilOriginal, setPerfilOriginal] = useState({});
     const [errors, setErrors] = useState({});
+
+    const [rolActivo, setRolActivo] = useState("");
+
     const [esPracticante, setEsPracticante] = useState(false);
+    const [esCandidato, setEsCandidato] = useState(false);
+    const [esTutorDocente, setEsTutorDocente] = useState(false);
+    const [esTutorEmpresa, setEsTutorEmpresa] = useState(false);
+
     const [editando, setEditando] = useState(false);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -207,67 +196,67 @@ export default function ActualizarPerfil() {
     const [municipios, setMunicipios] = useState([]);
     const [cargandoMunicipios, setCargandoMunicipios] = useState(false);
 
-    // NUEVO: controla el modal de confirmación
     const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
 
-
     useEffect(() => {
-
         const cargarPerfil = async () => {
-
             try {
-
                 setLoading(true);
 
-                // 1. CARGAR DEPARTAMENTOS
-                const departamentosData =
-                    await departamentoMunicipioRepository.getDepartamentos();
+                const rol = localStorage.getItem("rolActivo") || "";
+                setRolActivo(rol);
 
-                setDepartamentos(departamentosData);
+                const esUsuarioPracticante = rol === "Practicante";
+                const esUsuarioCandidato = rol === "Candidato";
+                const esUsuarioTutorDocente = rol === "Tutor Docente";
+                const esUsuarioTutorEmpresa = rol === "Tutor Empresarial";
 
-                // 2. CARGAR PERFIL
+                setEsPracticante(esUsuarioPracticante);
+                setEsCandidato(esUsuarioCandidato);
+                setEsTutorDocente(esUsuarioTutorDocente);
+                setEsTutorEmpresa(esUsuarioTutorEmpresa);
+
+                let departamentosData = [];
+
+                if (esUsuarioPracticante) {
+                    departamentosData =
+                        await departamentoMunicipioRepository.getDepartamentos();
+
+                    setDepartamentos(departamentosData);
+                }
+
                 const usuario = await userRepository.getMe();
 
                 const candidato = usuario?.candidato;
                 const practicante = candidato?.practicante;
 
-                setEsPracticante(!!practicante);
+                const tutorDocente = usuario?.tutorDocente;
+                const tutorEmpresa = usuario?.tutorEmpresa;
 
                 let departamentoId = "";
                 let municipioId = "";
-                let municipiosData = [];
 
-                // 3. SI ES PRACTICANTE, BUSCAR LOS IDs
-                //    A PARTIR DE LOS CÓDIGOS GUARDADOS
-                if (practicante) {
-
-                    const departamento =
-                        departamentosData.find(
-                            (departamento) =>
-                                String(departamento.codigo) ===
-                                String(practicante.codigoDepResidencia)
-                        );
+                if (esUsuarioPracticante && practicante) {
+                    const departamento = departamentosData.find(
+                        (item) =>
+                            String(item.codigo) ===
+                            String(practicante.codigoDepResidencia)
+                    );
 
                     if (departamento) {
-
                         departamentoId = departamento.id;
 
-                        // 4. CARGAR MUNICIPIOS DEL DEPARTAMENTO
-                        municipiosData =
+                        const municipiosData =
                             await departamentoMunicipioRepository
-                                .getMunicipiosPorDepartamento(
-                                    departamento.id
-                                );
+                                .getMunicipiosPorDepartamento(departamento.id);
 
                         setMunicipios(municipiosData);
 
-                        // 5. BUSCAR ID DEL MUNICIPIO
-                        const municipio =
-                            municipiosData.find(
-                                (municipio) =>
-                                    String(municipio.codigo) ===
-                                    String(practicante.codigoMunResidencia)
-                            );
+                        const municipio = municipiosData.find(
+                            (item) =>
+                                String(item.codigo) ===
+                                String(practicante.codigoMunResidencia)
+                        );
 
                         if (municipio) {
                             municipioId = municipio.id;
@@ -276,7 +265,6 @@ export default function ActualizarPerfil() {
                 }
 
                 const datosPerfil = {
-
                     nombres: usuario?.nombres || "",
                     apellidos: usuario?.apellidos || "",
                     correo: usuario?.correo || "",
@@ -284,65 +272,50 @@ export default function ActualizarPerfil() {
                     cedula: usuario?.cedula || "",
                     telefono: usuario?.telefono || "",
 
-                    codigo: candidato?.codigo || "",
+                    // Código de candidato o código de docente
+                    codigo: esUsuarioTutorDocente
+                        ? tutorDocente?.codigo || ""
+                        : candidato?.codigo || "",
+
+                    // Cargo del tutor empresarial
+                    cargo: tutorEmpresa?.cargo || "",
 
                     eps: practicante?.eps || "",
-
                     departamentoId,
-
                     municipioId,
-
-                    fecha_nacimiento:
-                        practicante?.fecha_nacimiento || "",
-
-                    genero:
-                        practicante?.genero || "",
-
-                    direccion:
-                        practicante?.direccion || ""
+                    fecha_nacimiento: practicante?.fecha_nacimiento || "",
+                    genero: practicante?.genero || "",
+                    direccion: practicante?.direccion || ""
                 };
 
                 setForm(datosPerfil);
                 setPerfilOriginal(datosPerfil);
 
             } catch (error) {
-
-                console.error(
-                    "Error cargando perfil:",
-                    error
-                );
+                console.error("Error cargando perfil:", error);
 
                 toast.error(
                     error.response?.data?.message ||
                     "No se pudo cargar el perfil"
                 );
-
             } finally {
-
                 setLoading(false);
-
             }
         };
 
         cargarPerfil();
-
     }, []);
 
-
     const handleChange = async (e) => {
-
         const { name, value } = e.target;
 
         let nuevoValor = value;
 
-        // EPS siempre en MAYÚSCULAS
         if (name === "eps") {
             nuevoValor = value.toUpperCase();
         }
 
-        // CAMBIO DE DEPARTAMENTO
         if (name === "departamentoId") {
-
             setForm((prev) => ({
                 ...prev,
                 departamentoId: value,
@@ -357,12 +330,9 @@ export default function ActualizarPerfil() {
                 municipioId: false
             }));
 
-            if (!value) {
-                return;
-            }
+            if (!value) return;
 
             try {
-
                 setCargandoMunicipios(true);
 
                 const municipiosData =
@@ -372,36 +342,25 @@ export default function ActualizarPerfil() {
                 setMunicipios(municipiosData);
 
             } catch (error) {
-
-                console.error(
-                    "Error cargando municipios:",
-                    error
-                );
+                console.error("Error cargando municipios:", error);
 
                 toast.error(
                     error.response?.data?.message ||
                     "No se pudieron cargar los municipios"
                 );
-
             } finally {
-
                 setCargandoMunicipios(false);
-
             }
 
             return;
         }
 
-        // CAMBIOS NORMALES
         setForm((prev) => ({
             ...prev,
             [name]: nuevoValor
         }));
 
-        if (
-            errors[name] &&
-            nuevoValor.trim() !== ""
-        ) {
+        if (errors[name] && String(nuevoValor).trim() !== "") {
             setErrors((prev) => ({
                 ...prev,
                 [name]: false
@@ -409,13 +368,14 @@ export default function ActualizarPerfil() {
         }
     };
 
-
     const validarFormulario = () => {
-
         const camposRequeridos = [
             ...CAMPOS_OBLIGATORIOS_BASE,
             ...(esPracticante
                 ? CAMPOS_OBLIGATORIOS_PRACTICANTE
+                : []),
+            ...(esTutorEmpresa
+                ? ["cargo"]
                 : [])
         ];
 
@@ -423,64 +383,73 @@ export default function ActualizarPerfil() {
         let hayErrores = false;
 
         camposRequeridos.forEach((campo) => {
-
             const valor = form[campo];
 
-            if (
-                !valor ||
-                String(valor).trim() === ""
-            ) {
+            if (!valor || String(valor).trim() === "") {
                 nuevosErrores[campo] = true;
                 hayErrores = true;
             }
-
         });
+
+        if (esPracticante && form.fecha_nacimiento) {
+            const fechaNacimiento = new Date(
+                `${form.fecha_nacimiento}T00:00:00`
+            );
+
+            const hoy = new Date();
+
+            const fechaMaxima = new Date(
+                hoy.getFullYear() - 18,
+                hoy.getMonth(),
+                hoy.getDate()
+            );
+
+            const fechaMinima = new Date("1900-01-01T00:00:00");
+
+            if (
+                Number.isNaN(fechaNacimiento.getTime()) ||
+                fechaNacimiento > fechaMaxima ||
+                fechaNacimiento < fechaMinima
+            ) {
+                nuevosErrores.fecha_nacimiento = true;
+                hayErrores = true;
+
+                toast.error(
+                    "Debes tener mínimo 18 años y registrar una fecha válida."
+                );
+            }
+        }
 
         setErrors(nuevosErrores);
 
         return !hayErrores;
     };
 
-
     const handleActivarEdicion = () => {
         setEditando(true);
     };
 
-
     const handleCancelarEdicion = () => {
-
         setForm(perfilOriginal);
         setErrors({});
         setEditando(false);
-
     };
 
-
-    // AHORA SOLO VALIDA Y ABRE EL MODAL
     const handleSubmit = async (e) => {
-
         e.preventDefault();
 
-        const esValido = validarFormulario();
-
-        if (!esValido) {
-
+        if (!validarFormulario()) {
             toast.error(
                 "Completa los campos obligatorios marcados en rojo"
             );
-
             return;
         }
 
         setMostrarConfirmacion(true);
     };
 
-
-    // CONFIRMACIÓN REAL DEL GUARDADO
     const confirmarGuardado = async () => {
-
         try {
-
             setSaving(true);
             setMostrarConfirmacion(false);
 
@@ -489,97 +458,71 @@ export default function ActualizarPerfil() {
                 form
             );
 
-            toast.success(
-                "Perfil actualizado correctamente"
-            );
+            setPerfilCompletado(true);
+
+            toast.success("Perfil actualizado correctamente");
 
             setPerfilOriginal(form);
             setEditando(false);
 
-            const rolActivo =
-                localStorage.getItem("rolActivo");
-
             if (rolActivo === "Practicante") {
-
-                navigate(
-                    "/homePracticante",
-                    { replace: true }
-                );
-
+                navigate("/homePracticante", {
+                    replace: true
+                });
             } else {
-
-                navigate(
-                    "/homeCandidato",
-                    { replace: true }
-                );
-
+                navigate("/perfil", {
+                    replace: true
+                });
             }
 
         } catch (error) {
-
-            console.error(
-                "Error actualizando perfil:",
-                error
-            );
+            console.error("Error actualizando perfil:", error);
 
             toast.error(
                 error.response?.data?.message ||
                 "No se pudo actualizar el perfil"
             );
-
         } finally {
-
             setSaving(false);
-
         }
     };
 
-
     if (loading) {
-
         return (
-
-
             <div className="flex min-h-[70vh] items-center justify-center">
-
                 <p className="text-sm text-gray-500">
                     Cargando perfil...
                 </p>
-
             </div>
-
-
         );
     }
 
+    const tituloInformacionAdicional = esTutorDocente
+        ? "Información académica"
+        : esTutorEmpresa
+            ? "Información empresarial"
+            : "Información académica";
 
     return (
-
         <div>
             <div className="mx-auto w-full max-w-5xl px-4 py-8">
 
                 {/* ENCABEZADO */}
-
                 <div className="mb-8 flex items-start justify-between gap-4">
-
                     <div>
-
                         <h1 className="text-2xl font-bold text-gray-800">
                             Mi perfil
                         </h1>
 
                         <p className="mt-1 text-sm text-gray-500">
-
                             {editando
                                 ? "Edita tu información y guarda los cambios."
-                                : "Actualiza tu información personal y los datos asociados a tu perfil."}
-
+                                : "Actualiza tu información personal y los datos asociados a tu perfil."
+                            }
                         </p>
-
                     </div>
 
                     {!editando && (
-
                         <button
                             type="button"
                             onClick={handleActivarEdicion}
@@ -587,23 +530,14 @@ export default function ActualizarPerfil() {
                         >
                             Editar perfil
                         </button>
-
                     )}
-
                 </div>
 
-
-                <form
-                    onSubmit={handleSubmit}
-                    className="space-y-6"
-                >
+                <form onSubmit={handleSubmit} className="space-y-6">
 
                     {/* INFORMACIÓN PERSONAL */}
-
                     <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-
                         <div className="mb-6">
-
                             <h2 className="text-lg font-semibold text-gray-800">
                                 Información personal
                             </h2>
@@ -611,12 +545,9 @@ export default function ActualizarPerfil() {
                             <p className="mt-1 text-sm text-gray-500">
                                 Información básica de tu cuenta.
                             </p>
-
                         </div>
 
-
                         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
                             <FieldRow
                                 label="Nombres"
                                 name="nombres"
@@ -680,62 +611,106 @@ export default function ActualizarPerfil() {
                                 readOnly
                                 placeholder="correo@ejemplo.com"
                             />
-
                         </div>
 
                         <p className="mt-4 text-xs text-gray-400">
                             El correo electrónico es asignado mediante
                             invitación y no puede modificarse.
                         </p>
-
                     </section>
 
+                    {/* INFORMACIÓN DE CANDIDATO */}
+                    {(esCandidato || esPracticante) && (
+                        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+                            <div className="mb-6">
+                                <h2 className="text-lg font-semibold text-gray-800">
+                                    Información académica
+                                </h2>
 
-                    {/* INFORMACIÓN DEL CANDIDATO */}
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Información asociada a tu registro como candidato.
+                                </p>
+                            </div>
 
-                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                <FieldRow
+                                    label="Código de candidato"
+                                    name="codigo"
+                                    value={form.codigo}
+                                    readOnly
+                                    placeholder="Código asignado por el sistema"
+                                />
+                            </div>
 
-                        <div className="mb-6">
-
-                            <h2 className="text-lg font-semibold text-gray-800">
-                                Información académica
-                            </h2>
-
-                            <p className="mt-1 text-sm text-gray-500">
-                                Información asociada a tu registro como candidato.
+                            <p className="mt-4 text-xs text-gray-400">
+                                El código es asignado por el sistema y no puede
+                                modificarse desde este formulario.
                             </p>
+                        </section>
+                    )}
 
-                        </div>
+                    {/* INFORMACIÓN DEL TUTOR DOCENTE */}
+                    {esTutorDocente && (
+                        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+                            <div className="mb-6">
+                                <h2 className="text-lg font-semibold text-gray-800">
+                                    Información académica
+                                </h2>
 
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Información asociada a tu registro como tutor docente.
+                                </p>
+                            </div>
 
-                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                <FieldRow
+                                    label="Código de docente"
+                                    name="codigo"
+                                    value={form.codigo}
+                                    readOnly
+                                    placeholder="Código asignado por el sistema"
+                                />
+                            </div>
 
-                            <FieldRow
-                                label="Código"
-                                name="codigo"
-                                value={form.codigo}
-                                readOnly
-                                placeholder="Código asignado por el sistema"
-                            />
+                            <p className="mt-4 text-xs text-gray-400">
+                                El código de docente es asignado por el sistema
+                                y no puede modificarse desde este formulario.
+                            </p>
+                        </section>
+                    )}
 
-                        </div>
+                    {/* INFORMACIÓN DEL TUTOR EMPRESARIAL */}
+                    {esTutorEmpresa && (
+                        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+                            <div className="mb-6">
+                                <h2 className="text-lg font-semibold text-gray-800">
+                                    Información empresarial
+                                </h2>
 
-                        <p className="mt-4 text-xs text-gray-400">
-                            El código es asignado por el sistema y no puede
-                            modificarse desde este formulario.
-                        </p>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Información asociada a tu registro como tutor empresarial.
+                                </p>
+                            </div>
 
-                    </section>
-
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                <FieldRow
+                                    label="Cargo"
+                                    name="cargo"
+                                    value={form.cargo}
+                                    onChange={handleChange}
+                                    disabled={!editando}
+                                    placeholder="Ej: Coordinador de sistemas"
+                                    required
+                                    error={errors.cargo}
+                                />
+                            </div>
+                        </section>
+                    )}
 
                     {/* INFORMACIÓN DEL PRACTICANTE */}
-
                     {esPracticante && (
-
                         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-
                             <div className="mb-6">
-
                                 <h2 className="text-lg font-semibold text-gray-800">
                                     Información de práctica
                                 </h2>
@@ -744,12 +719,9 @@ export default function ActualizarPerfil() {
                                     Completa la información requerida para
                                     tu perfil como practicante.
                                 </p>
-
                             </div>
 
-
                             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-
                                 <FieldRow
                                     label="EPS"
                                     name="eps"
@@ -768,6 +740,12 @@ export default function ActualizarPerfil() {
                                     value={form.fecha_nacimiento}
                                     onChange={handleChange}
                                     disabled={!editando}
+                                    max={new Date(
+                                        new Date().setFullYear(
+                                            new Date().getFullYear() - 18
+                                        )
+                                    ).toISOString().split("T")[0]}
+                                    min="1900-01-01"
                                     required
                                     error={errors.fecha_nacimiento}
                                 />
@@ -784,26 +762,20 @@ export default function ActualizarPerfil() {
                                     error={errors.genero}
                                 />
 
-                                {/* DEPARTAMENTO */}
-
                                 <FieldRow
                                     label="Departamento de residencia"
                                     name="departamentoId"
                                     value={form.departamentoId}
                                     onChange={handleChange}
                                     disabled={!editando}
-                                    options={departamentos.map(
-                                        (departamento) => ({
-                                            value: departamento.id,
-                                            label: departamento.nombre
-                                        })
-                                    )}
+                                    options={departamentos.map((departamento) => ({
+                                        value: departamento.id,
+                                        label: departamento.nombre
+                                    }))}
                                     placeholder="Seleccione un departamento"
                                     required
                                     error={errors.departamentoId}
                                 />
-
-                                {/* MUNICIPIO */}
 
                                 <FieldRow
                                     label="Municipio de residencia"
@@ -815,12 +787,10 @@ export default function ActualizarPerfil() {
                                         !form.departamentoId ||
                                         cargandoMunicipios
                                     }
-                                    options={municipios.map(
-                                        (municipio) => ({
-                                            value: municipio.id,
-                                            label: municipio.nombre
-                                        })
-                                    )}
+                                    options={municipios.map((municipio) => ({
+                                        value: municipio.id,
+                                        label: municipio.nombre
+                                    }))}
                                     placeholder={
                                         cargandoMunicipios
                                             ? "Cargando municipios..."
@@ -842,20 +812,13 @@ export default function ActualizarPerfil() {
                                     required
                                     error={errors.direccion}
                                 />
-
                             </div>
-
                         </section>
-
                     )}
 
-
                     {/* BOTONES */}
-
                     {editando && (
-
                         <div className="flex justify-end gap-3">
-
                             <button
                                 type="button"
                                 onClick={handleCancelarEdicion}
@@ -870,32 +833,19 @@ export default function ActualizarPerfil() {
                                 disabled={saving}
                                 className="rounded-xl bg-red-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {saving
-                                    ? "Guardando..."
-                                    : "Guardar cambios"}
+                                {saving ? "Guardando..." : "Guardar cambios"}
                             </button>
-
                         </div>
-
                     )}
-
                 </form>
-
             </div>
 
-
             {/* MODAL DE CONFIRMACIÓN */}
-
             {mostrarConfirmacion && (
-
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-
                     <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
 
-                        {/* ENCABEZADO */}
-
                         <div className="border-b border-gray-200 px-6 py-5">
-
                             <h2 className="text-xl font-bold text-gray-800">
                                 Confirmar información
                             </h2>
@@ -904,79 +854,50 @@ export default function ActualizarPerfil() {
                                 ¿Está seguro de que la información ingresada
                                 es correcta?
                             </p>
-
                         </div>
 
-
-                        {/* INFORMACIÓN */}
-
                         <div className="max-h-[60vh] overflow-y-auto px-6 py-5">
-
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                                <div>
-                                    <p className="text-xs font-semibold text-gray-400">
-                                        NOMBRES
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-700">
-                                        {form.nombres}
-                                    </p>
-                                </div>
+                                {[
+                                    ["NOMBRES", form.nombres],
+                                    ["APELLIDOS", form.apellidos],
+                                    ["TIPO DE DOCUMENTO", form.tipo_documento],
+                                    ["NÚMERO DE DOCUMENTO", form.cedula],
+                                    ["TELÉFONO", form.telefono],
+                                    ["CORREO", form.correo]
+                                ].map(([label, value]) => (
+                                    <div key={label}>
+                                        <p className="text-xs font-semibold text-gray-400">
+                                            {label}
+                                        </p>
+                                        <p className="break-all text-sm font-medium text-gray-700">
+                                            {value || "—"}
+                                        </p>
+                                    </div>
+                                ))}
 
-                                <div>
-                                    <p className="text-xs font-semibold text-gray-400">
-                                        APELLIDOS
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-700">
-                                        {form.apellidos}
-                                    </p>
-                                </div>
+                                {(esCandidato || esPracticante || esTutorDocente) && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-gray-400">
+                                            {esTutorDocente ? "CÓDIGO DE DOCENTE" : "CÓDIGO"}
+                                        </p>
+                                        <p className="text-sm font-medium text-gray-700">
+                                            {form.codigo || "—"}
+                                        </p>
+                                    </div>
+                                )}
 
-                                <div>
-                                    <p className="text-xs font-semibold text-gray-400">
-                                        TIPO DE DOCUMENTO
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-700">
-                                        {form.tipo_documento}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-xs font-semibold text-gray-400">
-                                        NÚMERO DE DOCUMENTO
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-700">
-                                        {form.cedula}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-xs font-semibold text-gray-400">
-                                        TELÉFONO
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-700">
-                                        {form.telefono}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-xs font-semibold text-gray-400">
-                                        CORREO
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-700 break-all">
-                                        {form.correo}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <p className="text-xs font-semibold text-gray-400">
-                                        CÓDIGO
-                                    </p>
-                                    <p className="text-sm font-medium text-gray-700">
-                                        {form.codigo}
-                                    </p>
-                                </div>
-
+                                {esTutorEmpresa && (
+                                    <div>
+                                        <p className="text-xs font-semibold text-gray-400">
+                                            CARGO
+                                        </p>
+                                        <p className="text-sm font-medium text-gray-700">
+                                            {form.cargo || "—"}
+                                        </p>
+                                    </div>
+                                )}
 
                                 {esPracticante && (
                                     <>
@@ -1011,15 +932,12 @@ export default function ActualizarPerfil() {
                                             <p className="text-xs font-semibold text-gray-400">
                                                 DEPARTAMENTO
                                             </p>
-
                                             <p className="text-sm font-medium text-gray-700">
-                                                {
-                                                    departamentos.find(
-                                                        (departamento) =>
-                                                            String(departamento.id) ===
-                                                            String(form.departamentoId)
-                                                    )?.nombre || "No seleccionado"
-                                                }
+                                                {departamentos.find(
+                                                    (departamento) =>
+                                                        String(departamento.id) ===
+                                                        String(form.departamentoId)
+                                                )?.nombre || "No seleccionado"}
                                             </p>
                                         </div>
 
@@ -1027,15 +945,12 @@ export default function ActualizarPerfil() {
                                             <p className="text-xs font-semibold text-gray-400">
                                                 MUNICIPIO
                                             </p>
-
                                             <p className="text-sm font-medium text-gray-700">
-                                                {
-                                                    municipios.find(
-                                                        (municipio) =>
-                                                            String(municipio.id) ===
-                                                            String(form.municipioId)
-                                                    )?.nombre || "No seleccionado"
-                                                }
+                                                {municipios.find(
+                                                    (municipio) =>
+                                                        String(municipio.id) ===
+                                                        String(form.municipioId)
+                                                )?.nombre || "No seleccionado"}
                                             </p>
                                         </div>
 
@@ -1049,21 +964,13 @@ export default function ActualizarPerfil() {
                                         </div>
                                     </>
                                 )}
-
                             </div>
-
                         </div>
 
-
-                        {/* BOTONES */}
-
                         <div className="flex justify-end gap-3 border-t border-gray-200 px-6 py-4">
-
                             <button
                                 type="button"
-                                onClick={() =>
-                                    setMostrarConfirmacion(false)
-                                }
+                                onClick={() => setMostrarConfirmacion(false)}
                                 disabled={saving}
                                 className="rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
@@ -1076,19 +983,12 @@ export default function ActualizarPerfil() {
                                 disabled={saving}
                                 className="rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {saving
-                                    ? "Guardando..."
-                                    : "Sí, confirmar"}
+                                {saving ? "Guardando..." : "Sí, confirmar"}
                             </button>
-
                         </div>
-
                     </div>
-
                 </div>
-
             )}
-
         </div>
     );
 }

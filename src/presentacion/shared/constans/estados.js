@@ -86,5 +86,12 @@ export const ESTADOS_CONFIG = {
         bg: "bg-yellow-100",
         text: "text-yellow-700",
         dot: "bg-yellow-500"
-    }
+    },
+
+    Vencido: {
+        bg: "bg-red-100",
+        text: "text-red-700",
+        dot: "bg-red-500"
+    },
+
 };

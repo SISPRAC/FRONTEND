@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const postulacionApi = axios.create({
-  baseURL: "http://localhost:3000/api/postulacion",
-  withCredentials: true
-});
+const postulacionApi = createApi("/postulacion");
 
 export const registerPostulacionRequest = async (data) => {
   return await postulacionApi.post("/crear", data);

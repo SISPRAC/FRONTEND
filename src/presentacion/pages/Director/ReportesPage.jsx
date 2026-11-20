@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
-import { FileSpreadsheet, FileDown, Users, X } from "lucide-react";
+import { FileSpreadsheet, FileDown, Users, X, Briefcase } from "lucide-react";
 
 import { practicaRepository } from "../../../infraestructura/repository/practicaRepository.js";
 import { periodoRepository } from "../../../infraestructura/repository/periodoRepository.js";
@@ -16,13 +16,13 @@ import { obtenerGruposParaReportePorPeriodo } from "../../../aplicacion/grupos/o
 
 import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";
 import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos.js";
-// ⚠️ Ajusta los "../" según dónde esté tu archivo
+
 import logoSisprac from "../../../assets/images/logo/LogoReportes.png";
 import logoSispracPDF from "../../../assets/images/logo/solo_logo.png";
 import logoPrograma from "../../../assets/images/logo/Programa_Ingeniería_de_Sistemas.png";
 
 import GenericTable from "../../components/Table/GenericTable.jsx";
-// ⚠️ Ajusta esta ruta a donde tengas EstadoBadge
+
 import EstadoBadge from "../../components/estadoBadge/EstadoBadge.jsx";
 
 import * as XLSX from "xlsx";
@@ -84,6 +84,51 @@ const normalizarPracticantes = (lista) =>
 const exportPracticantes = (row) =>
   (row.practicantes ?? [])
     .map((p) => `${p.codigo ? `${p.codigo} - ` : ""}${p.nombre}`)
+    .join("\n");
+
+// Aplana Convenios → Vacantes → AperturaVacantes en una lista simple
+const extraerVacantes = (convenios = []) => {
+  const vistas = new Set();
+  const lista = [];
+
+  convenios.forEach((convenio) => {
+    (convenio.Vacantes ?? []).forEach((vacante) => {
+      const nombre =
+        vacante.nombre ?? vacante.titulo ?? vacante.cargo ?? "Vacante sin nombre";
+      const aperturas = vacante.AperturaVacantes ?? [];
+
+      // Vacante sin aperturas: igual se muestra
+      if (!aperturas.length) {
+        const clave = `v-${vacante.id ?? nombre}`;
+        if (!vistas.has(clave)) {
+          vistas.add(clave);
+          lista.push({ id: clave, nombre, cupos: vacante.cupos ?? null, estado: "" });
+        }
+        return;
+      }
+
+      aperturas.forEach((apertura) => {
+        const clave = `a-${apertura.id ?? `${nombre}-${lista.length}`}`;
+        if (vistas.has(clave)) return;
+        vistas.add(clave);
+
+        lista.push({
+          id: clave,
+          nombre: apertura.nombre ?? nombre,
+          cupos: apertura.cupos ?? apertura.cantidad ?? vacante.cupos ?? null,
+          estado: apertura.estado ?? "",
+        });
+      });
+    });
+  });
+
+  return lista;
+};
+
+// Texto para Excel / PDF: una vacante por línea
+const exportVacantes = (row) =>
+  (row.vacantes ?? [])
+    .map((v) => (v.cupos != null ? `${v.nombre} (cupos: ${v.cupos})` : v.nombre))
     .join("\n");
 
 function PracticantesModal({ row }) {
@@ -189,6 +234,107 @@ function PracticantesModal({ row }) {
   );
 }
 
+function VacantesModal({ row }) {
+  const [abierto, setAbierto] = useState(false);
+  const lista = row.vacantes ?? [];
+
+  useEffect(() => {
+    if (!abierto) return;
+
+    const onKey = (e) => e.key === "Escape" && setAbierto(false);
+    document.addEventListener("keydown", onKey);
+
+    const overflowPrevio = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflowPrevio;
+    };
+  }, [abierto]);
+
+  if (!lista.length) {
+    return <span className="text-xs text-gray-400">Sin vacantes</span>;
+  }
+
+  return (
+    <div className="flex justify-center">
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+      >
+        <Briefcase size={14} />
+        Ver ({lista.length})
+      </button>
+
+      {abierto &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setAbierto(false)}
+          >
+            <div
+              className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
+                <div>
+                  <h3 className="text-base font-bold text-gray-900">
+                    {row.nombreEmpresa ?? "Vacantes"}
+                  </h3>
+                  <p className="text-xs font-semibold text-red-500">
+                    {lista.length} {lista.length === 1 ? "vacante" : "vacantes"}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAbierto(false)}
+                  className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  aria-label="Cerrar"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <ul className="flex-1 divide-y divide-gray-100 overflow-y-auto px-5">
+                {lista.map((v) => (
+                  <li key={v.id} className="py-3 text-left">
+                    <p className="text-sm font-semibold text-gray-800">{v.nombre}</p>
+                    <p className="text-xs text-gray-500">
+                      {v.cupos != null && <span>Cupos: {v.cupos}</span>}
+                      {v.cupos != null && v.estado && <span> · </span>}
+                      {v.estado && <span>{textoEstado(v.estado)}</span>}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="border-t border-gray-100 px-5 py-3 text-right">
+                <button
+                  type="button"
+                  onClick={() => setAbierto(false)}
+                  className="rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </div>
+  );
+}
+
+const columnaVacantes = {
+  key: "vacantes",
+  label: "Vacantes",
+  render: (row) => <VacantesModal row={row} />,
+  exportValue: exportVacantes,
+};
+
 const columnaPracticantes = {
   key: "practicantes",
   label: "Practicantes",
@@ -230,12 +376,13 @@ const TABS = {
       { key: "telefono", label: "Teléfono" },
       { key: "correo", label: "Correo" },
       { key: "cantidadPracticantes", label: "Cantidad de practicantes" },
-      {
+      columnaVacantes,
+      /* {
         key: "estado",
         label: "Convenio",
         render: renderEstado,
         exportValue: exportEstado,
-      },
+      }, */
       columnaPracticantes,
     ],
   },
@@ -245,16 +392,17 @@ const TABS = {
     columns: [
       { key: "codigo", label: "Código", primary: true },
       { key: "cedula", label: "Cédula" },
-      { key: "nombreEstudiante", label: "Estudiante" },
+      { key: "nombreEstudiante", label: "Practicante" },
       { key: "correo", label: "Correo" },
       { key: "grupo", label: "Grupo" },
+      { key: "empresa", label: "Empresa" },
+      { key: "objetivo", label: "Objetivo" },
       {
         key: "estado",
         label: "Estado",
         render: renderEstado,
         exportValue: exportEstado,
       },
-      { key: "empresa", label: "Empresa" },
 
     ],
   },
@@ -346,7 +494,7 @@ function DescargarMenu({
 
     // Ancho (en caracteres) de cada columna
     const anchos = Array.from({ length: totalEncabezado }, (_, i) =>
-      columns[i]?.key === "practicantes" ? 38 : 22
+      ["practicantes", "vacantes"].includes(columns[i]?.key) ? 38 : 22
     );
     const pxAncho = (w) => w * 7 + 5;
     const pxFila = altoFila * (96 / 72);
@@ -638,7 +786,7 @@ function DescargarMenu({
     }
 
     doc.save(`${fileName}.pdf`);
-  }; // <- cierra descargarPdf
+  };
 
   const botonClase = `
   group inline-flex items-center justify-center gap-2
@@ -788,7 +936,7 @@ export default function ReportesPage() {
           return {
             ...empresa,
             nombreEmpresa: empresa.nombre,
-
+            vacantes: extraerVacantes(convenios),
             directorEmpresa:
               [empresa.Usuario?.nombres, empresa.Usuario?.apellidos]
                 .filter(Boolean)

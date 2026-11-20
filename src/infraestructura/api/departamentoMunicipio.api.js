@@ -1,9 +1,7 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const departamentoMunicipioApi = axios.create({
-    baseURL: "http://localhost:3000/api/departamento/municipio",
-    withCredentials: true,
-});
+const departamentoMunicipioApi =  createApi("/departamento/municipio");
+
 
 export const getDepartamentosRequest = async () => {
     return await departamentoMunicipioApi.get("/");

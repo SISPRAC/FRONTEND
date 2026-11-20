@@ -1,7 +1,10 @@
 export const obtenerTiposRequisitoDocumento = async (
-    { tipoRequisitoDocumentoRepository }
+    { tipoRequisitoDocumentoRepository },
+    params
 ) => {
 
-    return await tipoRequisitoDocumentoRepository.findAll();
+    return await tipoRequisitoDocumentoRepository.findAll(
+        params
+    );
 
 };

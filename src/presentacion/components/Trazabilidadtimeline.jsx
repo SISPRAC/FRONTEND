@@ -49,7 +49,7 @@ const config = {
     },
 
     VENCIDO: {
-        color: "bg-slate-500",
+        color: "bg-red-500",
         icon: <Clock size={15} className="text-white" />,
     },
 

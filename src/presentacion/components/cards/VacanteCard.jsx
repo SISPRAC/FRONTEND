@@ -1,3 +1,4 @@
+
 import { UserPlus, Armchair } from "lucide-react";
 
 const ACCENT_COLORS = [
@@ -20,12 +21,17 @@ function getIniciales(nombre = "") {
 }
 
 function LogoEmpresa({ empresa, index }) {
-  if (empresa?.logoUrl) {
+  const logo = empresa?.logo || empresa?.logoUrl;
+
+  if (logo) {
     return (
       <img
-        src={empresa.logoUrl}
-        alt={`Logo ${empresa.nombre}`}
-        className="w-full h-full object-contain"
+        src={logo}
+        alt={`Logo ${empresa?.nombre || "empresa"}`}
+        className="w-full h-full object-contain p-1"
+        onError={(e) => {
+          e.currentTarget.style.display = "none";
+        }}
       />
     );
   }
@@ -61,11 +67,12 @@ export default function VacanteCard({
   return (
     <div
       className={`
-        bg-white rounded-xl p-4 flex flex-col gap-3 transition-all duration-150
-        ${
-          tieneCupos
-            ? "border-2 border-red-500 shadow-sm"
-            : "border border-gray-200 opacity-75"
+        h-full
+        bg-white rounded-xl p-4 flex flex-col gap-3
+        transition-all duration-150
+        ${tieneCupos
+          ? "border-2 border-red-500 shadow-sm"
+          : "border border-gray-200 opacity-75"
         }
       `}
     >
@@ -78,7 +85,7 @@ export default function VacanteCard({
           />
         </div>
 
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-center gap-2 flex-wrap mb-1">
             <span className="text-xs text-gray-400">
               {empresa?.nombre}
@@ -117,7 +124,7 @@ export default function VacanteCard({
       </div>
 
       {/* Pie */}
-      <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
         <div
           className={`flex items-center gap-1.5 text-xs ${
             tieneCupos
@@ -145,7 +152,6 @@ export default function VacanteCard({
 
         <button
           onClick={() => onPostular(vacante)}
-
           title="Postular candidato"
           aria-label={`Postular candidato a ${empresa?.nombre}`}
           className="

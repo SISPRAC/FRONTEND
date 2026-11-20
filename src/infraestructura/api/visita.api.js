@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const visitaApi = axios.create({
-    baseURL: "http://localhost:3000/api/visita",
-    withCredentials: true
-});
+const visitaApi = createApi("/visita");
 
 visitaApi.interceptors.request.use(
     (config) => {

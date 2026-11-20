@@ -94,7 +94,10 @@ const GruposPractica = () => {
         const response =
           await obtenerGruposEmpresa(EmpresaRepository);
 
-        const data = response?.data ?? [];
+        const data = Array.isArray(response)
+          ? response
+          : response?.data ?? [];
+
 
         const grupos = data.map((grupo) => ({
           id: grupo.practica_id,
@@ -104,10 +107,29 @@ const GruposPractica = () => {
           practicantes: grupo.practicantes ?? 0,
           aperturas: grupo.aperturas?.length ?? 0,
           estado: grupo.estado,
-          practica_id: grupo.practica_id
+          practica_id: grupo.practica_id,
+          fecha_inicio: grupo.fecha_inicio,
+          fecha_fin: grupo.fecha_fin
         }));
 
         setRows(grupos);
+        // <- nuevo: seleccionar el periodo actual por defecto
+        const hoy = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD en hora local
+
+        const actual = grupos.find(
+          (g) =>
+            g.fecha_inicio &&
+            g.fecha_fin &&
+            hoy >= String(g.fecha_inicio).slice(0, 10) &&
+            hoy <= String(g.fecha_fin).slice(0, 10)
+        );
+
+        // Si ninguno contiene hoy, usa el más reciente por nombre
+        const masReciente = [...grupos].sort((a, b) =>
+          String(b.periodo).localeCompare(String(a.periodo))
+        )[0];
+
+        setPeriodoFiltro((actual ?? masReciente)?.periodo ?? "TODOS");
 
       } catch (error) {
 

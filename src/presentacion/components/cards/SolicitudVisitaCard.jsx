@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { CalendarDays, Check, X, Users, MapPin, LoaderCircle } from "lucide-react";
 import EstadoBadge from "../estadoBadge/EstadoBadge";
 
 const MAX_VISIBLES = 3;
+const PASO_MIN = 60; // duración de cada franja horaria en minutos (30 para medias horas)
 
 // Evita problemas de zona horaria con fechas YYYY-MM-DD
 const formatFecha = (fecha) => {
@@ -41,6 +42,55 @@ const formatHora = (hora) => {
 const nombreCompleto = (p) =>
     [p.nombres, p.apellidos].filter(Boolean).join(" ") || "Practicante";
 
+// Parsea YYYY-MM-DD como fecha local (sin problemas de zona horaria)
+const parseFecha = (f) => {
+    const [y, m, d] = f.split("-").map(Number);
+    return new Date(y, m - 1, d);
+};
+
+const toISO = (date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+        date.getDate()
+    ).padStart(2, "0")}`;
+
+// Todos los días entre inicio y fin (inclusive)
+const diasEnRango = (inicio, fin) => {
+    const dias = [];
+    const cursor = parseFecha(inicio);
+    const limite = parseFecha(fin || inicio);
+
+    while (cursor <= limite) {
+        dias.push(toISO(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return dias;
+};
+
+const aMinutos = (h) => {
+    const [hh, mm] = h.split(":").map(Number);
+    return hh * 60 + mm;
+};
+
+const deMinutos = (min) =>
+    `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+// Franjas horarias disponibles dentro de un rango
+const generarHoras = (inicio, fin) => {
+    const horas = [];
+    const ini = aMinutos(inicio);
+    const f = aMinutos(fin);
+
+    for (let m = ini; m + PASO_MIN <= f; m += PASO_MIN) {
+        horas.push(deMinutos(m));
+    }
+
+    // Si el rango es más corto que una franja, ofrece al menos la hora de inicio
+    if (horas.length === 0) horas.push(deMinutos(ini));
+
+    return horas;
+};
+
 const SolicitudVisitaCard = ({
     solicitud,
     onAceptar,
@@ -51,6 +101,8 @@ const SolicitudVisitaCard = ({
     estadosPracticantes = new Map()
 }) => {
     const [verTodos, setVerTodos] = useState(false);
+    const [fechaSel, setFechaSel] = useState("");
+    const [horaSel, setHoraSel] = useState("");
 
     const fechas = solicitud.fechasPropuestas || [];
     const practicantes = solicitud.practicantes || [];
@@ -72,7 +124,6 @@ const SolicitudVisitaCard = ({
     const tienePracticantesNoDisponibles =
         practicantesNoDisponibles.length > 0;
 
-
     const motivoAccionesDeshabilitadas =
         "Esta solicitud incluye practicantes retirados, cancelados o con la práctica finalizada.";
 
@@ -87,6 +138,57 @@ const SolicitudVisitaCard = ({
     const esPendiente = estado === "Pendiente";
     const esRechazada = estado === "Rechazada";
     const esAceptada = estado === "Aceptada";
+
+    // ---------- Opciones de fecha ----------
+    const opcionesFecha = useMemo(() => {
+        const set = new Set();
+
+        fechas.forEach((f) => {
+            if (!f.fecha_inicio) return;
+            diasEnRango(f.fecha_inicio, f.fecha_fin).forEach((d) => set.add(d));
+        });
+
+        return [...set].sort();
+    }, [fechas]);
+
+    // Si solo hay una fecha, queda seleccionada automáticamente
+    const fechaEfectiva =
+        fechaSel && opcionesFecha.includes(fechaSel)
+            ? fechaSel
+            : opcionesFecha.length === 1
+            ? opcionesFecha[0]
+            : "";
+
+    // ---------- Opciones de hora (dependen de la fecha elegida) ----------
+    const opcionesHora = useMemo(() => {
+        if (!fechaEfectiva) return [];
+
+        const set = new Set();
+
+        fechas.forEach((f) => {
+            if (!f.fecha_inicio || !f.hora_inicio || !f.hora_fin) return;
+
+            const dias = diasEnRango(f.fecha_inicio, f.fecha_fin);
+
+            if (dias.includes(fechaEfectiva)) {
+                generarHoras(f.hora_inicio, f.hora_fin).forEach((h) =>
+                    set.add(h)
+                );
+            }
+        });
+
+        return [...set].sort();
+    }, [fechas, fechaEfectiva]);
+
+    // Si solo hay una hora, queda seleccionada automáticamente
+    const horaEfectiva =
+        horaSel && opcionesHora.includes(horaSel)
+            ? horaSel
+            : opcionesHora.length === 1
+            ? opcionesHora[0]
+            : "";
+
+    const seleccionCompleta = Boolean(fechaEfectiva && horaEfectiva);
 
     return (
         <div className="border rounded-xl p-4 flex flex-col h-full">
@@ -140,7 +242,7 @@ const SolicitudVisitaCard = ({
                     </div>
                 </div>
 
-                {/* Fechas */}
+                {/* Fecha y hora */}
                 <div className="flex items-start gap-2 mt-3">
                     <CalendarDays
                         size={15}
@@ -151,7 +253,66 @@ const SolicitudVisitaCard = ({
                         <p className="text-xs text-gray-500">
                             No hay fechas propuestas.
                         </p>
+                    ) : esPendiente ? (
+                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+
+                            {/* Select de fecha */}
+                            <div className="flex-1">
+                                <label className="block text-xs text-gray-500 mb-1">
+                                    Fecha
+                                </label>
+
+                                <select
+                                    value={fechaEfectiva}
+                                    onChange={(e) => {
+                                        setFechaSel(e.target.value);
+                                        setHoraSel("");
+                                    }}
+                                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-red-500"
+                                >
+                                    {opcionesFecha.length !== 1 && (
+                                        <option value="">
+                                            Selecciona una fecha
+                                        </option>
+                                    )}
+
+                                    {opcionesFecha.map((d) => (
+                                        <option key={d} value={d}>
+                                            {formatFecha(d)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Select de hora */}
+                            <div className="flex-1">
+                                <label className="block text-xs text-gray-500 mb-1">
+                                    Hora
+                                </label>
+
+                                <select
+                                    value={horaEfectiva}
+                                    onChange={(e) => setHoraSel(e.target.value)}
+                                    disabled={!fechaEfectiva}
+                                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-red-500 disabled:bg-gray-100 disabled:text-gray-400"
+                                >
+                                    {opcionesHora.length !== 1 && (
+                                        <option value="">
+                                            Selecciona una hora
+                                        </option>
+                                    )}
+
+                                    {opcionesHora.map((h) => (
+                                        <option key={h} value={h}>
+                                            {formatHora(h)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                        </div>
                     ) : (
+                        // Aceptada / rechazada: solo lectura
                         <ul className="text-xs text-gray-600 space-y-1">
                             {fechas.map((f) => (
                                 <li key={f.id}>
@@ -199,13 +360,22 @@ const SolicitudVisitaCard = ({
                         </button>
 
                         <button
-                            onClick={() => onAceptar(solicitud)}
+                            onClick={() =>
+                                onAceptar(solicitud, {
+                                    fecha: fechaEfectiva,
+                                    hora: horaEfectiva
+                                })
+                            }
                             disabled={
-                                bloquearAcciones || tienePracticantesNoDisponibles
+                                bloquearAcciones ||
+                                tienePracticantesNoDisponibles ||
+                                !seleccionCompleta
                             }
                             title={
                                 tienePracticantesNoDisponibles
                                     ? motivoAccionesDeshabilitadas
+                                    : !seleccionCompleta
+                                    ? "Selecciona una fecha y una hora"
                                     : undefined
                             }
                             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"

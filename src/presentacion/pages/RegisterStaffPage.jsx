@@ -4,6 +4,12 @@ import StaffForm from "../components/StaffForm";
 import { registerStaffService } from "../../aplicacion/services/registerService";
 import { validarInvitacionService } from "../../aplicacion/services/invitacionService";
 import toast from "react-hot-toast";
+import {
+  normalizarNombre,
+  normalizarCargo,
+} from "../components/utils/normalizarTexto"; 
+
+const MIN_PASSWORD = 8;
 
 export default function RegisterStaffPage() {
 
@@ -13,6 +19,7 @@ export default function RegisterStaffPage() {
 
   const [valido, setValido] = useState(null);
   const [rol, setRol] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
     tipo_documento: "CC",
@@ -27,7 +34,6 @@ export default function RegisterStaffPage() {
   });
 
   const [errors, setErrors] = useState({});
-  const [backendError, setBackendError] = useState("");
 
   // VALIDAR TOKEN AL ENTRAR
   useEffect(() => {
@@ -46,11 +52,8 @@ export default function RegisterStaffPage() {
         if (res.data.valid) {
 
           setValido(true);
-
-          // Guardamos el rol de la invitación
           setRol(res.data.invitacion?.rol);
 
-          // El correo viene de la invitación
           if (res.data.invitacion?.correo) {
             setForm((prev) => ({
               ...prev,
@@ -59,17 +62,12 @@ export default function RegisterStaffPage() {
           }
 
         } else {
-
           setValido(false);
-
         }
 
       } catch (error) {
-
         console.error("Error validando invitación:", error);
-
         setValido(false);
-
       }
     };
 
@@ -120,9 +118,10 @@ export default function RegisterStaffPage() {
 
     e.preventDefault();
 
+    if (loading) return; // evita doble envío
+
     const newErrors = {};
 
-    // Validaciones generales
     const camposObligatorios = [
       "tipo_documento",
       "cedula",
@@ -133,38 +132,34 @@ export default function RegisterStaffPage() {
     ];
 
     camposObligatorios.forEach((key) => {
-
-      if (!form[key]) {
+      if (!form[key]?.toString().trim()) {
         newErrors[key] = "Este campo es obligatorio";
       }
-
     });
 
-    // Teléfono → debe tener exactamente 10 dígitos
     if (form.telefono && form.telefono.length !== 10) {
       newErrors.telefono = "El teléfono debe tener 10 dígitos";
     }
 
+    if (form.password && form.password.length < MIN_PASSWORD) {
+      newErrors.password = `La contraseña debe tener mínimo ${MIN_PASSWORD} caracteres`;
+    }
 
-    // Tutor Docente → código obligatorio
     if (rol === "Tutor Docente" && !form.codigo) {
       newErrors.codigo = "El código es obligatorio";
     }
 
-
-    // Tutor Empresarial → cargo obligatorio
-    if (rol === "Tutor Empresarial" && !form.cargo) {
+    if (rol === "Tutor Empresarial" && !form.cargo?.trim()) {
       newErrors.cargo = "El cargo es obligatorio";
     }
 
-
     if (Object.keys(newErrors).length > 0) {
-
       setErrors(newErrors);
+      toast.error(Object.values(newErrors)[0]);
       return;
-
     }
 
+    setLoading(true);
 
     try {
 
@@ -172,28 +167,18 @@ export default function RegisterStaffPage() {
 
       data.append("tipo_documento", form.tipo_documento);
       data.append("cedula", form.cedula);
-      data.append("nombres", form.nombres);
-      data.append("apellidos", form.apellidos);
+      data.append("nombres", normalizarNombre(form.nombres));
+      data.append("apellidos", normalizarNombre(form.apellidos));
       data.append("telefono", form.telefono);
       data.append("password", form.password);
 
-      // Tutor Docente
       if (rol === "Tutor Docente") {
         data.append("codigo", form.codigo);
       }
 
-      // Tutor Empresarial
       if (rol === "Tutor Empresarial") {
-        data.append("cargo", form.cargo);
+        data.append("cargo", normalizarCargo(form.cargo));
       }
-
-
-      console.log("Datos enviados:");
-
-      for (let [key, value] of data.entries()) {
-        console.log(key, value);
-      }
-
 
       await registerStaffService(data, token);
 
@@ -210,6 +195,8 @@ export default function RegisterStaffPage() {
         "Error en el registro"
       );
 
+    } finally {
+      setLoading(false); // siempre se desbloquea
     }
 
   };
@@ -232,7 +219,7 @@ export default function RegisterStaffPage() {
       onSubmit={handleSubmit}
       onChange={handleChange}
       errors={errors}
-      backendError={backendError}
+      loading={loading}
     />
   );
 

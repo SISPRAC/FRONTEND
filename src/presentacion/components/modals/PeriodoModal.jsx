@@ -6,7 +6,8 @@ export default function PeriodoModal({
   onClose,
   onSubmit,
   mode,
-  periodo
+  periodo,
+  periodos = []
 }) {
 
   const initialForm = {
@@ -15,35 +16,48 @@ export default function PeriodoModal({
     fecha_fin: ""
   };
 
+  const currentYear = new Date().getFullYear();
+  const opcionesNombre = [`${currentYear}-01`, `${currentYear}-02`];
+
+  // los demás períodos (si estoy editando, excluyo el mío)
+  const otrosPeriodos = periodos.filter(
+    (p) => mode !== "edit" || p.id !== periodo?.id
+  );
+  const nombresUsados = otrosPeriodos.map((p) => p.nombre);
+  const disponibles = opcionesNombre.filter((n) => !nombresUsados.includes(n));
+
+  // por si el backend manda fechas ISO con hora
+  const toDate = (d) => String(d).slice(0, 10);
+
   const [formData, setFormData] = useState(initialForm);
-
-  useEffect(() => {
-
-    if (!isOpen) return;
-
-    if (mode === "edit" && periodo) {
-
-      setFormData({
-        id: periodo.id,
-        nombre: periodo.nombre,
-        fecha_inicio: periodo.fecha_inicio,
-        fecha_fin: periodo.fecha_fin,
-      });
-
-    }
-
-    if (mode === "create") {
-      setFormData(initialForm);
-    }
-
-  }, [mode, periodo, isOpen]);
-
 
   const [errors, setErrors] = useState({
     nombre: false,
     fecha_inicio: false,
     fecha_fin: false,
   });
+
+  useEffect(() => {
+
+    if (!isOpen) return;
+
+    if (mode === "edit" && periodo) {
+      setFormData({
+        id: periodo.id,
+        nombre: periodo.nombre,
+        fecha_inicio: toDate(periodo.fecha_inicio),
+        fecha_fin: toDate(periodo.fecha_fin),
+      });
+    }
+
+    if (mode === "create") {
+      setFormData({
+        ...initialForm,
+        nombre: disponibles[0] ?? ""
+      });
+    }
+
+  }, [mode, periodo, isOpen]);
 
   const handleClose = () => {
     if (mode != "edit") {
@@ -57,8 +71,6 @@ export default function PeriodoModal({
       fecha_fin: false,
     });
   };
-
-
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -76,10 +88,40 @@ export default function PeriodoModal({
       return;
     }
 
-    const periodoRegex = /^\d{4}-\d{2}$/;
+    // 1. nombre: solo año actual y 01 / 02 (al crear)
+    if (mode === "create" && !opcionesNombre.includes(formData.nombre)) {
+      setErrors({ ...newErrors, nombre: true });
+      toast.error(`El nombre debe ser ${opcionesNombre.join(" o ")}`);
+      return;
+    }
 
-    if (!periodoRegex.test(formData.nombre)) {
-      toast.error("El nombre debe tener formato AAAA-NN. Ej: 2026-01");
+    // 2. nombre repetido
+    if (nombresUsados.includes(formData.nombre)) {
+      setErrors({ ...newErrors, nombre: true });
+      toast.error(`Ya existe el período ${formData.nombre}`);
+      return;
+    }
+
+    const inicio = toDate(formData.fecha_inicio);
+    const fin = toDate(formData.fecha_fin);
+
+    // 3. fin no puede ser antes que inicio
+    if (fin < inicio) {
+      setErrors({ ...newErrors, fecha_fin: true });
+      toast.error("La fecha final no puede ser anterior a la inicial");
+      return;
+    }
+
+    // 4. no cruzarse con otros períodos
+    const choque = otrosPeriodos.find(
+      (p) => inicio <= toDate(p.fecha_fin) && fin >= toDate(p.fecha_inicio)
+    );
+
+    if (choque) {
+      setErrors({ ...newErrors, fecha_inicio: true, fecha_fin: true });
+      toast.error(
+        `Las fechas se cruzan con el período ${choque.nombre} (${toDate(choque.fecha_inicio)} a ${toDate(choque.fecha_fin)})`
+      );
       return;
     }
 
@@ -139,19 +181,12 @@ export default function PeriodoModal({
               Nombre
             </label>
 
-            <input
-              type="text"
+            <select
               value={formData.nombre}
-              placeholder="Ingrese el nombre (AAAA-NN)"
               onChange={(e) => {
-
-                let value = e.target.value;
-
-                value = value.replace(/[^0-9-]/g, "");
-
                 setFormData({
                   ...formData,
-                  nombre: value,
+                  nombre: e.target.value,
                 });
 
                 setErrors({
@@ -161,7 +196,24 @@ export default function PeriodoModal({
               }}
               className={`border p-2 rounded w-full ${errors.nombre ? "border-red-500" : "border-gray-300"
                 }`}
-            />
+            >
+              <option disabled value="">Seleccione el período</option>
+
+              {opcionesNombre.map((n) => (
+                <option
+                  key={n}
+                  value={n}
+                  disabled={nombresUsados.includes(n)}
+                >
+                  {n}{nombresUsados.includes(n) ? " (ya existe)" : ""}
+                </option>
+              ))}
+
+              {/* al editar un período de otro año, que no desaparezca */}
+              {formData.nombre && !opcionesNombre.includes(formData.nombre) && (
+                <option value={formData.nombre}>{formData.nombre}</option>
+              )}
+            </select>
           </div>
 
           <div>

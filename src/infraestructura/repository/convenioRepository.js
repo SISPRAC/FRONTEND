@@ -4,7 +4,8 @@ import {
     getConvenioByEmpresaRequest,
     getConveniosByEmpresaRequest,
     subirConvenioRequest,
-    actualizarEstadoConvenioRequest
+    actualizarEstadoConvenioRequest,
+    aprobarConvenioRequest
 } from "../api/convenio.api";
 
 
@@ -56,10 +57,16 @@ export const convenioRepository = {
     async actualizarEstadoConvenio(id, data) {
 
         const response =
-            await actualizarEstadoConvenioRequest(
-                id,
-                data
-            );
+            await actualizarEstadoConvenioRequest(id, data);
+
+        return response.data;
+    },
+
+
+    async aprobarConvenio(id, formData) {
+
+        const response =
+            await aprobarConvenioRequest(id, formData);
 
         return response.data;
     }

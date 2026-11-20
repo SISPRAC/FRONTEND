@@ -24,10 +24,48 @@ import {
 // DIRECTOR
 // ==========================
 export const Director_NAV = [
+  // 1. Gestión académica
+  {
+    label: "Dashboard",
+    icon: <ChartNoAxesCombined />,
+    href: "/dashboard",
+  },
+  {
+    label: "Periodos",
+    icon: <SquareChartGantt />,
+    href: "/periodos",
+  },
+  {
+    label: "Prácticas",
+    icon: <Briefcase />,
+    href: "/practicas",
+  },
+  {
+    label: "Documentos Practicantes",
+    icon: <FileStack />,
+    href: "/tipoDocumentos",
+  },
   {
     label: "Grupos",
     icon: <Users />,
     href: "/grupos",
+  },
+  {
+    label: "Tutores Docentes",
+    icon: <Users />,
+    href: "/tutorDocente",
+  },
+
+  // 2. Gestión empresarial
+  {
+    label: "Convenios",
+    icon: <Handshake />,
+    href: "/convenios",
+  },
+  {
+    label: "Requisitos Convenio",
+    icon: <FileStack />,
+    href: "/requisitos-convenio",
   },
   {
     label: "Vacantes",
@@ -35,50 +73,36 @@ export const Director_NAV = [
     href: "/vacantes",
   },
   {
-    label: "Convenios",
-    icon: <Handshake />,
-    href: "/convenios",
+    label: "Candidatos",
+    icon: <UserRound />,
+    href: "/candidatosAPracticas",
+  },
+
+  // 3. Seguimiento y evaluación
+  {
+    label: "Practicantes para la ARL",
+    icon: <FileText />,
+    href: "/arl",
   },
   {
-    label: "Encuestas",
+    label: "Retroalimentación",
     icon: <FileUser />,
     href: "/encuestas",
   },
-  {
-    label: "Protocolos",
-    icon: <ClipboardPlus />,
-    href: "/protocolos",
-  },
+
+  // 4. Información y resultados
   {
     label: "Reportes",
     icon: <BookCheck />,
     href: "/reportes",
   },
-  {
-    label: "Dashboard",
-    icon: <ChartNoAxesCombined />,
-    href: "/dashboard",
-  },
-  {
-    label: "Tutores Docentes",
-    icon: <Users />,
-    href: "/tutorDocente",
-  },
-  {
-    label: "ARL",
-    icon: <FileText />,
-    href: "/arl",
-  },
+
+  // 5. Comunicación
   {
     label: "Notificaciones",
     icon: <Bell />,
     href: "/notificaciones",
   },
-  /*  {
-     label: "Perfil",
-     icon: <UserCog />,
-     href: "/perfil",
-   }, */
 ];
 
 
@@ -101,12 +125,6 @@ export const Empresa_NAV = [
     icon: <UserRound />,
     href: "/candidatos",
   },
-  {
-    label: "Protocolos",
-    icon: <ClipboardPlus />,
-    href: "/protocolosEmpresa",
-  },
-
   {
     label: "Vacantes",
     icon: <FileUser />,
@@ -146,7 +164,7 @@ export const Practicante_NAV = [
     href: "/informes",
   },
   {
-    label: "Documentos Iniciales",
+    label: "Documentos a Subir",
     icon: <ClipboardPlus />,
     href: "/documentosIniciales",
   },
@@ -207,6 +225,18 @@ export const TutorDocente_NAV = [
     href: "/misGrupos",
   },
   {
+    label: "Protocolos",
+    icon: <ClipboardPlus />,
+    href: "/protocolos",
+  },
+
+  {
+    label: "Gestión de entregas",
+    icon: <FileStack />,
+    href: "/documentos",
+  },
+
+  {
     label: "Notificaciones",
     icon: <Bell />,
     href: "/notificaciones",
@@ -224,7 +254,7 @@ export const TutorDocente_NAV = [
 // ==========================
 export const TutorEmpresarial_NAV = [
   {
-    label: "Mis Aperturas",
+    label: "Mis Asignaciones",
     icon: <Briefcase />,
     href: "/mis-aperturas",
   },
@@ -246,39 +276,14 @@ export const TutorEmpresarial_NAV = [
 // ==========================
 export const Admin_NAV = [
   {
-    label: "Periodos",
-    icon: <SquareChartGantt />,
-    href: "/periodos",
-  },
-  {
-    label: "Prácticas",
-    icon: <Briefcase />,
-    href: "/practicas",
-  },
-  {
     label: "Gestion de Usuarios",
     icon: <Users />,
     href: "/usuarios",
   },
   {
-    label: "Gestion de Documentos",
-    icon: <FileStack />,
-    href: "/documentos",
-  },
-  {
-    label: "Gestion de Tipos de Documentos",
-    icon: <FileStack />,
-    href: "/tipoDocumentos",
-  },
-  {
     label: "Notificaciones",
     icon: <Bell />,
     href: "/notificaciones",
-  },
-  {
-    label: "Perfil",
-    icon: <UserCog />,
-    href: "/perfil",
   },
 ];
 
@@ -299,8 +304,8 @@ export const ROLE_NAV = {
 
 
 export const HOME_ROUTES = {
-  "Administrador": "/periodos",
-  "Director de programa": "/homeDirector",
+  "Administrador": "/usuarios",
+  "Director de programa": "/dashboard",
   "Empresa": "/subirConvenio",
   "Practicante": "/homePracticante",
   "Candidato": "/perfil",

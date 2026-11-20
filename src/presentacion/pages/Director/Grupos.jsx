@@ -167,6 +167,7 @@ const GruposDirector = () => {
   const [deleteModal, setDeleteModal] = useState(false);
   const [grupoToDelete, setGrupoToDelete] = useState(null);
   const [eliminando, setEliminando] = useState(false);
+  const [cargandoEdicion, setCargandoEdicion] = useState(false);
   const [practica, setPractica] = useState([]);
   const [tutorDocentes, setTutorDocentes] = useState([]);
   const [candidatos, setCandidatos] = useState([]);
@@ -188,7 +189,9 @@ const GruposDirector = () => {
         id: grupo.id,
         nombre: grupo.nombre,
         practica: grupo.practica.Periodo.nombre,
-        tutorDocente: `${grupo.TutorDocente?.Usuario?.nombres} ${grupo.TutorDocente?.Usuario?.apellidos}`
+        tutorDocente: `${grupo.TutorDocente?.Usuario?.nombres} ${grupo.TutorDocente?.Usuario?.apellidos}`,
+        // Ajusta el campo y el valor según tu API
+        enCurso: grupo.practica?.estado === "EN_CURSO",
       }));
       setRows(formattedData);
       setCurrentPage(1);
@@ -210,6 +213,8 @@ const GruposDirector = () => {
       const docentesData = await getTutorDocentes({
         tutorDocenteRepository
       });
+
+      console.log("Practicas", practicasData);
 
       setPractica(practicasData);
       setTutorDocentes(docentesData);
@@ -240,7 +245,11 @@ const GruposDirector = () => {
 
   const handleEdit = async (id) => {
 
+    if (cargandoEdicion) return;
+
     try {
+      setCargandoEdicion(true);
+
       const grupo = await getGrupo({ grupoRepository }, id);
       setSelectedGrupo(grupo);
       setMode("edit");
@@ -251,6 +260,8 @@ const GruposDirector = () => {
         error.response?.data?.message ||
         "Error al editar el grupo"
       );
+    } finally {
+      setCargandoEdicion(false);
     }
   };
 
@@ -400,12 +411,14 @@ const GruposDirector = () => {
             {
               icon: <SquarePen size={24} />,
               className: "hover:bg-blue-100",
-              onClick: handleEdit
+              onClick: handleEdit,
+              show: (row) => row.enCurso
             },
             {
               icon: <Trash size={24} />,
               className: "hover:bg-red-100",
-              onClick: deleteRow
+              onClick: deleteRow,
+              show: (row) => row.enCurso
             }
           ]}
           emptyMessage="No hay grupos registrados."
@@ -417,6 +430,18 @@ const GruposDirector = () => {
       <AddButton
         onClick={handleCreate}
       />
+
+      {/* OVERLAY CARGANDO EDICIÓN */}
+      {cargandoEdicion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="flex items-center gap-3 rounded-xl bg-white px-6 py-4 shadow-xl">
+            <Loader2 size={22} className="animate-spin text-slate-600" />
+            <span className="text-sm font-semibold text-slate-700">
+              Cargando grupo...
+            </span>
+          </div>
+        </div>
+      )}
 
       <GrupoModal
         isOpen={isOpen}

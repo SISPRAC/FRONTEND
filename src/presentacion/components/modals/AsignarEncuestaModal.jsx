@@ -10,6 +10,7 @@ export default function AsignarEncuestaModal({
     practicas = []
 }) {
 
+    const [guardando, setGuardando] = useState(false);
     const [
         practicasSeleccionadas,
         setPracticasSeleccionadas
@@ -96,14 +97,16 @@ export default function AsignarEncuestaModal({
     // ==========================================
 
     const handleSubmit = async (e) => {
-
         e.preventDefault();
 
+        if (guardando) return;
 
-        await onSubmit(
-            practicasSeleccionadas
-        );
-
+        try {
+            setGuardando(true);
+            await onSubmit(practicasSeleccionadas);
+        } finally {
+            setGuardando(false);
+        }
     };
 
 
@@ -445,7 +448,7 @@ export default function AsignarEncuestaModal({
                                                         >
 
                                                             {
-                                                               `Práctica ${practica.Periodo.nombre}` ||
+                                                                `Práctica ${practica.Periodo.nombre}` ||
                                                                 `Práctica ${practica.Periodo.nombre}`
                                                             }
 
@@ -508,37 +511,29 @@ export default function AsignarEncuestaModal({
                         <button
                             type="button"
                             onClick={handleClose}
+                            disabled={guardando}
                             className="
-                                px-5
-                                py-2
-                                rounded-xl
-                                bg-slate-200
-                                hover:bg-slate-300
-                                text-slate-700
-                                transition-colors
-                            "
+        px-5 py-2 rounded-xl
+        bg-slate-200 hover:bg-slate-300
+        text-slate-700 transition-colors
+        disabled:opacity-60 disabled:cursor-not-allowed
+    "
                         >
-
                             Cancelar
-
                         </button>
 
 
                         <button
                             type="submit"
+                            disabled={guardando}
                             className="
-                                px-5
-                                py-2
-                                rounded-xl
-                                bg-[#e8192c]
-                                text-white
-                                hover:bg-[#c8111f]
-                                transition-colors
-                            "
+        px-5 py-2 rounded-xl
+        bg-[#e8192c] text-white
+        hover:bg-[#c8111f] transition-colors
+        disabled:opacity-60 disabled:cursor-not-allowed
+    "
                         >
-
-                            Guardar
-
+                            {guardando ? "Guardando..." : "Guardar"}
                         </button>
 
                     </div>

@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const empresaApi = axios.create({
-    baseURL: "http://localhost:3000/api/empresa",
-    withCredentials: true
-});
+const empresaApi = createApi("/empresa");
 
 
 // =========================================================
@@ -149,6 +146,42 @@ export const getEmpresasParaSelectRequest = (convenio = "activo") => {
 
     return empresaApi.get(
         `/select?convenio=${convenio}`
+    );
+
+};
+
+// =========================================================
+// SUBIR CERTIFICADO DE FINALIZACIÓN DE UN PRACTICANTE
+// =========================================================
+
+export const subirCertificadoFinalizacionRequest = (
+    practicanteId,
+    data
+) => {
+
+    return empresaApi.post(
+        `/practicantes/${practicanteId}/certificado`,
+        data,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        }
+    );
+
+};
+
+
+// =========================================================
+// OBTENER CERTIFICADO DE FINALIZACIÓN DE UN PRACTICANTE
+// =========================================================
+
+export const getCertificadoFinalizacionRequest = (
+    practicanteId
+) => {
+
+    return empresaApi.get(
+        `/practicantes/${practicanteId}/certificado`
     );
 
 };

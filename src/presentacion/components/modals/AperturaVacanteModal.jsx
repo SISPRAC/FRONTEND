@@ -27,6 +27,8 @@ export default function AperturaVacanteModal({
   const [form, setForm] = useState(initialForm);
   const [errores, setErrores] = useState({});
 
+  const [guardando, setGuardando] = useState(false);
+
 
   useEffect(() => {
 
@@ -156,30 +158,24 @@ export default function AperturaVacanteModal({
   // GUARDAR
   // ============================================================
 
-  const handleSubmit = () => {
-
+  const handleSubmit = async () => {
     if (!validar()) return;
 
-
     const payload = {
-
-      vacante_id:
-        Number(form.vacante_id),
-
-      tutorEmpresa_id:
-        Number(form.tutorEmpresa_id),
-
-      cupos:
-        Number(form.cupos),
-
-      estado:
-        form.estado
-
+      vacante_id: Number(form.vacante_id),
+      tutorEmpresa_id: Number(form.tutorEmpresa_id),
+      cupos: Number(form.cupos),
+      estado: form.estado,
     };
 
-
-    onSave(payload);
-
+    try {
+      setGuardando(true);
+      await onSave(payload);
+    } catch (error) {
+      // El error ya fue notificado desde el componente padre.
+    } finally {
+      setGuardando(false);
+    }
   };
 
 
@@ -264,7 +260,7 @@ export default function AperturaVacanteModal({
               "
             >
 
-              <option value="">
+              <option disabled value="">
                 Seleccione una vacante
               </option>
 
@@ -372,7 +368,7 @@ export default function AperturaVacanteModal({
               "
             >
 
-              <option value="">
+              <option disabled value="">
                 Seleccione un tutor
               </option>
 
@@ -520,32 +516,56 @@ export default function AperturaVacanteModal({
 
           <button
             onClick={onClose}
+            disabled={guardando}
             className="
-              px-4
-              py-2
-              rounded-xl
-              bg-slate-200
-              hover:bg-slate-300
-              text-gray-700
-            "
+            px-4 py-2
+            rounded-xl
+            bg-slate-200
+            hover:bg-slate-300
+            text-gray-700
+            disabled:opacity-50
+            disabled:cursor-not-allowed
+        "
           >
             Cancelar
           </button>
 
           <button
             onClick={handleSubmit}
+            disabled={guardando}
             className="
-              px-4
-              py-2
-              rounded-xl
-              bg-[#e8192c]
-              text-white
-              hover:bg-[#c8111f]
-            "
+            px-4 py-2
+            rounded-xl
+            bg-[#e8192c]
+            text-white
+            hover:bg-[#c8111f]
+            disabled:opacity-70
+            disabled:cursor-not-allowed
+            flex items-center gap-2
+        "
           >
-            {mode === "crear"
-              ? "Crear"
-              : "Guardar cambios"}
+
+            {guardando ? (
+              <>
+                <span className="
+                    w-4 h-4
+                    border-2
+                    border-white/40
+                    border-t-white
+                    rounded-full
+                    animate-spin
+                " />
+
+                {mode === "crear"
+                  ? "Creando..."
+                  : "Guardando cambios..."}
+              </>
+            ) : (
+              mode === "crear"
+                ? "Crear"
+                : "Guardar cambios"
+            )}
+
           </button>
 
         </div>

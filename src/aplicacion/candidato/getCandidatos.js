@@ -1,5 +1,6 @@
 export const getCandidatos = async ({candidatoRepository}) => {
-  return await candidatoRepository.getAll();
+  const res = await candidatoRepository.getAll();
+  return res.data;
 };
 
 

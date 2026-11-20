@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 import AddButton from "../../components/buttons/AddButton";
@@ -8,8 +9,10 @@ import { createPeriodo } from "../../../aplicacion/periodo/createPeriodo";
 import { getPeriodoById } from "../../../aplicacion/periodo/getPeriodoByName";
 import { updatePeriodo } from "../../../aplicacion/periodo/updatePeriodo";
 import { deletePeriodo } from "../../../aplicacion/periodo/deletePeriodo";
-import DeleteModal from "../../components/modals/DeleteModal";
+
+import ConfirmModal from "../../components/modals/ConfirmModal";
 import GenericTable from "../../components/Table/GenericTable";
+
 import { Trash, SquarePen } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -20,8 +23,10 @@ export default function PeriodosAcademicos() {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState("create");
   const [selectedPeriodo, setSelectedPeriodo] = useState(null);
+
   const [deleteModal, setDeleteModal] = useState(false);
   const [periodoToDelete, setPeriodoToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     loadPeriodos();
@@ -34,8 +39,6 @@ export default function PeriodosAcademicos() {
       });
 
       setRows(data);
-
-      // volver a la primera página cuando cambian los datos
       setCurrentPage(1);
 
     } catch (error) {
@@ -50,13 +53,13 @@ export default function PeriodosAcademicos() {
   };
 
   const handleEdit = async (id) => {
-
     try {
-      // traer periodo desde backend
       const periodo = await getPeriodoById({ periodoRepository }, id);
+
       setSelectedPeriodo(periodo);
       setMode("edit");
       setIsOpen(true);
+
     } catch (error) {
       toast.error(
         error.response?.data?.message ||
@@ -71,8 +74,10 @@ export default function PeriodosAcademicos() {
         { periodoRepository },
         formData
       );
+
       await loadPeriodos();
-      toast.success("Periodo Creado con exito");
+
+      toast.success("Periodo creado con éxito");
       setIsOpen(false);
 
     } catch (error) {
@@ -85,14 +90,20 @@ export default function PeriodosAcademicos() {
 
   const handleUpdate = async (formData) => {
     try {
-      console.log("Actualizar:", formData);
-      await updatePeriodo({ periodoRepository }, formData.id, formData);
+      await updatePeriodo(
+        { periodoRepository },
+        formData.id,
+        formData
+      );
+
       await loadPeriodos();
+
       toast.success("Periodo actualizado");
       setIsOpen(false);
 
     } catch (error) {
-      console.log(error);
+      console.error(error);
+
       toast.error(
         error.response?.data?.message ||
         "Error al actualizar el periodo"
@@ -102,12 +113,20 @@ export default function PeriodosAcademicos() {
 
   const handleDelete = async () => {
 
-    try {
+    if (!periodoToDelete || deleting) return;
 
-      await deletePeriodo({ periodoRepository }, periodoToDelete.id);
+    try {
+      setDeleting(true);
+
+      await deletePeriodo(
+        { periodoRepository },
+        periodoToDelete.id
+      );
 
       await loadPeriodos();
-      toast.success("Periodo eliminado");
+
+      toast.success("Periodo eliminado correctamente");
+
       setDeleteModal(false);
       setPeriodoToDelete(null);
 
@@ -115,21 +134,22 @@ export default function PeriodosAcademicos() {
 
       toast.error(
         error.response?.data?.message ||
-        "Error al eliminar periodo"
+        "Error al eliminar el periodo"
       );
 
+    } finally {
+      setDeleting(false);
     }
   };
 
   const deleteRow = (id) => {
     const periodo = rows.find(r => r.id === id);
+
     setPeriodoToDelete(periodo);
     setDeleteModal(true);
   };
 
-
   return (
-
     <div>
 
       <h1 className="
@@ -178,8 +198,6 @@ export default function PeriodosAcademicos() {
         pageSize={6}
       />
 
-
-
       <AddButton
         onClick={handleCreate}
       />
@@ -194,19 +212,26 @@ export default function PeriodosAcademicos() {
         }
         mode={mode}
         periodo={selectedPeriodo}
+        periodos={rows}
       />
 
-      <DeleteModal
+      <ConfirmModal
         isOpen={deleteModal}
-        onClose={() => {
+        onCancel={() => {
+          if (deleting) return;
+
           setDeleteModal(false);
           setPeriodoToDelete(null);
         }}
         onConfirm={handleDelete}
-        title="Eliminar período"
-        message={`¿Desea eliminar el período "${periodoToDelete?.nombre}"?`}
+        loading={deleting}
+        title="Eliminar período académico"
+        message={`¿Está seguro de que desea eliminar el período "${periodoToDelete?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+        cancelLabel="Cancelar"
+        confirmColor="bg-red-600 hover:bg-red-700"
       />
 
-    </div >
+    </div>
   );
 }

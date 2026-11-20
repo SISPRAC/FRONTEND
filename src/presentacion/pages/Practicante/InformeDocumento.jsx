@@ -6,9 +6,12 @@ import { entregaInformeRepository } from "../../../infraestructura/repository/en
 import { obtenerInformesPracticanteVigentes } from "../../../aplicacion/practicaRequisitoDocumento/obtenerInformesPracticanteVigentes.js";
 import { crearEntregaInforme } from "../../../aplicacion/entregaInforme/crearEntregaInforme.js";
 
-// Componente y utilidad compartidos (ajusta la ruta a tu estructura)
 import TrazabilidadTimeline from "../../components/Trazabilidadtimeline.jsx";
 import { construirTrazabilidad } from "../../components/Construirtrazabilidad.jsx";
+
+// NUEVOS (ajusta las rutas)
+import VisorPdfModal from "../../components/modals/VisorPdfModal.jsx";
+import { descargarArchivo } from "../../components/utils/descargarArchivo.js";
 
 import {
     UploadCloud,
@@ -19,23 +22,55 @@ import {
     FileText,
     Eye,
     Download,
+    AlertTriangle,
     X,
+    Loader2,
 } from "lucide-react";
 
 import toast from "react-hot-toast";
+
+
+// ... AQUÍ QUEDAN IGUAL: parseFechaLocal, formatearFechaCorta,
+// obtenerEstadoFecha, esPlanDeTrabajoNombre, Bar,
+// InformeDocumentoSkeleton y EstadoPanel ...
 
 
 // ---------------------------------------------------------------
 // Formatear fecha
 // ---------------------------------------------------------------
 
+// Convierte "YYYY-MM-DD" (o ISO) a una fecha LOCAL a medianoche.
+// Evita el desfase de un día que ocurre con new Date("2026-11-08") en UTC-5.
+function parseFechaLocal(fecha) {
+
+    if (!fecha) return null;
+
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(fecha));
+
+    if (match) {
+        return new Date(
+            Number(match[1]),
+            Number(match[2]) - 1,
+            Number(match[3])
+        );
+    }
+
+    const date = new Date(fecha);
+
+    if (Number.isNaN(date.getTime())) return null;
+
+    date.setHours(0, 0, 0, 0);
+
+    return date;
+}
+
 function formatearFechaCorta(fecha) {
 
     if (!fecha) return "—";
 
-    const date = new Date(fecha);
+    const date = parseFechaLocal(fecha);
 
-    if (Number.isNaN(date.getTime())) {
+    if (!date) {
         return fecha;
     }
 
@@ -44,6 +79,147 @@ function formatearFechaCorta(fecha) {
         month: "2-digit",
         year: "numeric",
     });
+}
+
+
+// ---------------------------------------------------------------
+// Estado de la fecha límite: "retrasada" | "por_vencer" | null
+// ---------------------------------------------------------------
+
+function obtenerEstadoFecha(fechaLimite) {
+
+    const limite = parseFechaLocal(fechaLimite);
+
+    if (!limite) return null;
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    if (hoy.getTime() > limite.getTime()) return "retrasada";
+    if (hoy.getTime() === limite.getTime()) return "por_vencer";
+
+    return null;
+}
+
+
+// ---------------------------------------------------------------
+// ¿El informe es el plan de trabajo?
+// ---------------------------------------------------------------
+
+function esPlanDeTrabajoNombre(nombre) {
+
+    return String(nombre || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .includes("plan de trabajo");
+}
+
+
+// ---------------------------------------------------------------
+// Skeleton
+// ---------------------------------------------------------------
+
+const Bar = ({ className = "" }) => (
+    <div className={`bg-slate-200 rounded ${className}`} />
+);
+
+function InformeDocumentoSkeleton() {
+
+    return (
+
+        <div
+            className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-pulse"
+            role="status"
+            aria-label="Cargando informe"
+        >
+
+            {/* COLUMNA IZQUIERDA */}
+
+            <div className="flex flex-col gap-4">
+
+                {/* Select */}
+                <div>
+                    <Bar className="h-3 w-24 mb-2" />
+                    <Bar className="h-10 w-full rounded-xl" />
+                </div>
+
+                {/* Fechas */}
+                <div>
+                    <Bar className="h-4 w-32 mb-2" />
+                    <div className="grid grid-cols-2 gap-3">
+                        {[0, 1].map((i) => (
+                            <div
+                                key={i}
+                                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2"
+                            >
+                                <Bar className="h-3 w-16 mb-2" />
+                                <Bar className="h-4 w-24" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Formato / carga */}
+                <div>
+                    <div className="flex items-center justify-between mb-2">
+                        <Bar className="h-4 w-28" />
+                        <Bar className="h-3 w-32" />
+                    </div>
+                    <Bar className="h-32 w-full rounded-2xl" />
+                </div>
+
+                {/* Botón */}
+                <Bar className="h-10 w-32 rounded-2xl mx-auto" />
+
+            </div>
+
+
+            {/* COLUMNA DERECHA */}
+
+            <div className="flex flex-col gap-3">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {[0, 1].map((i) => (
+                        <div
+                            key={i}
+                            className="border border-slate-200 bg-slate-50 rounded-2xl px-3.5 py-3 flex items-center gap-3"
+                        >
+                            <Bar className="w-9 h-9 rounded-xl shrink-0" />
+                            <div className="flex-1 flex flex-col gap-2">
+                                <Bar className="h-3 w-24" />
+                                <Bar className="h-3 w-32" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex items-center justify-between mt-1">
+                    <Bar className="h-4 w-24" />
+                    <Bar className="h-3 w-16" />
+                </div>
+
+                {/* Timeline */}
+                <div className="bg-white border border-slate-200 rounded-2xl p-4 h-[340px] flex flex-col gap-5">
+                    {[0, 1, 2].map((i) => (
+                        <div key={i} className="flex gap-3">
+                            <Bar className="w-3 h-3 rounded-full mt-1 shrink-0" />
+                            <div className="flex-1 flex flex-col gap-2">
+                                <Bar className="h-3 w-1/3" />
+                                <Bar className="h-3 w-full" />
+                                <Bar className="h-3 w-2/3" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+            </div>
+
+        </div>
+
+    );
+
 }
 
 
@@ -112,13 +288,13 @@ function EstadoPanel({
 
         if (estado === "VENCIDO") {
             return {
-                bg: "bg-slate-100",
-                border: "border-slate-300",
-                iconBg: "bg-slate-500",
+                bg: "bg-red-100",
+                border: "border-red-300",
+                iconBg: "bg-red-500",
                 icon: <Clock size={17} className="text-white" />,
                 title,
                 subtitle: "Documento vencido",
-                text: "text-slate-600"
+                text: "text-red-600"
             };
         }
 
@@ -201,14 +377,12 @@ function EstadoPanel({
 }
 
 
-// ---------------------------------------------------------------
-// Componente principal
-// ---------------------------------------------------------------
-
 export default function InformeDocumento() {
 
     const fileInputRef = useRef(null);
 
+    // CARGA INICIAL (solo la primera vez, para el skeleton)
+    const [cargandoInicial, setCargandoInicial] = useState(true);
 
     // INFORMES VIGENTES
     const [tipos, setTipos] = useState([]);
@@ -218,6 +392,11 @@ export default function InformeDocumento() {
     const [archivo, setArchivo] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [enviando, setEnviando] = useState(false);
+
+    // MODALES
+    const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+    const [visor, setVisor] = useState(null); // { url, titulo }
+    const [descargandoFormato, setDescargandoFormato] = useState(false);
 
     // FECHAS
     const [fechaInicio, setFechaInicio] = useState(null);
@@ -236,8 +415,13 @@ export default function InformeDocumento() {
     const [documentoId, setDocumentoId] = useState(null);
     const [archivoActual, setArchivoActual] = useState(null);
 
+    // PLAN DE TRABAJO: objetivo de la práctica
+    const [objetivo, setObjetivo] = useState("");
+    const [objetivoGuardado, setObjetivoGuardado] = useState("");
+
     const [errores, setErrores] = useState({
         archivo: false,
+        objetivo: false,
     });
 
 
@@ -274,6 +458,21 @@ export default function InformeDocumento() {
             (tipo) =>
                 String(tipo.id) === String(tipoSeleccionado)
         );
+
+    const nombreInforme =
+        tipoActual?.tipoRequisitoDocumento?.nombre || "Informe";
+
+    const esPlanDeTrabajo =
+        esPlanDeTrabajoNombre(tipoActual?.tipoRequisitoDocumento?.nombre);
+
+    const puedeEditarTexto = esNuevoDocumento || puedeEditar;
+
+    const estadoFecha =
+        (esNuevoDocumento || puedeEditar) && !documentoAprobadoPorAmbos
+            ? obtenerEstadoFecha(fechaFin)
+            : null;
+
+    const bloqueadoPorFecha = estadoFecha === "retrasada";
 
 
     // -----------------------------------------------------------
@@ -315,6 +514,9 @@ export default function InformeDocumento() {
 
             setTrazabilidad([]);
 
+            setObjetivo("");
+            setObjetivoGuardado("");
+
             return;
         }
 
@@ -341,11 +543,13 @@ export default function InformeDocumento() {
 
             setArchivo(null);
 
+            setObjetivo("");
+            setObjetivoGuardado("");
+
             return;
         }
 
 
-        // TOMAR LA ÚLTIMA VERSIÓN
         const entregasOrdenadas =
             [...entregas].sort(
                 (a, b) =>
@@ -373,8 +577,14 @@ export default function InformeDocumento() {
 
         setArchivo(null);
 
+        const textoPrevio =
+            ultimaEntrega.practicaPracticante?.objetivo ||
+            tipoActual.objetivo ||
+            "";
 
-        // CONSTRUIR TRAZABILIDAD (función compartida)
+        setObjetivo(textoPrevio);
+        setObjetivoGuardado(textoPrevio);
+
         setTrazabilidad(
             construirTrazabilidad(entregasOrdenadas)
         );
@@ -399,11 +609,15 @@ export default function InformeDocumento() {
 
             setTipos(informes);
 
-            if (informes.length > 0) {
-                setTipoSeleccionado(informes[0].id);
-            } else {
-                setTipoSeleccionado(null);
-            }
+            setTipoSeleccionado((actual) => {
+                const sigueExistiendo = informes.some(
+                    (i) => String(i.id) === String(actual)
+                );
+
+                if (sigueExistiendo) return actual;
+
+                return informes.length > 0 ? informes[0].id : null;
+            });
 
         } catch (error) {
 
@@ -415,6 +629,10 @@ export default function InformeDocumento() {
             toast.error(
                 "No se pudieron cargar los informes de la práctica"
             );
+
+        } finally {
+
+            setCargandoInicial(false);
 
         }
 
@@ -473,7 +691,7 @@ export default function InformeDocumento() {
 
         e.preventDefault();
 
-        if (documentoBloqueado) {
+        if (documentoBloqueado || bloqueadoPorFecha) {
             return;
         }
 
@@ -513,34 +731,40 @@ export default function InformeDocumento() {
     };
 
 
+    // VER EN MODAL (archivo recién seleccionado)
     const handleVerPreview = () => {
 
-        if (!previewUrl) {
-            return;
-        }
+        if (!previewUrl) return;
 
-        window.open(previewUrl, "_blank", "noopener,noreferrer");
+        setVisor({
+            url: previewUrl,
+            titulo: archivo?.name || "Vista previa",
+        });
 
     };
 
 
-    const handleDescargarDocumento = (url) => {
+    // VER EN MODAL (documento ya subido)
+    const handleVerDocumento = (url) => {
 
         if (!url) {
             toast.error("Este documento no tiene archivo disponible");
             return;
         }
 
-        window.open(url, "_blank", "noopener,noreferrer");
+        setVisor({
+            url,
+            titulo: nombreInforme,
+        });
 
     };
 
 
     // -----------------------------------------------------------
-    // DESCARGAR FORMATO
+    // DESCARGAR FORMATO (descarga directa, sin abrir pestaña)
     // -----------------------------------------------------------
 
-    const handleDescargarFormato = () => {
+    const handleDescargarFormato = async () => {
 
         const url =
             tipoActual?.tipoRequisitoDocumento?.plantilla?.url;
@@ -550,7 +774,23 @@ export default function InformeDocumento() {
             return;
         }
 
-        window.open(url, "_blank", "noopener,noreferrer");
+        try {
+
+            setDescargandoFormato(true);
+
+            await descargarArchivo(url, `Formato - ${nombreInforme}`);
+
+        } catch (error) {
+
+            console.error("No se pudo descargar el formato:", error);
+
+            toast.error("No se pudo descargar el formato");
+
+        } finally {
+
+            setDescargandoFormato(false);
+
+        }
 
     };
 
@@ -563,6 +803,7 @@ export default function InformeDocumento() {
 
         const nuevosErrores = {
             archivo: false,
+            objetivo: false,
         };
 
         let valido = true;
@@ -573,6 +814,15 @@ export default function InformeDocumento() {
             valido = false;
 
             toast.error("Selecciona un PDF antes de enviar");
+
+        }
+
+        if (esPlanDeTrabajo && !objetivo.trim()) {
+
+            nuevosErrores.objetivo = true;
+            valido = false;
+
+            toast.error("Escribe el objetivo de la práctica antes de enviar");
 
         }
 
@@ -587,7 +837,18 @@ export default function InformeDocumento() {
     // ENVIAR
     // -----------------------------------------------------------
 
-    const handleEnviar = async () => {
+    // Paso 1: validar y abrir la confirmación
+    const handleEnviar = () => {
+
+        if (bloqueadoPorFecha) {
+
+            toast.error(
+                "El plazo de entrega venció. Contáctate con tu tutor docente."
+            );
+
+            return;
+
+        }
 
         if (documentoAprobadoPorAmbos) {
 
@@ -598,7 +859,6 @@ export default function InformeDocumento() {
             return;
 
         }
-
 
         if (
             tieneDocumento &&
@@ -619,17 +879,24 @@ export default function InformeDocumento() {
 
         }
 
-
         if (!validarFormulario()) {
             return;
         }
-
 
         if (!tipoSeleccionado) {
             toast.error("Selecciona un tipo de informe");
             return;
         }
 
+        setMostrarConfirmacion(true);
+
+    };
+
+
+    // Paso 2: envío real.
+    // El modal y el "Enviando..." se mantienen hasta que los datos
+    // ya estén refrescados, así no se ve el estado viejo.
+    const enviarInforme = async () => {
 
         try {
 
@@ -644,19 +911,29 @@ export default function InformeDocumento() {
 
             formData.append("archivo", archivo);
 
+            if (esPlanDeTrabajo) {
+                formData.append("objetivo", objetivo.trim());
+            }
+
             await crearEntregaInforme(
                 { entregaInformeRepository },
                 formData
             );
 
-            toast.success("Informe enviado correctamente");
+            // 1) refrescar datos (el modal sigue abierto en "Enviando...")
+            await cargarInformes();
 
-            setArchivo(null);
+            // 2) dejar que el efecto aplique el estado nuevo
+            await new Promise((resolve) => setTimeout(resolve, 0));
+
+            // 3) recién ahora limpiar y avisar
+            setMostrarConfirmacion(false);
 
             if (previewUrl) {
                 URL.revokeObjectURL(previewUrl);
             }
 
+            setArchivo(null);
             setPreviewUrl(null);
 
             if (fileInputRef.current) {
@@ -665,9 +942,10 @@ export default function InformeDocumento() {
 
             setErrores({
                 archivo: false,
+                objetivo: false,
             });
 
-            await cargarInformes();
+            toast.success("Informe enviado correctamente");
 
         } catch (error) {
 
@@ -696,299 +974,537 @@ export default function InformeDocumento() {
 
     return (
 
-        <div>
+        // En pantallas grandes ocupa una sola vista (sin scroll de página).
+        // Ajusta 9rem a la altura de tu header/layout.
+        <div className="flex flex-col lg:h-[calc(100vh-9rem)]">
 
-            <h1 className="text-[24px] font-extrabold text-slate-800 text-center mb-5 tracking-tight">
+            {cargandoInicial ? (
 
-                {tipoActual?.tipoRequisitoDocumento?.nombre || "Informe"}
+                <div className="flex justify-center mb-3 animate-pulse">
+                    <Bar className="h-6 w-56" />
+                </div>
 
-            </h1>
+            ) : (
+
+                <h1 className="text-xl font-extrabold text-slate-800 text-center mb-3 tracking-tight shrink-0">
+                    {nombreInforme}
+                </h1>
+
+            )}
 
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {cargandoInicial ? (
+
+                <InformeDocumentoSkeleton />
+
+            ) : (
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 lg:grid-rows-1 gap-6 lg:flex-1 lg:min-h-0">
 
 
-                {/* ======================================================
+                    {/* ======================================================
                     COLUMNA IZQUIERDA
                 ====================================================== */}
 
-                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3 min-h-0">
 
 
-                    {/* SELECT DE INFORME */}
+                        {/* SELECT DE INFORME */}
 
-                    <div>
+                        <div>
 
-                        <label className="block text-xs font-semibold text-slate-500 mb-1">
-                            Tipo de informe
-                        </label>
+                            <label className="block text-xs font-semibold text-slate-500 mb-1">
+                                Tipo de informe
+                            </label>
 
-                        <select
-                            value={tipoSeleccionado ?? ""}
-                            onChange={(e) =>
-                                setTipoSeleccionado(e.target.value)
-                            }
-                            className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-red-400 bg-white"
-                        >
+                            <select
+                                value={tipoSeleccionado ?? ""}
+                                onChange={(e) =>
+                                    setTipoSeleccionado(e.target.value)
+                                }
+                                className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-red-400 bg-white"
+                            >
 
-                            {tipos.length === 0 ? (
+                                {tipos.length === 0 ? (
 
-                                <option value="">
-                                    No hay informes vigentes
-                                </option>
-
-                            ) : (
-
-                                tipos.map((tipo) => (
-
-                                    <option key={tipo.id} value={tipo.id}>
-                                        {tipo.tipoRequisitoDocumento?.nombre}
+                                    <option value="">
+                                        No hay informes vigentes
                                     </option>
 
-                                ))
+                                ) : (
+
+                                    tipos.map((tipo) => (
+
+                                        <option key={tipo.id} value={tipo.id}>
+                                            {tipo.tipoRequisitoDocumento?.nombre}
+                                        </option>
+
+                                    ))
+
+                                )}
+
+                            </select>
+
+                        </div>
+
+
+                        {/* FECHAS */}
+
+                        <div>
+
+                            <h2 className="text-sm font-bold text-slate-800 mb-1.5">
+                                Fechas de entrega
+                            </h2>
+
+                            <div className="grid grid-cols-2 gap-3">
+
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5">
+
+                                    <p className="text-xs font-semibold text-slate-500">
+                                        Fecha inicio
+                                    </p>
+
+                                    <p className="text-sm font-bold text-slate-700">
+                                        {formatearFechaCorta(fechaInicio)}
+                                    </p>
+
+                                </div>
+
+                                <div
+                                    className={`rounded-xl border px-3 py-1.5 ${estadoFecha === "retrasada"
+                                        ? "border-red-300 bg-red-50"
+                                        : estadoFecha === "por_vencer"
+                                            ? "border-amber-300 bg-amber-50"
+                                            : "border-slate-200 bg-slate-50"
+                                        }`}
+                                >
+
+                                    <p className="text-xs font-semibold text-slate-500">
+                                        Fecha máxima
+                                    </p>
+
+                                    <p
+                                        className={`text-sm font-bold ${estadoFecha === "retrasada"
+                                            ? "text-red-700"
+                                            : estadoFecha === "por_vencer"
+                                                ? "text-amber-700"
+                                                : "text-slate-700"
+                                            }`}
+                                    >
+                                        {formatearFechaCorta(fechaFin)}
+                                    </p>
+
+                                </div>
+
+                            </div>
+
+
+                            {estadoFecha === "retrasada" && (
+
+                                <div className="mt-2 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5">
+
+                                    <AlertTriangle
+                                        size={16}
+                                        className="text-red-500 shrink-0"
+                                    />
+
+                                    <div>
+
+                                        <p className="text-xs font-bold text-red-700">
+                                            Plazo de entrega vencido
+                                        </p>
+
+                                        <p className="text-[11px] text-red-600">
+                                            La fecha máxima ya pasó y no puedes subir el documento.
+                                            Contáctate con tu tutor docente.
+                                        </p>
+
+                                    </div>
+
+                                </div>
 
                             )}
 
-                        </select>
+                            {estadoFecha === "por_vencer" && (
 
-                    </div>
+                                <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5">
 
+                                    <Clock
+                                        size={16}
+                                        className="text-amber-500 shrink-0"
+                                    />
 
-                    {/* FECHAS */}
+                                    <div>
 
-                    <div>
+                                        <p className="text-xs font-bold text-amber-700">
+                                            Próximo a vencer
+                                        </p>
 
-                        <h2 className="text-sm font-bold text-slate-800 mb-2">
-                            Fechas de entrega
-                        </h2>
+                                        <p className="text-[11px] text-amber-600">
+                                            Hoy es la fecha máxima de entrega.
+                                        </p>
 
-                        <div className="grid grid-cols-2 gap-3">
+                                    </div>
 
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                </div>
 
-                                <p className="text-xs font-semibold text-slate-500 mb-0.5">
-                                    Fecha inicio
-                                </p>
-
-                                <p className="text-sm font-bold text-slate-700">
-                                    {formatearFechaCorta(fechaInicio)}
-                                </p>
-
-                            </div>
-
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-
-                                <p className="text-xs font-semibold text-slate-500 mb-0.5">
-                                    Fecha máxima
-                                </p>
-
-                                <p className="text-sm font-bold text-slate-700">
-                                    {formatearFechaCorta(fechaFin)}
-                                </p>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    {/* CARGAR FORMATO */}
-
-                    <div>
-
-                        <div className="flex items-center justify-between mb-2">
-
-                            <h2 className="text-sm font-bold text-slate-800">
-                                Cargar Formato
-                            </h2>
-
-                            <button
-                                onClick={handleDescargarFormato}
-                                className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-red-600 transition-colors"
-                            >
-
-                                <Download size={13} />
-
-                                Descargar formato
-
-                            </button>
+                            )}
 
                         </div>
 
 
-                        {/* DOCUMENTO APROBADO POR AMBOS */}
+                        {/* PLAN DE TRABAJO: OBJETIVO DE LA PRÁCTICA */}
 
-                        {documentoAprobadoPorAmbos ? (
+                        {esPlanDeTrabajo && (
 
-                            <div className="w-full h-32 border-2 border-slate-200 rounded-2xl bg-slate-50 flex flex-col items-center justify-center">
+                            <div>
 
-                                <CheckCircle2
-                                    size={24}
-                                    className="text-emerald-500 mb-1"
+                                <label
+                                    htmlFor="objetivo-practica"
+                                    className="block text-sm font-bold text-slate-800 mb-1.5"
+                                >
+                                    Objetivo de la práctica
+                                </label>
+
+                                <textarea
+                                    id="objetivo-practica"
+                                    value={objetivo}
+                                    onChange={(e) => {
+                                        setObjetivo(e.target.value);
+                                        if (errores.objetivo) {
+                                            setErrores((prev) => ({
+                                                ...prev,
+                                                objetivo: false,
+                                            }));
+                                        }
+                                    }}
+                                    disabled={!puedeEditarTexto}
+                                    rows={3}
+                                    placeholder={
+                                        objetivoGuardado ||
+                                        "Describe el objetivo que buscas alcanzar durante tu práctica..."
+                                    }
+                                    className={`w-full px-3 py-2 rounded-xl border text-sm text-slate-700 resize-none focus:outline-none bg-white disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${errores.objetivo
+                                        ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)]"
+                                        : "border-slate-200 focus:border-red-400"
+                                        }`}
                                 />
 
-                                <p className="text-sm font-semibold text-slate-700">
-                                    Documento aprobado
-                                </p>
+                                {errores.objetivo && (
 
-                                <p className="text-xs text-slate-400 text-center px-4">
-                                    El tutor docente y el tutor empresarial aprobaron este documento.
-                                </p>
-
-                                {archivoActual && (
-
-                                    <button
-                                        onClick={() =>
-                                            handleDescargarDocumento(archivoActual)
-                                        }
-                                        className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 mt-1"
-                                    >
-
-                                        <Eye size={13} />
-
-                                        Ver documento
-
-                                    </button>
+                                    <p className="text-[11px] text-red-500 mt-1">
+                                        Debes escribir el objetivo de la práctica
+                                    </p>
 
                                 )}
 
                             </div>
 
-                        ) : estadoTutorDocente === "VENCIDO" ||
-                            estadoTutorEmpresarial === "VENCIDO" ? (
+                        )}
 
-                            /* DOCUMENTO VENCIDO */
 
-                            <div className="w-full h-32 border-2 border-slate-300 rounded-2xl bg-slate-50 flex flex-col items-center justify-center px-6">
+                        {/* CARGAR FORMATO */}
 
-                                <Clock
-                                    size={24}
-                                    className="text-slate-500 mb-1"
-                                />
+                        <div>
 
-                                <p className="text-sm font-semibold text-slate-700">
-                                    Documento vencido
-                                </p>
+                            <div className="flex items-center justify-between mb-1.5">
 
-                                <p className="text-xs text-slate-400 text-center">
-                                    Este documento no puede modificarse.
-                                </p>
-
-                            </div>
-
-                        ) : archivo ? (
-
-                            /* ARCHIVO NUEVO SELECCIONADO */
-
-                            <div className="w-full h-32 border-2 rounded-2xl bg-white flex flex-col items-center justify-center px-6 relative border-slate-200">
+                                <h2 className="text-sm font-bold text-slate-800">
+                                    Cargar Formato
+                                </h2>
 
                                 <button
-                                    onClick={handleQuitarArchivo}
-                                    className="absolute top-2 right-2 text-slate-400 hover:text-red-600"
-                                    title="Quitar archivo"
+                                    onClick={handleDescargarFormato}
+                                    disabled={descargandoFormato}
+                                    className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-red-600 transition-colors disabled:opacity-60"
                                 >
 
-                                    <X size={16} />
+                                    {descargandoFormato ? (
+                                        <Loader2 size={13} className="animate-spin" />
+                                    ) : (
+                                        <Download size={13} />
+                                    )}
 
-                                </button>
-
-                                <FileText
-                                    size={24}
-                                    className="text-red-500 mb-1"
-                                />
-
-                                <p className="text-sm font-semibold text-slate-700 text-center truncate max-w-[220px]">
-                                    {archivo.name}
-                                </p>
-
-                                <p className="text-xs text-slate-400 mb-1.5">
-                                    {(archivo.size / 1024).toFixed(0)} KB
-                                </p>
-
-                                <button
-                                    onClick={handleVerPreview}
-                                    className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800"
-                                >
-
-                                    <Eye size={13} />
-
-                                    Ver
+                                    {descargandoFormato
+                                        ? "Descargando..."
+                                        : "Descargar formato"}
 
                                 </button>
 
                             </div>
 
-                        ) : puedeEditar ? (
 
-                            /* PUEDE EDITAR POR RECHAZO */
+                            {documentoAprobadoPorAmbos ? (
 
-                            <div className="flex flex-col gap-2">
+                                <div className="w-full h-28 border-2 border-slate-200 rounded-2xl bg-slate-50 flex flex-col items-center justify-center">
 
-                                {archivoActual && (
+                                    <CheckCircle2
+                                        size={22}
+                                        className="text-emerald-500 mb-0.5"
+                                    />
 
-                                    <div className="w-full h-20 border border-red-200 rounded-2xl bg-red-50/40 flex items-center justify-between px-4">
+                                    <p className="text-sm font-semibold text-slate-700">
+                                        Documento aprobado
+                                    </p>
 
-                                        <div className="flex items-center gap-2 min-w-0">
+                                    <p className="text-xs text-slate-400 text-center px-4">
+                                        El tutor docente y el tutor empresarial aprobaron este documento.
+                                    </p>
 
-                                            <FileText
-                                                size={22}
-                                                className="text-red-500 shrink-0"
-                                            />
-
-                                            <div className="min-w-0">
-
-                                                <p className="text-xs font-semibold text-slate-700">
-                                                    Documento actual
-                                                </p>
-
-                                                <p className="text-[11px] text-slate-400 truncate">
-                                                    Debes seleccionar un nuevo PDF para actualizarlo
-                                                </p>
-
-                                            </div>
-
-                                        </div>
+                                    {archivoActual && (
 
                                         <button
                                             onClick={() =>
-                                                handleDescargarDocumento(archivoActual)
+                                                handleVerDocumento(archivoActual)
                                             }
-                                            className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 shrink-0"
+                                            className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 mt-0.5"
                                         >
 
                                             <Eye size={13} />
 
-                                            Ver
+                                            Ver documento
 
                                         </button>
 
-                                    </div>
+                                    )}
 
-                                )}
+                                </div>
+
+                            ) : estadoTutorDocente === "VENCIDO" ||
+                                estadoTutorEmpresarial === "VENCIDO" ? (
+
+                                <div className="w-full h-28 border-2 border-slate-300 rounded-2xl bg-slate-50 flex flex-col items-center justify-center px-6">
+
+                                    <Clock
+                                        size={22}
+                                        className="text-slate-500 mb-0.5"
+                                    />
+
+                                    <p className="text-sm font-semibold text-slate-700">
+                                        Documento vencido
+                                    </p>
+
+                                    <p className="text-xs text-slate-400 text-center">
+                                        Este documento no puede modificarse.
+                                    </p>
+
+                                </div>
+
+                            ) : bloqueadoPorFecha ? (
+
+                                <div className="w-full h-28 border-2 border-red-200 rounded-2xl bg-red-50/40 flex flex-col items-center justify-center px-6">
+
+                                    <AlertTriangle
+                                        size={22}
+                                        className="text-red-500 mb-0.5"
+                                    />
+
+                                    <p className="text-sm font-semibold text-slate-700">
+                                        Plazo de entrega vencido
+                                    </p>
+
+                                    <p className="text-xs text-slate-500 text-center">
+                                        Contáctate con tu tutor docente.
+                                    </p>
+
+                                    {archivoActual && (
+
+                                        <button
+                                            onClick={() => handleVerDocumento(archivoActual)}
+                                            className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 mt-0.5"
+                                        >
+
+                                            <Eye size={13} />
+
+                                            Ver documento actual
+
+                                        </button>
+
+                                    )}
+
+                                </div>
+
+                            ) : archivo ? (
+
+                                <div className="w-full h-28 border-2 rounded-2xl bg-white flex flex-col items-center justify-center px-6 relative border-slate-200">
+
+                                    <button
+                                        onClick={handleQuitarArchivo}
+                                        className="absolute top-2 right-2 text-slate-400 hover:text-red-600"
+                                        title="Quitar archivo"
+                                    >
+
+                                        <X size={16} />
+
+                                    </button>
+
+                                    <FileText
+                                        size={22}
+                                        className="text-red-500 mb-0.5"
+                                    />
+
+                                    <p className="text-sm font-semibold text-slate-700 text-center truncate max-w-[220px]">
+                                        {archivo.name}
+                                    </p>
+
+                                    <p className="text-xs text-slate-400 mb-1">
+                                        {(archivo.size / 1024).toFixed(0)} KB
+                                    </p>
+
+                                    <button
+                                        onClick={handleVerPreview}
+                                        className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800"
+                                    >
+
+                                        <Eye size={13} />
+
+                                        Ver
+
+                                    </button>
+
+                                </div>
+
+                            ) : puedeEditar ? (
+
+                                <div className="flex flex-col gap-2">
+
+                                    {archivoActual && (
+
+                                        <div className="w-full h-14 border border-red-200 rounded-2xl bg-red-50/40 flex items-center justify-between px-4">
+
+                                            <div className="flex items-center gap-2 min-w-0">
+
+                                                <FileText
+                                                    size={20}
+                                                    className="text-red-500 shrink-0"
+                                                />
+
+                                                <div className="min-w-0">
+
+                                                    <p className="text-xs font-semibold text-slate-700">
+                                                        Documento actual
+                                                    </p>
+
+                                                    <p className="text-[11px] text-slate-400 truncate">
+                                                        Debes seleccionar un nuevo PDF para actualizarlo
+                                                    </p>
+
+                                                </div>
+
+                                            </div>
+
+                                            <button
+                                                onClick={() =>
+                                                    handleVerDocumento(archivoActual)
+                                                }
+                                                className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 shrink-0"
+                                            >
+
+                                                <Eye size={13} />
+
+                                                Ver
+
+                                            </button>
+
+                                        </div>
+
+                                    )}
+
+                                    <label
+                                        htmlFor="documento-pdf"
+                                        onDragOver={(e) => e.preventDefault()}
+                                        onDrop={handleDrop}
+                                        className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-2xl bg-white cursor-pointer transition-colors ${errores.archivo
+                                            ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
+                                            : "border-red-300 hover:bg-red-50/40"
+                                            }`}
+                                    >
+
+                                        <UploadCloud
+                                            size={22}
+                                            className="text-slate-800 mb-1"
+                                        />
+
+                                        <span className="text-sm font-semibold text-slate-700">
+                                            Seleccionar nuevo PDF
+                                        </span>
+
+                                        <span className="text-[11px] text-slate-400">
+                                            Puedes actualizar porque uno de los tutores rechazó el informe
+                                        </span>
+
+                                        {errores.archivo && (
+
+                                            <span className="text-[11px] text-red-500">
+                                                Debes seleccionar un archivo PDF
+                                            </span>
+
+                                        )}
+
+                                        <input
+                                            id="documento-pdf"
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="application/pdf"
+                                            className="hidden"
+                                            onChange={handleSelectFile}
+                                        />
+
+                                    </label>
+
+                                </div>
+
+                            ) : archivoActual ? (
+
+                                <div className="w-full h-28 border-2 rounded-2xl bg-white flex flex-col items-center justify-center px-6 relative border-slate-200">
+
+                                    <FileText
+                                        size={22}
+                                        className="text-red-500 mb-0.5"
+                                    />
+
+                                    <p className="text-sm font-semibold text-slate-700 text-center truncate max-w-[260px]">
+                                        Documento actual
+                                    </p>
+
+                                    <p className="text-xs text-slate-400 mb-1 text-center">
+                                        Solo puedes modificarlo si alguno de los tutores lo rechaza
+                                    </p>
+
+                                    <button
+                                        onClick={() =>
+                                            handleVerDocumento(archivoActual)
+                                        }
+                                        className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800"
+                                    >
+
+                                        <Eye size={13} />
+
+                                        Ver
+
+                                    </button>
+
+                                </div>
+
+                            ) : (
 
                                 <label
                                     htmlFor="documento-pdf"
                                     onDragOver={(e) => e.preventDefault()}
                                     onDrop={handleDrop}
-                                    className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl bg-white cursor-pointer transition-colors ${
-                                        errores.archivo
-                                            ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
-                                            : "border-red-300 hover:bg-red-50/40"
-                                    }`}
+                                    className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl bg-white cursor-pointer transition-colors ${errores.archivo
+                                        ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
+                                        : "border-red-300 hover:bg-red-50/40"
+                                        }`}
                                 >
 
                                     <UploadCloud
-                                        size={24}
-                                        className="text-slate-800 mb-1.5"
+                                        size={22}
+                                        className="text-slate-800 mb-1"
                                     />
 
                                     <span className="text-sm font-semibold text-slate-700">
-                                        Seleccionar nuevo PDF
-                                    </span>
-
-                                    <span className="text-[11px] text-slate-400">
-                                        Puedes actualizar porque uno de los tutores rechazó el informe
+                                        Subir PDF
                                     </span>
 
                                     {errores.archivo && (
@@ -1010,167 +1526,189 @@ export default function InformeDocumento() {
 
                                 </label>
 
-                            </div>
+                            )}
 
-                        ) : archivoActual ? (
+                        </div>
 
-                            /* DOCUMENTO EXISTENTE SIN PERMISO DE EDICIÓN */
 
-                            <div className="w-full h-32 border-2 rounded-2xl bg-white flex flex-col items-center justify-center px-6 relative border-slate-200">
+                        {/* BOTÓN ENVIAR / ACTUALIZAR */}
 
-                                <FileText
-                                    size={24}
-                                    className="text-red-500 mb-1"
-                                />
+                        <button
+                            onClick={handleEnviar}
+                            disabled={
+                                enviando ||
+                                bloqueadoPorFecha ||
+                                documentoAprobadoPorAmbos ||
+                                (tieneDocumento && !puedeEditar)
+                            }
+                            className="mx-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm px-7 py-2.5 rounded-2xl transition-colors"
+                        >
 
-                                <p className="text-sm font-semibold text-slate-700 text-center truncate max-w-[260px]">
-                                    Documento actual
+                            {enviando ? (
+                                <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                                <Send size={16} />
+                            )}
+
+                            {textoBoton}
+
+                        </button>
+
+
+                        {tieneDocumento &&
+                            !puedeEditar &&
+                            !documentoAprobadoPorAmbos &&
+                            !(
+                                estadoTutorDocente === "VENCIDO" ||
+                                estadoTutorEmpresarial === "VENCIDO"
+                            ) && (
+
+                                <p className="text-center text-[11px] text-slate-400 -mt-1">
+
+                                    El informe solo podrá actualizarse si el tutor
+                                    docente o el tutor empresarial lo rechaza o lo comenta.
+
                                 </p>
 
-                                <p className="text-xs text-slate-400 mb-1.5 text-center">
-                                    Solo puedes modificarlo si alguno de los tutores lo rechaza
-                                </p>
-
-                                <button
-                                    onClick={() =>
-                                        handleDescargarDocumento(archivoActual)
-                                    }
-                                    className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800"
-                                >
-
-                                    <Eye size={13} />
-
-                                    Ver
-
-                                </button>
-
-                            </div>
-
-                        ) : (
-
-                            /* SIN DOCUMENTO */
-
-                            <label
-                                htmlFor="documento-pdf"
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={handleDrop}
-                                className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl bg-white cursor-pointer transition-colors ${
-                                    errores.archivo
-                                        ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
-                                        : "border-red-300 hover:bg-red-50/40"
-                                }`}
-                            >
-
-                                <UploadCloud
-                                    size={24}
-                                    className="text-slate-800 mb-1.5"
-                                />
-
-                                <span className="text-sm font-semibold text-slate-700">
-                                    Cargar el PDF
-                                </span>
-
-                                {errores.archivo && (
-
-                                    <span className="text-[11px] text-red-500 mt-1">
-                                        Debes seleccionar un archivo PDF
-                                    </span>
-
-                                )}
-
-                                <input
-                                    id="documento-pdf"
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="application/pdf"
-                                    className="hidden"
-                                    onChange={handleSelectFile}
-                                />
-
-                            </label>
-
-                        )}
+                            )}
 
                     </div>
 
 
-                    {/* BOTÓN ENVIAR / ACTUALIZAR */}
-
-                    <button
-                        onClick={handleEnviar}
-                        disabled={
-                            enviando ||
-                            documentoAprobadoPorAmbos ||
-                            (tieneDocumento && !puedeEditar)
-                        }
-                        className="mx-auto flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm px-7 py-2.5 rounded-2xl transition-colors"
-                    >
-
-                        <Send size={16} />
-
-                        {textoBoton}
-
-                    </button>
-
-
-                    {/* MENSAJE CUANDO ESTÁ BLOQUEADO */}
-
-                    {tieneDocumento &&
-                        !puedeEditar &&
-                        !documentoAprobadoPorAmbos &&
-                        !(
-                            estadoTutorDocente === "VENCIDO" ||
-                            estadoTutorEmpresarial === "VENCIDO"
-                        ) && (
-
-                            <p className="text-center text-xs text-slate-400 -mt-2">
-
-                                El informe solo podrá actualizarse si el tutor
-                                docente o el tutor empresarial lo rechaza o lo comenta.
-
-                            </p>
-
-                        )}
-
-                </div>
-
-
-                {/* ======================================================
+                    {/* ======================================================
                     COLUMNA DERECHA
                 ====================================================== */}
 
-                <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-3 min-h-0">
 
-                    <EstadoPanel
-                        estadoTutorDocente={estadoTutorDocente}
-                        estadoTutorEmpresarial={estadoTutorEmpresarial}
-                    />
+                        <EstadoPanel
+                            estadoTutorDocente={estadoTutorDocente}
+                            estadoTutorEmpresarial={estadoTutorEmpresarial}
+                        />
 
-                    <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center justify-between shrink-0">
 
-                        <h2 className="text-sm font-bold text-slate-800">
-                            Trazabilidad
-                        </h2>
+                            <h2 className="text-sm font-bold text-slate-800">
+                                Trazabilidad
+                            </h2>
 
-                        {trazabilidad.length > 0 && (
+                            {trazabilidad.length > 0 && (
 
-                            <span className="text-[10px] font-semibold text-slate-400">
-                                {trazabilidad.length} movimiento{trazabilidad.length !== 1 ? "s" : ""}
-                            </span>
+                                <span className="text-[10px] font-semibold text-slate-400">
+                                    {trazabilidad.length} movimiento{trazabilidad.length !== 1 ? "s" : ""}
+                                </span>
 
-                        )}
+                            )}
 
-                    </div>
+                        </div>
 
-                    <div className="bg-white border border-slate-200 rounded-2xl p-4 h-[340px] overflow-hidden">
+                        {/* Ocupa el espacio restante; el scroll queda solo aquí dentro */}
+                        <div className="bg-white border border-slate-200 rounded-2xl p-4 min-h-[240px] lg:min-h-0 lg:flex-1 overflow-y-auto">
 
-                        <TrazabilidadTimeline eventos={trazabilidad} />
+                            <TrazabilidadTimeline eventos={trazabilidad} />
+
+                        </div>
 
                     </div>
 
                 </div>
 
-            </div>
+            )}
+
+
+            {/* ======================================================
+            MODAL: VER PDF (archivo seleccionado o documento subido)
+        ====================================================== */}
+
+            {visor && (
+
+                <VisorPdfModal
+                    url={visor.url}
+                    titulo={visor.titulo}
+                    onClose={() => setVisor(null)}
+                />
+
+            )}
+
+
+            {/* ======================================================
+            MODAL: CONFIRMAR ENVÍO
+        ====================================================== */}
+
+            {mostrarConfirmacion && previewUrl && (
+
+                <VisorPdfModal
+                    url={previewUrl}
+                    titulo="Confirmar envío"
+                    subtitulo={
+                        enviando
+                            ? "Enviando informe..."
+                            : `${archivo?.name ?? ""} · ${archivo ? (archivo.size / 1024).toFixed(0) : 0} KB`
+                    }
+                    bloqueado={enviando}
+                    onClose={() => setMostrarConfirmacion(false)}
+                    pie={(
+
+                        <>
+
+                            {esPlanDeTrabajo && (
+
+                                <div className="px-5 py-2.5 border-t border-slate-200 bg-slate-50 shrink-0">
+
+                                    <p className="text-xs font-semibold text-slate-500">
+                                        Objetivo de la práctica
+                                    </p>
+
+                                    <p className="text-sm text-slate-700 line-clamp-2">
+                                        {objetivo}
+                                    </p>
+
+                                </div>
+
+                            )}
+
+                            <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-slate-200 shrink-0">
+
+                                <p className="text-xs text-slate-500">
+                                    Revisa que el documento sea el correcto antes de enviarlo.
+                                </p>
+
+                                <div className="flex items-center gap-2 shrink-0">
+
+                                    <button
+                                        onClick={() => setMostrarConfirmacion(false)}
+                                        disabled={enviando}
+                                        className="px-4 py-2 rounded-2xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                                    >
+                                        Cambiar archivo
+                                    </button>
+
+                                    <button
+                                        onClick={enviarInforme}
+                                        disabled={enviando}
+                                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm px-5 py-2 rounded-2xl transition-colors"
+                                    >
+
+                                        {enviando ? (
+                                            <Loader2 size={15} className="animate-spin" />
+                                        ) : (
+                                            <Send size={15} />
+                                        )}
+
+                                        {enviando ? "Enviando..." : "Confirmar y enviar"}
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </>
+
+                    )}
+                />
+
+            )}
 
         </div>
 

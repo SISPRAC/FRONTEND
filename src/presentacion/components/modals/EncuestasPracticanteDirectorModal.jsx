@@ -1,4 +1,19 @@
-import { ClipboardList, Eye, X, CheckCircle2, Clock3 } from "lucide-react";
+import { ClipboardList, Eye, X, CheckCircle2, Clock3, UserRound } from "lucide-react";
+
+// ─── Quién responde la encuesta ─────────────────────────────────────────────
+// Ajusta este helper al campo real que devuelva tu backend.
+const obtenerRolEncuesta = (encuesta) =>
+  encuesta.plantilla?.Role?.nombre || null;
+
+const COLORES_ROL = {
+  "tutor docente": "bg-blue-50 text-blue-700 border-blue-200",
+  "tutor empresarial": "bg-amber-50 text-amber-700 border-amber-200",
+  practicante: "bg-purple-50 text-purple-700 border-purple-200",
+};
+
+const claseRol = (rol) =>
+  COLORES_ROL[String(rol).toLowerCase()] ||
+  "bg-slate-50 text-slate-700 border-slate-200";
 
 const EncuestasPracticanteDirectorModal = ({
   mostrar,
@@ -7,9 +22,7 @@ const EncuestasPracticanteDirectorModal = ({
   onCerrar,
   onVerDetalle,
 }) => {
-
   if (!mostrar) return null;
-  console.log("Encuesta al entrar ", practicas);
 
   const encuestasDisponibles = practicas.flatMap((practica) =>
     (practica.encuestas || []).map((encuesta) => ({
@@ -18,7 +31,6 @@ const EncuestasPracticanteDirectorModal = ({
       estadoPractica: practica.estadoPractica,
     }))
   );
-  
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -88,66 +100,80 @@ const EncuestasPracticanteDirectorModal = ({
                       </span>
                     </div>
 
-                    {encuestas.map((encuesta) => (
-                      <div
-                        key={encuesta.id}
-                        className="flex flex-col gap-4 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div className="flex min-w-0 items-start gap-3">
-                          <div
-                            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                              encuesta.respondida
-                                ? "bg-emerald-50 text-emerald-600"
-                                : "bg-amber-50 text-amber-600"
-                            }`}
-                          >
-                            {encuesta.respondida ? (
-                              <CheckCircle2 size={19} />
-                            ) : (
-                              <Clock3 size={19} />
-                            )}
-                          </div>
+                    {encuestas.map((encuesta) => {
+                      const rol = obtenerRolEncuesta(encuesta);
 
-                          <div className="min-w-0">
-                            <p className="font-semibold text-slate-800">
-                              {encuesta.plantilla?.titulo ||
-                                encuesta.titulo ||
-                                "Encuesta sin título"}
-                            </p>
+                      return (
+                        <div
+                          key={encuesta.id}
+                          className="flex flex-col gap-4 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                          <div className="flex min-w-0 items-start gap-3">
+                            <div
+                              className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                                encuesta.respondida
+                                  ? "bg-emerald-50 text-emerald-600"
+                                  : "bg-amber-50 text-amber-600"
+                              }`}
+                            >
+                              {encuesta.respondida ? (
+                                <CheckCircle2 size={19} />
+                              ) : (
+                                <Clock3 size={19} />
+                              )}
+                            </div>
 
-                            <p className="mt-1 text-sm text-slate-500">
-                              {encuesta.respondida
-                                ? "Encuesta respondida"
-                                : "Pendiente por responder"}
-                            </p>
-
-                            {encuesta.fechaRespuesta && (
-                              <p className="mt-1 text-xs text-slate-400">
-                                Respondida el{" "}
-                                {new Date(
-                                  encuesta.fechaRespuesta
-                                ).toLocaleDateString("es-CO")}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-800">
+                                {encuesta.plantilla?.titulo ||
+                                  encuesta.titulo ||
+                                  "Encuesta sin título"}
                               </p>
-                            )}
-                          </div>
-                        </div>
 
-                        {encuesta.respondida ? (
-                          <button
-                            type="button"
-                            onClick={() => onVerDetalle(encuesta)}
-                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
-                          >
-                            <Eye size={17} />
-                            Ver respuestas
-                          </button>
-                        ) : (
-                          <span className="inline-flex shrink-0 items-center justify-center rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-500">
-                            Sin respuestas
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                              {/* Quién responde */}
+                              {rol && (
+                                <span
+                                  className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${claseRol(rol)}`}
+                                >
+                                  <UserRound size={12} />
+                                  Responde: {rol}
+                                </span>
+                              )}
+
+                              <p className="mt-1 text-sm text-slate-500">
+                                {encuesta.respondida
+                                  ? "Encuesta respondida"
+                                  : "Pendiente por responder"}
+                              </p>
+
+                              {encuesta.fechaRespuesta && (
+                                <p className="mt-1 text-xs text-slate-400">
+                                  Respondida el{" "}
+                                  {new Date(
+                                    encuesta.fechaRespuesta
+                                  ).toLocaleDateString("es-CO")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {encuesta.respondida ? (
+                            <button
+                              type="button"
+                              onClick={() => onVerDetalle(encuesta)}
+                              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
+                            >
+                              <Eye size={17} />
+                              Ver respuestas
+                            </button>
+                          ) : (
+                            <span className="inline-flex shrink-0 items-center justify-center rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-500">
+                              Sin respuestas
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
                   </section>
                 );
               })}

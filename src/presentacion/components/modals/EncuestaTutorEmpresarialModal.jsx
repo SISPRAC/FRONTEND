@@ -3,6 +3,8 @@ import {
     X,
     ClipboardCheck,
     CheckCircle2,
+    Check,
+    Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -10,10 +12,34 @@ import { obtenerEncuestasEvaluacionPracticante } from "../../../aplicacion/encue
 import { responderEncuestaEvaluacionPracticante } from "../../../aplicacion/encuesta/responderEncuestaEvaluacionPracticante.js";
 import { encuestaRepository } from "../../../infraestructura/repository/encuestaRepository.js";
 
+
+const MAX_TEXTO = 1000;
+
+const AYUDA_TIPO = {
+    opcion_unica: "Selecciona una opción.",
+    opcion_multiple: "Puedes seleccionar varias opciones.",
+    texto_libre: "Escribe tu respuesta con libertad.",
+};
+
 const getPreguntas = (encuesta) =>
     [...(encuesta?.plantilla?.preguntas || [])].sort(
         (a, b) => a.orden - b.orden
     );
+
+const getTipo = (pregunta) => pregunta.tipo ?? "opcion_unica";
+
+// ¿La pregunta ya tiene una respuesta válida?
+const estaRespondida = (pregunta, valor) => {
+    switch (getTipo(pregunta)) {
+        case "texto_libre":
+            return typeof valor === "string" && valor.trim().length > 0;
+        case "opcion_multiple":
+            return Array.isArray(valor) && valor.length > 0;
+        default:
+            return valor !== undefined && valor !== null;
+    }
+};
+
 
 export default function EncuestaTutorEmpresarialModal({
     mostrar,
@@ -24,7 +50,10 @@ export default function EncuestaTutorEmpresarialModal({
     encuestaSeleccionada = null,
 }) {
     const [encuestaActiva, setEncuestaActiva] = useState(null);
+
+    // { [preguntaId]: opcionId | [opcionId] | "texto" }
     const [respuestas, setRespuestas] = useState({});
+
     const [cargando, setCargando] = useState(false);
     const [enviando, setEnviando] = useState(false);
 
@@ -62,6 +91,8 @@ export default function EncuestaTutorEmpresarialModal({
                         rolEncuesta
                     );
 
+                    console.log("Encuestas obtenidas:", data);  
+
                 if (cancelado) return;
 
                 const encuestas = Array.isArray(data)
@@ -88,10 +119,7 @@ export default function EncuestaTutorEmpresarialModal({
             } catch (error) {
                 if (cancelado) return;
 
-                console.error(
-                    "Error al cargar la encuesta:",
-                    error
-                );
+                console.error("Error al cargar la encuesta:", error);
 
                 if (error.response?.status === 404) {
                     toast.error(
@@ -133,14 +161,43 @@ export default function EncuestaTutorEmpresarialModal({
         onCerrar();
     };
 
-    const seleccionarOpcion = (preguntaId, opcionId) => {
+
+    // =============================
+    // MANEJO DE RESPUESTAS
+    // =============================
+
+    const seleccionarUnica = (preguntaId, opcionId) => {
         if (soloLectura) return;
 
-        setRespuestas((prev) => ({
-            ...prev,
-            [preguntaId]: opcionId,
-        }));
+        setRespuestas((prev) => ({ ...prev, [preguntaId]: opcionId }));
     };
+
+    const alternarMultiple = (preguntaId, opcionId) => {
+        if (soloLectura) return;
+
+        setRespuestas((prev) => {
+            const actuales = Array.isArray(prev[preguntaId])
+                ? prev[preguntaId]
+                : [];
+
+            const nuevas = actuales.includes(opcionId)
+                ? actuales.filter((id) => id !== opcionId)
+                : [...actuales, opcionId];
+
+            return { ...prev, [preguntaId]: nuevas };
+        });
+    };
+
+    const escribirTexto = (preguntaId, texto) => {
+        if (soloLectura) return;
+
+        setRespuestas((prev) => ({ ...prev, [preguntaId]: texto }));
+    };
+
+
+    // =============================
+    // ENVIAR
+    // =============================
 
     const handleEnviar = async () => {
         if (!encuestaActiva || enviando || soloLectura) return;
@@ -153,9 +210,7 @@ export default function EncuestaTutorEmpresarialModal({
         }
 
         const faltanRespuestas = preguntas.some(
-            (pregunta) =>
-                respuestas[pregunta.id] === undefined ||
-                respuestas[pregunta.id] === null
+            (pregunta) => !estaRespondida(pregunta, respuestas[pregunta.id])
         );
 
         if (faltanRespuestas) {
@@ -163,30 +218,37 @@ export default function EncuestaTutorEmpresarialModal({
             return;
         }
 
-        // Convertir las opciones seleccionadas al texto de cada opción.
+        // El backend espera el TEXTO de la opción elegida.
         const respuestasEncuesta = preguntas.map((pregunta) => {
-            const opcionSeleccionada = (
-                pregunta.OpcionesPregunta || []
-            ).find(
-                (opcion) =>
-                    Number(opcion.id) ===
-                    Number(respuestas[pregunta.id])
-            );
+            const valor = respuestas[pregunta.id];
+            const opciones = pregunta.OpcionesPregunta || [];
+            const tipo = getTipo(pregunta);
 
-            return {
-                pregunta_id: pregunta.id,
-                respuesta: opcionSeleccionada?.texto,
-            };
+            const textoDe = (opcionId) =>
+                opciones.find((o) => Number(o.id) === Number(opcionId))?.texto;
+
+            if (tipo === "texto_libre") {
+                return { pregunta_id: pregunta.id, respuesta: valor.trim() };
+            }
+
+            if (tipo === "opcion_multiple") {
+                return {
+                    pregunta_id: pregunta.id,
+                    respuesta: valor.map(textoDe).filter(Boolean),
+                };
+            }
+
+            return { pregunta_id: pregunta.id, respuesta: textoDe(valor) };
         });
 
         // Validar que todas las opciones seleccionadas existan.
-        if (
-            respuestasEncuesta.some(
-                (respuesta) =>
-                    respuesta.respuesta === undefined ||
-                    respuesta.respuesta === null
-            )
-        ) {
+        const hayInvalidas = respuestasEncuesta.some((r) =>
+            Array.isArray(r.respuesta)
+                ? r.respuesta.length === 0
+                : r.respuesta === undefined || r.respuesta === null
+        );
+
+        if (hayInvalidas) {
             toast.error(
                 "No se encontraron algunas de las opciones seleccionadas."
             );
@@ -213,10 +275,7 @@ export default function EncuestaTutorEmpresarialModal({
             setRespuestas({});
             onCerrar();
         } catch (error) {
-            console.error(
-                "Error al enviar la encuesta:",
-                error
-            );
+            console.error("Error al enviar la encuesta:", error);
 
             toast.error(
                 error.response?.data?.message ||
@@ -232,21 +291,22 @@ export default function EncuestaTutorEmpresarialModal({
 
     const preguntas = getPreguntas(encuestaActiva);
 
+    // En consulta, una pregunta de opción múltiple tiene varias filas guardadas.
+    const respuestasGuardadasDe = (preguntaId) =>
+        (encuestaActiva?.respuestas || []).filter(
+            (r) =>
+                Number(r.pregunta_id) === Number(preguntaId) &&
+                r.respuesta !== null &&
+                r.respuesta !== undefined &&
+                r.respuesta !== ""
+        );
+
     const respondidas = soloLectura
-        ? preguntas.filter((pregunta) =>
-            (encuestaActiva?.respuestas || []).some(
-                (respuesta) =>
-                    Number(respuesta.pregunta_id) ===
-                        Number(pregunta.id) &&
-                    respuesta.respuesta !== null &&
-                    respuesta.respuesta !== undefined &&
-                    respuesta.respuesta !== ""
-            )
+        ? preguntas.filter(
+            (pregunta) => respuestasGuardadasDe(pregunta.id).length > 0
         ).length
-        : preguntas.filter(
-            (pregunta) =>
-                respuestas[pregunta.id] !== undefined &&
-                respuestas[pregunta.id] !== null
+        : preguntas.filter((pregunta) =>
+            estaRespondida(pregunta, respuestas[pregunta.id])
         ).length;
 
     const progreso = preguntas.length
@@ -363,10 +423,8 @@ export default function EncuestaTutorEmpresarialModal({
 
                                 <div className="h-2 overflow-hidden rounded-full bg-gray-100">
                                     <div
-                                        className="h-full rounded-full bg-red-500 transition-all"
-                                        style={{
-                                            width: `${progreso}%`,
-                                        }}
+                                        className="h-full rounded-full bg-red-500 transition-all duration-500"
+                                        style={{ width: `${progreso}%` }}
                                     />
                                 </div>
                             </div>
@@ -381,47 +439,103 @@ export default function EncuestaTutorEmpresarialModal({
                             ) : (
                                 <div className="space-y-4">
                                     {preguntas.map((pregunta, index) => {
-                                        const respuestaGuardada =
-                                            encuestaActiva.respuestas?.find(
-                                                (respuesta) =>
-                                                    Number(
-                                                        respuesta.pregunta_id
-                                                    ) === Number(pregunta.id)
-                                            );
+
+                                        const tipo = getTipo(pregunta);
+                                        const valor = respuestas[pregunta.id];
+                                        const esMultiple = tipo === "opcion_multiple";
+
+                                        const guardadas = soloLectura
+                                            ? respuestasGuardadasDe(pregunta.id)
+                                            : [];
 
                                         return (
                                             <div
                                                 key={pregunta.id}
                                                 className="rounded-xl border border-gray-200 p-4 sm:p-5"
                                             >
-                                                <p className="mb-4 text-sm font-semibold text-gray-800">
+                                                <p className="text-sm font-semibold text-gray-800">
                                                     {index + 1}. {pregunta.texto}
                                                 </p>
 
-                                                {soloLectura ? (
-                                                    <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
-                                                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
+                                                {!soloLectura && (
+                                                    <p className="mb-4 mt-0.5 text-xs text-gray-400">
+                                                        {AYUDA_TIPO[tipo]}
+                                                    </p>
+                                                )}
+
+                                                {/* ========== SOLO LECTURA ========== */}
+
+                                                {soloLectura && (
+                                                    <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+                                                        <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-blue-700">
                                                             Respuesta registrada
                                                         </p>
 
-                                                        <p className="text-sm font-medium text-slate-800">
-                                                            {respuestaGuardada?.respuesta ??
-                                                                "Sin respuesta registrada"}
+                                                        {guardadas.length === 0 && (
+                                                            <p className="text-sm font-medium text-slate-500">
+                                                                Sin respuesta registrada
+                                                            </p>
+                                                        )}
+
+                                                        {guardadas.length > 0 && tipo === "texto_libre" && (
+                                                            <p className="whitespace-pre-wrap break-words text-sm text-slate-800">
+                                                                {guardadas[0].respuesta}
+                                                            </p>
+                                                        )}
+
+                                                        {guardadas.length > 0 && tipo === "opcion_multiple" && (
+                                                            <ul className="flex flex-wrap gap-1.5">
+                                                                {guardadas.map((r, i) => (
+                                                                    <li
+                                                                        key={i}
+                                                                        className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-blue-200"
+                                                                    >
+                                                                        <Check size={12} className="text-blue-600" />
+                                                                        {r.respuesta}
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        )}
+
+                                                        {guardadas.length > 0 && tipo === "opcion_unica" && (
+                                                            <p className="text-sm font-medium text-slate-800">
+                                                                {guardadas[0].respuesta}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* ========== TEXTO LIBRE ========== */}
+
+                                                {!soloLectura && tipo === "texto_libre" && (
+                                                    <div>
+                                                        <textarea
+                                                            value={typeof valor === "string" ? valor : ""}
+                                                            onChange={(e) =>
+                                                                escribirTexto(pregunta.id, e.target.value)
+                                                            }
+                                                            maxLength={MAX_TEXTO}
+                                                            rows={4}
+                                                            disabled={enviando}
+                                                            placeholder="Escribe tu respuesta aquí..."
+                                                            className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-slate-700 placeholder:text-gray-400 transition focus:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:opacity-60"
+                                                        />
+                                                        <p className="mt-1 text-right text-xs text-gray-400">
+                                                            {typeof valor === "string" ? valor.length : 0} / {MAX_TEXTO}
                                                         </p>
                                                     </div>
-                                                ) : (
+                                                )}
+
+                                                {/* ========== OPCIÓN ÚNICA / MÚLTIPLE ========== */}
+
+                                                {!soloLectura && tipo !== "texto_libre" && (
                                                     <div className="space-y-2">
-                                                        {(
-                                                            pregunta.OpcionesPregunta ||
-                                                            []
-                                                        ).map((opcion) => {
-                                                            const seleccionada =
-                                                                Number(
-                                                                    respuestas[
-                                                                        pregunta.id
-                                                                    ]
-                                                                ) ===
-                                                                Number(opcion.id);
+                                                        {(pregunta.OpcionesPregunta || []).map((opcion) => {
+
+                                                            const seleccionada = esMultiple
+                                                                ? Array.isArray(valor) && valor.includes(opcion.id)
+                                                                : Number(valor) === Number(opcion.id) &&
+                                                                  valor !== undefined;
 
                                                             return (
                                                                 <button
@@ -429,10 +543,9 @@ export default function EncuestaTutorEmpresarialModal({
                                                                     type="button"
                                                                     disabled={enviando}
                                                                     onClick={() =>
-                                                                        seleccionarOpcion(
-                                                                            pregunta.id,
-                                                                            opcion.id
-                                                                        )
+                                                                        esMultiple
+                                                                            ? alternarMultiple(pregunta.id, opcion.id)
+                                                                            : seleccionarUnica(pregunta.id, opcion.id)
                                                                     }
                                                                     className={`w-full rounded-lg border-2 px-4 py-3 text-left text-sm transition ${
                                                                         seleccionada
@@ -441,19 +554,32 @@ export default function EncuestaTutorEmpresarialModal({
                                                                     }`}
                                                                 >
                                                                     <span className="flex items-center gap-3">
+
+                                                                        {/* Círculo (única) o cuadro (múltiple) */}
                                                                         <span
-                                                                            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                                                                            className={`flex h-5 w-5 shrink-0 items-center justify-center border-2 ${
+                                                                                esMultiple ? "rounded-md" : "rounded-full"
+                                                                            } ${
                                                                                 seleccionada
-                                                                                    ? "border-red-500"
-                                                                                    : "border-gray-300"
+                                                                                    ? "border-red-500 bg-red-500"
+                                                                                    : "border-gray-300 bg-white"
                                                                             }`}
                                                                         >
-                                                                            {seleccionada && (
-                                                                                <span className="h-2 w-2 rounded-full bg-red-500" />
-                                                                            )}
+                                                                            {seleccionada &&
+                                                                                (esMultiple ? (
+                                                                                    <Check
+                                                                                        size={13}
+                                                                                        strokeWidth={3}
+                                                                                        className="text-white"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <span className="h-2 w-2 rounded-full bg-white" />
+                                                                                ))}
                                                                         </span>
 
-                                                                        {opcion.texto}
+                                                                        <span className="break-words">
+                                                                            {opcion.texto}
+                                                                        </span>
                                                                     </span>
                                                                 </button>
                                                             );
@@ -485,14 +611,18 @@ export default function EncuestaTutorEmpresarialModal({
                             type="button"
                             onClick={handleEnviar}
                             disabled={enviando}
-                            className="flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex min-w-[170px] items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {enviando
-                                ? "Enviando..."
-                                : "Enviar respuestas"}
-
-                            {!enviando && (
-                                <CheckCircle2 size={16} />
+                            {enviando ? (
+                                <>
+                                    <Loader2 size={16} className="animate-spin" />
+                                    Enviando...
+                                </>
+                            ) : (
+                                <>
+                                    Enviar respuestas
+                                    <CheckCircle2 size={16} />
+                                </>
                             )}
                         </button>
                     )}

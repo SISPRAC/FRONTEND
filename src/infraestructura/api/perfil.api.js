@@ -1,9 +1,7 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const perfilApi = axios.create({
-  baseURL: "http://localhost:3000/api/perfil",
-  withCredentials: true
-});
+const perfilApi  = createApi("/perfil");
+
 
 export const getPerfilesRequest = () => perfilApi.get("/all");
 

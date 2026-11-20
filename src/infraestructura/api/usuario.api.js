@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js"; // misma carpeta que auth.api.js
 
-const userApi = axios.create({
-    baseURL: "http://localhost:3000/api/users",
-    withCredentials: true
-});
+const userApi = createApi("/users");
 
 userApi.interceptors.request.use(
     (config) => {

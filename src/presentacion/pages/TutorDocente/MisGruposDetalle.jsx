@@ -3,9 +3,15 @@ import {
     Eye,
     CalendarDays,
     ClipboardCheck,
+    FileText,
+    Award,
+    LoaderCircle
 } from "lucide-react";
 
 import EncuestaTutorEmpresarialModal from "../../components/modals/EncuestaTutorEmpresarialModal.jsx";
+import VerRetiroModal from "../../components/modals/VerRetiroModal.jsx";
+import CertificadoPracticanteModal from "../../components/modals/CertificadoPracticanteModal.jsx";
+import GrupoVistaTutorSkeleton from "../../components/skeletons/GrupoVistaTutorSkeleton.jsx";
 
 import { getPracticantesGrupo } from "../../../aplicacion/tutorDocente/getPracticantesGrupo.js";
 import { tutorDocenteRepository } from "../../../infraestructura/repository/tutorDocenteRepository.js";
@@ -13,6 +19,11 @@ import { tutorDocenteRepository } from "../../../infraestructura/repository/tuto
 import GenericTable from "../../components/Table/GenericTable";
 
 import { useState, useEffect, useMemo } from "react";
+
+import { ClipboardList } from "lucide-react";
+import { obtenerRespuestasEncuestasPracticante } from "../../../aplicacion/encuesta/obtenerRespuestasEncuestasPracticante";
+import { encuestaRepository } from "../../../infraestructura/repository/encuestaRepository";
+import EncuestasPracticanteDirectorModal from "../../components/modals/EncuestasPracticanteDirectorModal";
 
 import {
     useParams,
@@ -33,6 +44,23 @@ import { obtenerSolicitudesVisitaTutorDocente } from "../../../aplicacion/solici
 import { solicitudVisitaRepository } from "../../../infraestructura/repository/solicitudVisitaRepository.js";
 import { cancelarSolicitudVisita } from "../../../aplicacion/solicitudVisita/cancelarSolicitudVisita.js";
 import { obtenerSolicitudParaGestionar } from "../../../aplicacion/solicitudVisita/obtenerSolicitudParaGestionar.js";
+
+
+/*
+|--------------------------------------------------------------------------
+| Estados con acceso restringido.
+| Retirado y Cancelado solo pueden consultar el retiro.
+| Finalizada puede hacer todo (informes, encuesta, certificado, visitas).
+|--------------------------------------------------------------------------
+*/
+
+const ESTADOS_SIN_ACCESO = ["Retirado", "Cancelado"];
+
+const bloqueadoPorEstado = (row) =>
+    ESTADOS_SIN_ACCESO.includes(row.estado);
+
+const sinRetiro = (row) =>
+    !ESTADOS_SIN_ACCESO.includes(row.estado);
 
 
 // Extrae los ids de practicantes que tienen alguna solicitud registrada.
@@ -84,6 +112,13 @@ const obtenerUltimaSolicitudPorPracticante = (
 
 };
 
+const certificadoVacio = {
+    open: false,
+    practicante: null,
+    certificado: null,
+    loading: false,
+};
+
 
 const GrupoVistaTutorDocente = () => {
 
@@ -94,6 +129,13 @@ const GrupoVistaTutorDocente = () => {
 
     const [practicanteEncuesta, setPracticanteEncuesta] = useState(null);
 
+    const [mostrarEncuestas, setMostrarEncuestas] = useState(false);
+    const [mostrarDetalleEncuesta, setMostrarDetalleEncuesta] = useState(false);
+    const [encuestasPracticante, setEncuestasPracticante] = useState([]);
+    const [practicanteEncuestasSeleccionado, setPracticanteEncuestasSeleccionado] = useState(null);
+    const [encuestaSeleccionada, setEncuestaSeleccionada] = useState(null);
+    const [loadingEncuestasId, setLoadingEncuestasId] = useState(null);
+
     const [mostrarModalSolicitud, setMostrarModalSolicitud] =
         useState(false);
 
@@ -101,6 +143,10 @@ const GrupoVistaTutorDocente = () => {
         useState(false);
 
     const [solicitudes, setSolicitudes] = useState([]);
+
+    // Ver retiro / ver certificado
+    const [verRetiroPracticante, setVerRetiroPracticante] = useState(null);
+    const [certificadoModal, setCertificadoModal] = useState(certificadoVacio);
 
     const navigate = useNavigate();
 
@@ -160,6 +206,8 @@ const GrupoVistaTutorDocente = () => {
 
             ]);
 
+            console.log("datos practicantes", dataPracticantes);
+
 
             const solicitudesData =
                 dataSolicitudes || [];
@@ -170,21 +218,6 @@ const GrupoVistaTutorDocente = () => {
             );
 
 
-            console.log(
-                "========== SOLICITUDES VISITA BACKEND =========="
-            );
-
-            console.log(
-                JSON.parse(
-                    JSON.stringify(
-                        solicitudesData
-                    )
-                )
-            );
-
-            console.log(
-                "==============================================="
-            );
 
 
             /*
@@ -203,6 +236,8 @@ const GrupoVistaTutorDocente = () => {
                                 practicante.id_practicante
                             );
 
+
+
                         return {
 
                             id:
@@ -214,11 +249,19 @@ const GrupoVistaTutorDocente = () => {
                             practicante:
                                 practicante.nombre,
 
+                            correo: practicante.correo,
+
                             empresa:
                                 practicante.empresa,
 
                             estado:
                                 practicante.estado,
+
+                            retiro:
+                                practicante.retiro ?? null,
+
+                            certificado:
+                                practicante.certificado ?? null,
 
                             /*
                             |--------------------------------------------------------------------------
@@ -237,6 +280,7 @@ const GrupoVistaTutorDocente = () => {
                             motivoSolicitudVisita:
                                 solicitud?.observacion ||
                                 null,
+
                             fechaRealizada:
                                 solicitud?.visita?.fecha_realizada || null,
 
@@ -306,6 +350,57 @@ const GrupoVistaTutorDocente = () => {
 
     );
 
+
+    const handleVerEncuestas = async (id) => {
+        const practicante = rows.find((p) => p.id === id);
+
+        if (!practicante) {
+            toast.error("No se encontró el practicante.");
+            return;
+        }
+
+        setLoadingEncuestasId(id);
+        const toastId = toast.loading("Consultando encuestas del practicante...");
+
+        try {
+            const respuesta = await obtenerRespuestasEncuestasPracticante(
+                { encuestaRepository },
+                practicante.id
+            );
+
+            console.log("Respuesats obtenidas", respuesta);
+
+            const practicas = respuesta?.data ?? respuesta;
+
+            const tieneEncuestas =
+                Array.isArray(practicas) &&
+                practicas.some((p) => Array.isArray(p.encuestas) && p.encuestas.length > 0);
+
+            if (!tieneEncuestas) {
+                toast.dismiss(toastId);
+                toast.error("Este practicante no tiene encuestas respondidas.");
+                return;
+            }
+
+            setPracticanteEncuestasSeleccionado({
+                id_practicante: practicante.id,
+                nombre: practicante.practicante,
+                codigo: practicante.codigo,
+                empresa: practicante.empresa,
+            });
+            setEncuestasPracticante(practicas);
+            setMostrarEncuestas(true);
+            toast.dismiss(toastId);
+        } catch (error) {
+            toast.dismiss(toastId);
+            toast.error(
+                error.response?.data?.message ||
+                "No se pudieron consultar las encuestas del practicante."
+            );
+        } finally {
+            setLoadingEncuestasId(null);
+        }
+    };
 
     /*
     |--------------------------------------------------------------------------
@@ -514,6 +609,13 @@ const GrupoVistaTutorDocente = () => {
 
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Encuesta
+    |--------------------------------------------------------------------------
+    */
+
     const handleEncuesta = (id) => {
         const practicante = rows.find(
             (p) => p.id === id
@@ -524,10 +626,7 @@ const GrupoVistaTutorDocente = () => {
             return;
         }
 
-        if (
-            practicante.estado === "Retirado" ||
-            practicante.estado === "Finalizada"
-        ) {
+        if (bloqueadoPorEstado(practicante)) {
             toast.error(
                 "No se puede realizar la encuesta para este practicante."
             );
@@ -539,6 +638,63 @@ const GrupoVistaTutorDocente = () => {
             nombre: practicante.practicante,
             empresa: practicante.empresa,
             estado: practicante.estado,
+        });
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ver retiro
+    |--------------------------------------------------------------------------
+    */
+
+    const handleVerRetiro = (id) => {
+        const practicante = rows.find((p) => p.id === id);
+
+        if (!practicante) {
+            toast.error("No se encontró el practicante.");
+            return;
+        }
+
+        setVerRetiroPracticante({
+            ...practicante,
+            nombres: practicante.practicante,
+            apellidos: "",
+        });
+    };
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ver certificado (solo consulta)
+    |--------------------------------------------------------------------------
+    */
+
+    const handleVerCertificado = (id) => {
+        const practicante = rows.find((p) => p.id === id);
+
+        if (!practicante) {
+            toast.error("No se encontró el practicante.");
+            return;
+        }
+
+        const cert = practicante.certificado;
+
+        if (!cert?.archivo?.url) {
+            toast.error("Aún no se le ha subido el certificado a este practicante.");
+            return;
+        }
+
+        setCertificadoModal({
+            open: true,
+            practicante: { nombres: practicante.practicante, apellidos: "" },
+            certificado: {
+                id: cert.id,
+                nombre: cert.archivo.nombre,
+                url: cert.archivo.url,
+                fecha_subida: cert.fecha_subida,
+            },
+            loading: false,
         });
     };
 
@@ -664,20 +820,26 @@ const GrupoVistaTutorDocente = () => {
 
     };
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | Practicantes que no se pueden seleccionar para una visita
+    |--------------------------------------------------------------------------
+    */
+
     const idsPracticantesNoSeleccionables = useMemo(
         () =>
             new Set(
                 rows
-                    .filter(
-                        (row) =>
-                            row.estado === "Retirado" ||
-                            row.estado === "Finalizada"
-                    )
+                    .filter(bloqueadoPorEstado)
                     .map((row) => row.id)
             ),
         [rows]
     );
 
+    if (loading) {
+        return <GrupoVistaTutorSkeleton />;
+    }
 
     return (
 
@@ -773,13 +935,13 @@ const GrupoVistaTutorDocente = () => {
                 <div className="text-right">
                     <p
                         className="
-            text-xs
-            font-medium
-            text-slate-500
-            uppercase
-            tracking-widest
-            mb-0.5
-        "
+                            text-xs
+                            font-medium
+                            text-slate-500
+                            uppercase
+                            tracking-widest
+                            mb-0.5
+                        "
                     >
                         Estado de la Práctica
                     </p>
@@ -920,6 +1082,7 @@ const GrupoVistaTutorDocente = () => {
                         label: "Practicante"
 
                     },
+                    { key: "correo", label: "Correo" },
 
                     {
                         key: "empresa",
@@ -952,19 +1115,42 @@ const GrupoVistaTutorDocente = () => {
                         label: "Informes",
                         className: "hover:bg-blue-100 text-blue-500",
                         onClick: handleView,
-                        disabled: (row) =>
-                            row.estado === "Retirado" ||
-                            row.estado === "Finalizada",
+                        disabled: bloqueadoPorEstado,
+                        disabledTitle: "No disponible para este estado",
+                    },
+                    {
+                        icon: loadingEncuestasId !== null
+                            ? <LoaderCircle size={18} className="animate-spin" />
+                            : <ClipboardList size={18} />,
+                        label: "Ver encuestas",
+                        className: "text-purple-600 hover:bg-purple-100",
+                        onClick: handleVerEncuestas,
+                        disabled: (row) => bloqueadoPorEstado(row) || loadingEncuestasId !== null,
                         disabledTitle: "No disponible para este estado",
                     },
                     {
                         icon: <ClipboardCheck size={18} />,
-                        label: "Encuesta",
+                        label: "Responder encuesta",
                         className: "hover:bg-red-100 text-[#e8192c]",
                         onClick: handleEncuesta,
-                        disabled: (row) =>
-                            row.estado === "Retirado" ||
-                            row.estado === "Finalizada",
+                        disabled: bloqueadoPorEstado,
+                        disabledTitle: "No disponible para este estado",
+                    },
+                    {
+                        icon: <FileText size={18} />,
+                        label: "Ver retiro",
+                        className: "text-rose-600 hover:bg-rose-100",
+                        onClick: handleVerRetiro,
+                        disabled: sinRetiro,
+                        disabledTitle:
+                            "Solo disponible para practicantes retirados o cancelados",
+                    },
+                    {
+                        icon: <Award size={18} />,
+                        label: "Certificado",
+                        className: "text-emerald-600 hover:bg-emerald-100",
+                        onClick: handleVerCertificado,
+                        disabled: bloqueadoPorEstado,
                         disabledTitle: "No disponible para este estado",
                     },
                 ]}
@@ -1038,11 +1224,59 @@ const GrupoVistaTutorDocente = () => {
                 onCancelarSolicitud={handleCancelarSolicitud}
             />
 
+            {/* Lista de encuestas (solo consulta) */}
+            <EncuestasPracticanteDirectorModal
+                mostrar={mostrarEncuestas}
+                practicante={practicanteEncuestasSeleccionado}
+                practicas={encuestasPracticante}
+                onCerrar={() => {
+                    setMostrarEncuestas(false);
+                    setEncuestaSeleccionada(null);
+                }}
+                onVerDetalle={(encuesta) => {
+                    setEncuestaSeleccionada(encuesta);
+                    setMostrarDetalleEncuesta(true);
+                }}
+            />
+
+            {/* Detalle en modo consulta */}
+            <EncuestaTutorEmpresarialModal
+                mostrar={mostrarDetalleEncuesta}
+                practicante={practicanteEncuestasSeleccionado}
+                rolEncuesta={encuestaSeleccionada?.plantilla?.Role?.nombre || "Practicante"}
+                modoConsulta={true}
+                encuestaSeleccionada={encuestaSeleccionada}
+                onCerrar={() => {
+                    setMostrarDetalleEncuesta(false);
+                    setEncuestaSeleccionada(null);
+                }}
+            />
+
+            {/* Responder */}
             <EncuestaTutorEmpresarialModal
                 mostrar={!!practicanteEncuesta}
                 practicante={practicanteEncuesta}
                 rolEncuesta="Tutor Docente"
                 onCerrar={() => setPracticanteEncuesta(null)}
+            />
+
+            {/* ── Modal para ver el retiro ── */}
+
+            <VerRetiroModal
+                open={!!verRetiroPracticante}
+                practicante={verRetiroPracticante}
+                onClose={() => setVerRetiroPracticante(null)}
+            />
+
+            {/* ── Modal del certificado (solo consulta) ── */}
+
+            <CertificadoPracticanteModal
+                open={certificadoModal.open}
+                practicante={certificadoModal.practicante}
+                certificado={certificadoModal.certificado}
+                loading={certificadoModal.loading}
+                soloConsulta
+                onClose={() => setCertificadoModal(certificadoVacio)}
             />
 
 

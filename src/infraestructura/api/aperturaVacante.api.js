@@ -1,10 +1,7 @@
 import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const aperturaVacanteApi = axios.create({
-  baseURL: "http://localhost:3000/api/aperturaVacante",
-  withCredentials: true
-});
-
+const aperturaVacanteApi = createApi("/aperturaVacante");
 
 const getToken = () => {
   return localStorage.getItem("token");

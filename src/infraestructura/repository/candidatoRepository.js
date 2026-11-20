@@ -5,7 +5,8 @@ import {
   getCandidatosDisponibles,
   getCandidatosPerfil,
   invitarCandidatoRequest,
-  obtenerCandidatosParaReportePorPeriodoRequest
+  obtenerCandidatosParaReportePorPeriodoRequest,
+  verificarCandidatosPdfRequest
 } from "../api/candidato.api";
 
 export const candidatoRepository = {
@@ -36,6 +37,9 @@ export const candidatoRepository = {
 
   async getCandidatosParaReportePorPeriodo(periodo_id) {
     return await obtenerCandidatosParaReportePorPeriodoRequest(periodo_id);
+  },
+   async verificarPdf(alumnos) {
+    return await verificarCandidatosPdfRequest(alumnos);
   },
 
 };

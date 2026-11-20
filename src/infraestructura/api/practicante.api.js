@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const practicanteApi = axios.create({
-  baseURL: "http://localhost:3000/api/practicante",
-  withCredentials: true
-});
+const practicanteApi = createApi("/practicante");
 
 // Agregar token automáticamente a cada petición
 practicanteApi.interceptors.request.use(

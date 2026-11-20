@@ -1,14 +1,6 @@
+import { createApi } from "./createApi.js";
 
-import axios from "axios";
-
-const grupoApi = axios.create({
-
-    baseURL: "http://localhost:3000/api/grupo",
-
-    withCredentials: true
-
-});
-
+const  grupoApi = createApi("/grupo");
 
 // Agregar token automáticamente a cada petición
 grupoApi.interceptors.request.use(

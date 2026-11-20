@@ -1,14 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-
-const entregaInformeApi = axios.create({
-
-    baseURL: "http://localhost:3000/api/entregaInforme",
-
-    withCredentials: true
-
-});
-
+const entregaInformeApi =  createApi("/entregaInforme");
 
 // =========================================================
 // TOKEN DE AUTENTICACIÓN NORMAL

@@ -1,17 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock, X } from "lucide-react";
 
-const HORAS = Array.from({ length: 12 }, (_, i) => String(i + 1));
-const MINUTOS = Array.from({ length: 60 }, (_, i) =>
-    String(i).padStart(2, "0")
-);
-
-// Clases estáticas (Tailwind no detecta clases armadas dinámicamente)
-const columnasPorCantidad = {
-    1: "grid-cols-1",
-    2: "grid-cols-2",
-    3: "grid-cols-3"
-};
+const PASO_MIN = 60; // duración de cada franja en minutos
 
 // "14:30" o "14:30:00" -> "2:30 PM"
 const formatear12h = (hora24) => {
@@ -26,9 +16,60 @@ const formatear12h = (hora24) => {
 // "2025-03-10T00:00:00Z" -> "10/3/2025" (sin desfase por zona horaria)
 const formatearFecha = (valor) => {
     if (!valor) return "Sin fecha";
-    const [y, m, d] = valor.split("T")[0].split("-");
+    const [y, m, d] = String(valor).slice(0, 10).split("-");
     return `${parseInt(d, 10)}/${parseInt(m, 10)}/${y}`;
 };
+
+const parseFecha = (f) => {
+    const [y, m, d] = String(f).slice(0, 10).split("-").map(Number);
+    return new Date(y, m - 1, d);
+};
+
+const toISO = (date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+        date.getDate()
+    ).padStart(2, "0")}`;
+
+// Todos los días entre inicio y fin (inclusive)
+const diasEnRango = (inicio, fin) => {
+    const dias = [];
+    const cursor = parseFecha(inicio);
+    const limite = parseFecha(fin || inicio);
+
+    while (cursor <= limite) {
+        dias.push(toISO(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return dias;
+};
+
+const aMinutos = (h) => {
+    const [hh, mm] = String(h).slice(0, 5).split(":").map(Number);
+    return hh * 60 + mm;
+};
+
+const deMinutos = (min) =>
+    `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+// Franjas horarias disponibles dentro de un rango
+const generarHoras = (inicio, fin) => {
+    const horas = [];
+    const ini = aMinutos(inicio);
+    const f = aMinutos(fin);
+
+    for (let m = ini; m + PASO_MIN <= f; m += PASO_MIN) {
+        horas.push(deMinutos(m));
+    }
+
+    // Si el rango es más corto que una franja, ofrece al menos la hora inicial
+    if (horas.length === 0) horas.push(deMinutos(ini));
+
+    return horas;
+};
+
+const selectClass =
+    "w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-red-500 disabled:bg-gray-100 disabled:text-gray-400";
 
 const SeleccionarFechaVisitaModal = ({
     mostrar,
@@ -36,137 +77,103 @@ const SeleccionarFechaVisitaModal = ({
     onCerrar,
     onConfirmar
 }) => {
-
-    const [rangoSeleccionado, setRangoSeleccionado] = useState(null);
-    const [fecha, setFecha] = useState("");
+    const [fechaSel, setFechaSel] = useState("");
     const [horaSel, setHoraSel] = useState("");
-    const [minutoSel, setMinutoSel] = useState("");
-    const [periodo, setPeriodo] = useState("AM");
-
 
     useEffect(() => {
-
         if (!mostrar) {
-            setRangoSeleccionado(null);
-            setFecha("");
+            setFechaSel("");
             setHoraSel("");
-            setMinutoSel("");
-            setPeriodo("AM");
         }
-
     }, [mostrar]);
 
+    const fechas = solicitud?.fechasPropuestas || [];
+
+    // ---------- Opciones de fecha (días de todos los rangos, sin pasadas) ----------
+    const opcionesFecha = useMemo(() => {
+        const hoy = toISO(new Date());
+        const set = new Set();
+
+        fechas.forEach((r) => {
+            if (!r.fecha_inicio) return;
+            diasEnRango(r.fecha_inicio, r.fecha_fin).forEach((d) => {
+                if (d >= hoy) set.add(d);
+            });
+        });
+
+        return [...set].sort();
+    }, [fechas]);
+
+    // Si solo hay una fecha, queda seleccionada automáticamente
+    const fechaEfectiva =
+        fechaSel && opcionesFecha.includes(fechaSel)
+            ? fechaSel
+            : opcionesFecha.length === 1
+            ? opcionesFecha[0]
+            : "";
+
+    // ---------- Opciones de hora (dependen de la fecha elegida) ----------
+    // Cada opción guarda también el rango del que viene
+    const opcionesHora = useMemo(() => {
+        if (!fechaEfectiva) return [];
+
+        const ahora = new Date();
+        const esHoy = fechaEfectiva === toISO(ahora);
+        const minutosAhora = ahora.getHours() * 60 + ahora.getMinutes();
+
+        const mapa = new Map(); // hora -> rango
+
+        fechas.forEach((r) => {
+            if (!r.fecha_inicio || !r.hora_inicio || !r.hora_fin) return;
+
+            const dias = diasEnRango(r.fecha_inicio, r.fecha_fin);
+            if (!dias.includes(fechaEfectiva)) return;
+
+            generarHoras(r.hora_inicio, r.hora_fin).forEach((h) => {
+                if (esHoy && aMinutos(h) <= minutosAhora) return;
+                if (!mapa.has(h)) mapa.set(h, r);
+            });
+        });
+
+        return [...mapa.entries()]
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([valor, rango]) => ({ valor, rango }));
+    }, [fechas, fechaEfectiva]);
+
+    // Si solo hay una hora, queda seleccionada automáticamente
+    const horaEfectiva =
+        horaSel && opcionesHora.some((o) => o.valor === horaSel)
+            ? horaSel
+            : opcionesHora.length === 1
+            ? opcionesHora[0].valor
+            : "";
+
+    const opcionElegida = opcionesHora.find((o) => o.valor === horaEfectiva);
+
+    const puedeConfirmar = Boolean(fechaEfectiva && horaEfectiva && opcionElegida);
 
     if (!mostrar || !solicitud) {
         return null;
     }
 
-
-    const fechas = solicitud.fechasPropuestas || [];
-
-    // 1-3 fechas: una sola fila. 4 o más: 2 columnas.
-    const columnas =
-        columnasPorCantidad[fechas.length] || "grid-cols-2";
-
-
-    const seleccionarRango = (rango) => {
-        setRangoSeleccionado(rango);
-        setFecha("");
-        setHoraSel("");
-        setMinutoSel("");
-        setPeriodo("AM");
-    };
-
-
-    const fechaMin = rangoSeleccionado?.fecha_inicio
-        ? rangoSeleccionado.fecha_inicio.split("T")[0]
-        : "";
-
-    const fechaMax = rangoSeleccionado?.fecha_fin
-        ? rangoSeleccionado.fecha_fin.split("T")[0]
-        : "";
-
-
-    // Valida que la fecha no salga del rango (aunque la escriban a mano)
-    const fechaValida =
-        !fecha ||
-        ((!fechaMin || fecha >= fechaMin) &&
-            (!fechaMax || fecha <= fechaMax));
-
-
-    // Hora en formato 24h "HH:mm" a partir de los selects
-    const construirHora24 = () => {
-
-        if (!horaSel || !minutoSel) {
-            return "";
-        }
-
-        let h = parseInt(horaSel, 10);
-
-        if (periodo === "AM" && h === 12) h = 0;
-        if (periodo === "PM" && h !== 12) h += 12;
-
-        return `${String(h).padStart(2, "0")}:${minutoSel}`;
-
-    };
-
-    const hora = construirHora24();
-
-
-    const horaDentroDelRango = () => {
-
-        if (!hora) return true;
-
-        const min = rangoSeleccionado?.hora_inicio?.slice(0, 5);
-        const max = rangoSeleccionado?.hora_fin?.slice(0, 5);
-
-        if (min && hora < min) return false;
-        if (max && hora > max) return false;
-
-        return true;
-
-    };
-
-    const horaValida = horaDentroDelRango();
-
-    const puedeConfirmar =
-        rangoSeleccionado && fecha && hora && fechaValida && horaValida;
-
-
     const confirmar = () => {
-
-        if (!puedeConfirmar) {
-            return;
-        }
+        if (!puedeConfirmar) return;
 
         onConfirmar({
             solicitudId: solicitud.id,
-            rangoId: rangoSeleccionado.id,
-            fecha,
-            hora // formato 24h, ej: "14:30"
+            rangoId: opcionElegida.rango.id,
+            fecha: fechaEfectiva,
+            hora: horaEfectiva // formato 24h, ej: "14:00"
         });
-
     };
 
-
-    const selectClass =
-        "w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-red-500";
-
-
     return (
-
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-
-            {/* Sin alto fijo: se ajusta al contenido hasta 90vh */}
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden">
 
-
                 {/* HEADER */}
-
                 <div className="flex items-center justify-between px-6 py-4 border-b shrink-0">
-
                     <div>
-
                         <h2 className="text-xl font-semibold text-gray-800">
                             Seleccionar fecha de visita
                         </h2>
@@ -174,7 +181,6 @@ const SeleccionarFechaVisitaModal = ({
                         <p className="text-sm text-gray-500 mt-1">
                             Selecciona una fecha y hora dentro de la disponibilidad.
                         </p>
-
                     </div>
 
                     <button
@@ -183,213 +189,86 @@ const SeleccionarFechaVisitaModal = ({
                     >
                         <X size={20} />
                     </button>
-
                 </div>
 
-
-                {/* CONTENIDO (scroll interno si no cabe) */}
-
+                {/* CONTENIDO */}
                 <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-5">
 
-
-                    {/* RANGOS */}
-
-                    <div>
-
-                        <div className="flex items-center gap-2 mb-3">
-
-                            <CalendarDays size={18} className="text-gray-500" />
-
-                            <p className="text-sm font-medium text-gray-700">
-                                Disponibilidades
-                            </p>
-
-                        </div>
-
-
-                        {fechas.length === 0 ? (
-
-                            <p className="text-sm text-gray-500">
-                                No hay disponibilidades registradas.
-                            </p>
-
-                        ) : (
-
-                            // Sin selección: hasta ~12 cards visibles, luego scroll.
-                            // Con selección: se encoge para dar espacio a fecha y hora.
-                            <div
-                                className={`grid ${columnas} gap-2 overflow-y-auto pr-1 ${
-                                    rangoSeleccionado
-                                        ? "max-h-36"
-                                        : "max-h-[27rem]"
-                                }`}
-                            >
-
-                                {fechas.map((rango) => {
-
-                                    const seleccionado =
-                                        rangoSeleccionado?.id === rango.id;
-
-                                    return (
-
-                                        <button
-                                            key={rango.id}
-                                            type="button"
-                                            onClick={() => seleccionarRango(rango)}
-                                            className={`text-left border rounded-lg p-3 transition-colors ${
-                                                seleccionado
-                                                    ? "border-blue-500 bg-blue-50"
-                                                    : "border-gray-200 hover:border-gray-400 hover:bg-gray-50"
-                                            }`}
-                                        >
-
-                                            <p className="text-sm font-medium text-gray-800">
-                                                {formatearFecha(rango.fecha_inicio)}
-                                                {" - "}
-                                                {formatearFecha(rango.fecha_fin)}
-                                            </p>
-
-                                            {(rango.hora_inicio || rango.hora_fin) && (
-
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    {rango.hora_inicio
-                                                        ? formatear12h(rango.hora_inicio)
-                                                        : "Sin hora inicial"}
-                                                    {" - "}
-                                                    {rango.hora_fin
-                                                        ? formatear12h(rango.hora_fin)
-                                                        : "Sin hora final"}
-                                                </p>
-
-                                            )}
-
-                                        </button>
-
-                                    );
-
-                                })}
-
-                            </div>
-
-                        )}
-
-                    </div>
-
-
-                    {/* FECHA */}
-
-                    {rangoSeleccionado && (
-
-                        <div>
-
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Fecha de la visita
-                            </label>
-
-                            <input
-                                type="date"
-                                value={fecha}
-                                min={fechaMin}
-                                max={fechaMax}
-                                onChange={(e) => setFecha(e.target.value)}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
-                            />
-
-                            <p className="text-xs text-gray-500 mt-1">
-                                Disponible del {formatearFecha(rangoSeleccionado.fecha_inicio)}
-                                {" al "}
-                                {formatearFecha(rangoSeleccionado.fecha_fin)}
-                            </p>
-
-                            {!fechaValida && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    La fecha está fuera del rango seleccionado.
-                                </p>
-                            )}
-
-                        </div>
-
-                    )}
-
-
-                    {/* HORA (AM / PM) */}
-
-                    {rangoSeleccionado && (
-
-                        <div>
-
-                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                                <Clock size={16} className="text-gray-400" />
-                                Hora de la visita
-                            </label>
-
-                            <div className="grid grid-cols-3 gap-2">
+                    {opcionesFecha.length === 0 ? (
+                        <p className="text-sm text-gray-500">
+                            No hay fechas disponibles para esta solicitud.
+                        </p>
+                    ) : (
+                        <>
+                            {/* FECHA */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <CalendarDays size={16} className="text-gray-400" />
+                                    Fecha de la visita
+                                </label>
 
                                 <select
-                                    value={horaSel}
+                                    value={fechaEfectiva}
+                                    onChange={(e) => {
+                                        setFechaSel(e.target.value);
+                                        setHoraSel("");
+                                    }}
+                                    className={selectClass}
+                                >
+                                    {opcionesFecha.length !== 1 && (
+                                        <option value="" disabled>
+                                            Selecciona una fecha
+                                        </option>
+                                    )}
+
+                                    {opcionesFecha.map((d) => (
+                                        <option key={d} value={d}>
+                                            {formatearFecha(d)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* HORA */}
+                            <div>
+                                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                                    <Clock size={16} className="text-gray-400" />
+                                    Hora de la visita
+                                </label>
+
+                                <select
+                                    value={horaEfectiva}
                                     onChange={(e) => setHoraSel(e.target.value)}
+                                    disabled={!fechaEfectiva}
                                     className={selectClass}
                                 >
-                                    <option value="" disabled>
-                                        Hora
-                                    </option>
-                                    {HORAS.map((h) => (
-                                        <option key={h} value={h}>{h}</option>
+                                    {opcionesHora.length !== 1 && (
+                                        <option value="" disabled>
+                                            {fechaEfectiva
+                                                ? "Selecciona una hora"
+                                                : "Elige primero la fecha"}
+                                        </option>
+                                    )}
+
+                                    {opcionesHora.map((o) => (
+                                        <option key={o.valor} value={o.valor}>
+                                            {formatear12h(o.valor)}
+                                        </option>
                                     ))}
                                 </select>
 
-                                <select
-                                    value={minutoSel}
-                                    onChange={(e) => setMinutoSel(e.target.value)}
-                                    className={selectClass}
-                                >
-                                    <option value="" disabled>
-                                        Min
-                                    </option>
-                                    {MINUTOS.map((m) => (
-                                        <option key={m} value={m}>{m}</option>
-                                    ))}
-                                </select>
-
-                                <select
-                                    value={periodo}
-                                    onChange={(e) => setPeriodo(e.target.value)}
-                                    className={selectClass}
-                                >
-                                    <option value="AM">AM</option>
-                                    <option value="PM">PM</option>
-                                </select>
-
+                                {fechaEfectiva && opcionesHora.length === 0 && (
+                                    <p className="text-xs text-red-600 mt-1">
+                                        No hay horas disponibles para esta fecha.
+                                    </p>
+                                )}
                             </div>
-
-                            <p className="text-xs text-gray-500 mt-1">
-                                Horario disponible:{" "}
-                                {rangoSeleccionado.hora_inicio
-                                    ? formatear12h(rangoSeleccionado.hora_inicio)
-                                    : "--:--"}
-                                {" - "}
-                                {rangoSeleccionado.hora_fin
-                                    ? formatear12h(rangoSeleccionado.hora_fin)
-                                    : "--:--"}
-                            </p>
-
-                            {!horaValida && (
-                                <p className="text-xs text-red-600 mt-1">
-                                    La hora está fuera del horario disponible.
-                                </p>
-                            )}
-
-                        </div>
-
+                        </>
                     )}
-
                 </div>
 
-
                 {/* FOOTER */}
-
                 <div className="flex justify-end gap-2 px-6 py-4 border-t bg-gray-50 shrink-0">
-
                     <button
                         onClick={onCerrar}
                         className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
@@ -404,15 +283,10 @@ const SeleccionarFechaVisitaModal = ({
                     >
                         Confirmar visita
                     </button>
-
                 </div>
-
             </div>
-
         </div>
-
     );
-
 };
 
 export default SeleccionarFechaVisitaModal;

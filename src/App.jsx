@@ -2,10 +2,13 @@
 import { Routes, Route } from "react-router-dom";
 
 import LoginPage from "../src/presentacion/pages/LoginPage";
+import ForgotPasswordPage from "../src/presentacion/pages/ForgotPasswordPage";
+import ResetPasswordPage from "../src/presentacion/pages/Resetpasswordpage";
 
 import RegisterCandidatePage from "../src/presentacion/pages/RegisterCandidatoPage";
 import RegisterEmpresaPage from "../src/presentacion/pages/RegisterEmpresaPage";
 import RegisterStaffPage from "../src/presentacion/pages/RegisterStaffPage";
+
 
 import PeriodosAcademicos from "../src/presentacion/pages/Director/PeriodosAcademicos";
 import GruposDirector from "../src/presentacion/pages/Director/Grupos";
@@ -21,6 +24,8 @@ import VistaVisita from "./presentacion/pages/Director/VistaVisita";
 import ProtocolosPage from "./presentacion/pages/Director/ProtocolosPage";
 import DashboardDirector from "./presentacion/pages/Director/DashboardDirector";
 import TutoresDocentes from "./presentacion/pages/Director/GestionTutorDocente";
+import RequisitosConvenio from "./presentacion/pages/Director/RequisitosConvenio";
+import CandidatosPracticas from "./presentacion/pages/Director/CandidatosPractica";
 
 import ProtectedRoute from "./presentacion/components/ProtectedRoute";
 import Layout from "./presentacion/shared/layouts/Layout";
@@ -29,13 +34,11 @@ import Layout from "./presentacion/shared/layouts/Layout";
 import VisitaEmpresarialPage from "./presentacion/pages/Director/VistaVisita";
 
 // Tutor Docente
-import HomeTutorDocente from "./presentacion/pages/TutorDocente/HomeTutorDocente";
 import MisGrupos from "./presentacion/pages/TutorDocente/MisGrupos";
 import GrupoVistaTutorDocente from "./presentacion/pages/TutorDocente/MisGruposDetalle";
 import GestionarVisita from "./presentacion/pages/TutorDocente/GestionarVisita";
 
 // Tutor Empresarial
-import HomeTutorEmpresarial from "./presentacion/pages/TutorEmpresarial/HomeTutorEmpresarial";
 import MisAperturas from "./presentacion/pages/TutorEmpresarial/MisAperturas";
 import MisAperturasTutorDetalle from "./presentacion/pages/TutorEmpresarial/MisAperturasTutorDetalle";
 
@@ -43,7 +46,6 @@ import MisAperturasTutorDetalle from "./presentacion/pages/TutorEmpresarial/MisA
 import VistaInformePracticante from "./presentacion/pages/CalificarInforme";
 
 // Candidato
-import HomeCandidato from "./presentacion/pages/Candidato/HomeCandidato";
 import ResponderEncuestasPage from "./presentacion/pages/Practicante/ResponderEncuestasPage";
 
 // Candidato / Practicante
@@ -57,7 +59,7 @@ import InformeDocumento from "./presentacion/pages/Practicante/InformeDocumento"
 import Documentos from "./presentacion/pages/Practicante/Documentos";
 
 // Empresa
-import HomeEmpresa from "./presentacion/pages/Empresa/HomeEmpresa";
+
 import SubirConvenio from "./presentacion/pages/Empresa/SubirConvenio";
 import CandidatosEmpresa from "./presentacion/pages/Empresa/CandidatosEmpresa";
 import CandidatoDetalleEmpresa from "./presentacion/pages/Empresa/CandidatoDetalleEmpresa";
@@ -68,7 +70,7 @@ import ActualizarEmpresa from "./presentacion/pages/Empresa/ActualizarDatosEmpre
 import TutoresEmpresariales from "./presentacion/pages/Empresa/GestionTutorEmpresa";
 
 // Admin
-import HomeAdmin from "./presentacion/pages/Admin/HomeAdmin";
+
 import Practicas from "./presentacion/pages/Admin/PracticaAdmin";
 import UsersPage from "./presentacion/pages/Admin/GestionarUsuarios";
 import PracticaRequisitoDocumentoPage from "./presentacion/pages/Admin/GestionDocumentos";
@@ -76,6 +78,7 @@ import TipoDocumentosPage from "./presentacion/pages/Admin/TipoRequisitoDocument
 
 // Notificaciones
 import NotificacionesView from "./presentacion/pages/Notificaciones";
+import SessionExpiredModal from "./presentacion/components/modals/SessionExpiredModal";
 
 import "./index.css";
 import { Toaster } from "react-hot-toast";
@@ -86,7 +89,7 @@ export default function App() {
   return (
     <>
       <Toaster position="top-center" />
-
+      <SessionExpiredModal />
       <Routes>
 
         {/* =====================================================
@@ -100,6 +103,8 @@ export default function App() {
         <Route path="/registrarEmpresa" element={<RegisterEmpresaPage />} />
 
         <Route path="/registrarStaff" element={<RegisterStaffPage />} />
+        <Route path="/recuperar-password" element={<ForgotPasswordPage />} />
+        <Route path="/restablecer-password" element={<ResetPasswordPage />} />
 
 
         {/* =====================================================
@@ -122,17 +127,7 @@ export default function App() {
 
             <Route element={<ProtectedRoute roles={["Administrador"]} />}>
 
-              <Route path="/homeAdmin" element={<HomeAdmin />} />
-
-              <Route path="/periodos" element={<PeriodosAcademicos />} />
-
-              <Route path="/practicas" element={<Practicas />} />
-
               <Route path="/usuarios" element={<UsersPage />} />
-
-              <Route path="/documentos" element={<PracticaRequisitoDocumentoPage />} />
-
-              <Route path="/tipoDocumentos" element={<TipoDocumentosPage />} />
 
             </Route>
 
@@ -145,9 +140,12 @@ export default function App() {
 
               <Route path="/dashboard" element={<DashboardDirector />} />
 
-              <Route path="/homeDirector" element={<DashboardDirector />} />
+              <Route path="/requisitos-convenio" element={<RequisitosConvenio />} />
 
               <Route path="/grupos" element={<GruposDirector />} />
+              <Route path="/periodos" element={<PeriodosAcademicos />} />
+
+              <Route path="/practicas" element={<Practicas />} />
 
               <Route path="/grupos/:id/candidatos" element={<GrupoVistaGrupo />} />
 
@@ -164,14 +162,15 @@ export default function App() {
               <Route path="/editarEncuesta/:id" element={<AgregarEncuestaPage />} />
 
               <Route path="/arl" element={<ARL />} />
+              <Route path="/tipoDocumentos" element={<TipoDocumentosPage />} />
 
               <Route path="/reportes" element={<ReportesPage />} />
 
               <Route path="/visitas" element={<VistaVisita />} />
 
-              <Route path="/protocolos" element={<ProtocolosPage />} />
 
               <Route path="/tutorDocente" element={<TutoresDocentes />} />
+              <Route path="/candidatosAPracticas" element={<CandidatosPracticas />} />
 
             </Route>
 
@@ -205,8 +204,6 @@ export default function App() {
                 ===================================================== */}
 
             <Route element={<ProtectedRoute roles={["Empresa"]} />}>
-
-              <Route path="/homeEmpresa" element={<HomeEmpresa />} />
 
               <Route path="/subirConvenio" element={<SubirConvenio />} />
 
@@ -245,35 +242,28 @@ export default function App() {
 
             </Route>
 
+            {/* =====================================================
+                CANDIDATO
+                ===================================================== */}
 
             {/* =====================================================
-                PERFIL CANDIDATO / PRACTICANTE
-                ===================================================== */}
+              ACTUALIZAR PERFIL
+              CANDIDATO / PRACTICANTE / TUTOR DOCENTE / TUTOR EMPRESARIAL
+              ===================================================== */}
 
             <Route
               element={
                 <ProtectedRoute
                   roles={[
                     "Candidato",
-                    "Practicante"
+                    "Practicante",
+                    "Tutor Docente",
+                    "Tutor Empresarial"
                   ]}
                 />
               }
             >
-
               <Route path="/perfil" element={<ActualizarPerfil />} />
-
-            </Route>
-
-
-            {/* =====================================================
-                CANDIDATO
-                ===================================================== */}
-
-            <Route element={<ProtectedRoute roles={["Candidato"]} />}>
-
-              <Route path="/homeCandidato" element={<HomeCandidato />} />
-
             </Route>
 
 
@@ -283,9 +273,11 @@ export default function App() {
 
             <Route element={<ProtectedRoute roles={["Tutor Docente"]} />}>
 
-              <Route path="/homeTutorDocente" element={<HomeTutorDocente />} />
-
               <Route path="/misGrupos" element={<MisGrupos />} />
+
+              <Route path="/protocolos" element={<ProtocolosPage />} />
+
+              <Route path="/documentos" element={<PracticaRequisitoDocumentoPage />} />
 
               <Route path="/grupos/:id/practicantes" element={<GrupoVistaTutorDocente />} />
 
@@ -347,8 +339,6 @@ export default function App() {
                 ===================================================== */}
 
             <Route element={<ProtectedRoute roles={["Tutor Empresarial"]} />}>
-
-              <Route path="/homeTutorEmpresarial" element={<HomeTutorEmpresarial />} />
 
               <Route path="/mis-aperturas" element={<MisAperturas />} />
 

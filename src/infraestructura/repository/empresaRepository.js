@@ -6,7 +6,9 @@ import {
     getDetalleGrupoEmpresaRequest,
     actualizarEmpresaRequest,
     getEmpresasParaReportePorPeriodoRequest,
-    getEmpresasParaSelectRequest
+    getEmpresasParaSelectRequest,
+    subirCertificadoFinalizacionRequest,
+    getCertificadoFinalizacionRequest
 } from "../api/empresa.api.js";
 
 
@@ -109,6 +111,32 @@ export const EmpresaRepository = {
 
         return await getEmpresasParaSelectRequest(
             convenio
+        );
+
+    },
+
+    // =========================================================
+    // SUBIR CERTIFICADO DE FINALIZACIÓN
+    // =========================================================
+
+    async subirCertificadoFinalizacion(practicanteId, data) {
+
+        return await subirCertificadoFinalizacionRequest(
+            practicanteId,
+            data
+        );
+
+    },
+
+
+    // =========================================================
+    // OBTENER CERTIFICADO DE FINALIZACIÓN
+    // =========================================================
+
+    async obtenerCertificadoFinalizacion(practicanteId) {
+
+        return await getCertificadoFinalizacionRequest(
+            practicanteId
         );
 
     }

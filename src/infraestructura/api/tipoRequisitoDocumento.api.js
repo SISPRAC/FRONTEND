@@ -1,14 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-
-const tipoRequisitoDocumentoApi = axios.create({
-
-    baseURL: "http://localhost:3000/api/tipoRequisitoDocumento",
-
-    withCredentials: true
-
-});
-
+const tipoRequisitoDocumentoApi  = createApi("/tipoRequisitoDocumento");
 
 // Agregar token automáticamente a cada petición
 tipoRequisitoDocumentoApi.interceptors.request.use(
@@ -18,10 +10,10 @@ tipoRequisitoDocumentoApi.interceptors.request.use(
         const token = localStorage.getItem("token");
 
 
-        if(token){
+        if (token) {
 
             config.headers.Authorization =
-            `Bearer ${token}`;
+                `Bearer ${token}`;
 
         }
 
@@ -40,10 +32,14 @@ tipoRequisitoDocumentoApi.interceptors.request.use(
 
 
 // Obtener todos los tipos de requisitos documentales
-export const getTiposRequisitoDocumentoRequest = async () => {
+// params es opcional: { es_requisito_convenio: true, tipo_empresa: "privada" }
+export const getTiposRequisitoDocumentoRequest = async (
+    params
+) => {
 
     return await tipoRequisitoDocumentoApi.get(
-        "/all"
+        "/all",
+        { params }
     );
 
 };

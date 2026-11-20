@@ -1,14 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-
-const tipoInformeApi = axios.create({
-
-    baseURL: "http://localhost:3000/api/tipoInforme",
-
-    withCredentials: true
-
-});
-
+const tipoInformeApi  = createApi("/tipoInforme");
 
 // Agregar token automáticamente a cada petición
 tipoInformeApi.interceptors.request.use(

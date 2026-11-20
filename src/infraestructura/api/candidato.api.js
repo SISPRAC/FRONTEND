@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const candidatoApi = axios.create({
-  baseURL: "http://localhost:3000/api/candidato",
-  withCredentials: true
-});
+const candidatoApi = createApi("/candidato");
 
 candidatoApi.interceptors.request.use(
   (config) => {
@@ -70,4 +67,9 @@ export const invitarCandidatoRequest = (data) => {
 // Obtener candidatos para el reporte por período
 export const obtenerCandidatosParaReportePorPeriodoRequest = (periodo_id) => {
   return candidatoApi.get(`/reporte/periodo/${periodo_id}`);
+};
+
+// Verificar candidatos del PDF (registrados / no registrados)
+export const verificarCandidatosPdfRequest = (alumnos) => {
+  return candidatoApi.post("/verificar-pdf", { alumnos });
 };
