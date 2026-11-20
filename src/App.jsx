@@ -1,9 +1,9 @@
 
 import { Routes, Route } from "react-router-dom";
 
-import LoginPage from "../src/presentacion/pages/LoginPage";
-import ForgotPasswordPage from "./presentacion/pages/ForgotPasswordPage.jsx";
-import ResetPasswordPage from "../src/presentacion/pages/Resetpasswordpage";
+import LoginPage from "./presentacion/pages/LoginPage";
+import ForgotPasswordPage from "./presentacion/pages/ForgotPasswordPage";
+import ResetPasswordPage from "./presentacion/pages/Resetpasswordpage";
 
 import RegisterCandidatePage from "../src/presentacion/pages/RegisterCandidatoPage";
 import RegisterEmpresaPage from "../src/presentacion/pages/RegisterEmpresaPage";
