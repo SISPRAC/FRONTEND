@@ -1,5 +1,5 @@
 import { useState } from "react";
-import ForgotPasswordForm from "../components/ForgotPasswordForm.jsx";
+import ForgotPasswordForm from "../components/Forgotpasswordform.jsx";
 import { forgotPassword } from "../../aplicacion/auth/forgotpassword.js";
 import { passwordResetRepository } from "../../infraestructura/repository/PasswordresetRepository.js";
 

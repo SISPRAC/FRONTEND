@@ -11,7 +11,7 @@ import { useEffect, useState } from "react";
 import { encuestaRepository } from "../../../infraestructura/repository/encuestaRepository.js";
 import { getEncuestas } from "../../../aplicacion/encuesta/getEncuestas.js";
 
-import AddButton from "../../components/buttons/AddButton";
+import AddButton from "../../components/buttons/Addbutton.jsx";
 import AsignarEncuestaModal from "../../components/modals/AsignarEncuestaModal";
 
 import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";

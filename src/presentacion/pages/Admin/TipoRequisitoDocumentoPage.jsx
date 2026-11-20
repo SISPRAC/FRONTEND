@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import { Trash, SquarePen } from "lucide-react";
 
 import GenericTable from "../../components/Table/GenericTable";
-import AddButton from "../../components/buttons/AddButton";
+import AddButton from "../../components/buttons/Addbutton.jsx";
 import ConfirmModal from "../../components/modals/ConfirmModal";
 import TipoRequisitoDocumentoModal from "../../components/modals/TipoRequisitoDocumentoModal.jsx";
 

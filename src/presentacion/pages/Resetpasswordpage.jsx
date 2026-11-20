@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import ResetPasswordForm from "../components/ResetPasswordForm.jsx";
+import ResetPasswordForm from "../components/Resetpasswordform.jsx";
 import { resetPassword } from "../../aplicacion/auth/resetpassword.js";
 import { passwordResetRepository } from "../../infraestructura/repository/PasswordresetRepository.js";
 
