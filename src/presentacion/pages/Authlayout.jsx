@@ -1,5 +1,5 @@
 import bg from "../../assets/images/backgrounds/fondo.jpg";
-import fondo from "../../assets/images/logo/logo login.png";
+import fondo from "../../assets/images/logo/Logo_login.png";
 import programa from "../../assets/images/logo/Programa_Ingeniería_de_Sistemas.png";
 
 // Marco compartido (fondo + tarjeta + logos) para las pantallas de autenticación

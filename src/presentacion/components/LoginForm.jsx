@@ -1,7 +1,7 @@
 
 import bg from "../../assets/images/backgrounds/fondo.jpg";
 import programa from "../../assets/images/logo/Programa_Ingeniería_de_Sistemas.png";
-import fondo from "../../assets/images/logo/logoReportes.png";
+import fondo from "../../assets/images/logo/LogoReportes.png";
 import { LoaderCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
