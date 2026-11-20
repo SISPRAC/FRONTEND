@@ -1,6 +1,7 @@
 import { createApi } from "./createApi.js";
 
 const staffApi  = createApi("/staff");
+const invitacionApi = createApi("/invitacion");
 
 // Registro
 export const registerStaffRequest = (data, token) => {
@@ -22,7 +23,7 @@ export const generarInvitacionTutorDocente = () => {
 
 // Validar invitación
 export const validarInvitacionRequest = (token) => {
-  return staffApi.get(
-    `http://localhost:3000/api/invitacion/validar?token=${encodeURIComponent(token)}`
+  return invitacionApi.get(
+    `/validar?token=${encodeURIComponent(token)}`
   );
 };
