@@ -1,14 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-
-const periodoApi = axios.create({
-
-    baseURL: "http://localhost:3000/api/periodo",
-
-    withCredentials: true
-
-});
-
+const periodoApi = createApi("/periodo");
 
 // Agregar token automáticamente a cada petición
 periodoApi.interceptors.request.use(

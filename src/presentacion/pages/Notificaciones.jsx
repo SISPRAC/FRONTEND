@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { marcarTodasNotificacionesLeidas } from "../../aplicacion/notificacion/marcarTodasNotificacionesLeidas.js";
 import { marcarNotificacionLeida } from "../../aplicacion/notificacion/marcarNotificacionLeida.js";
 import { obtenerNotificaciones } from "../../aplicacion/notificacion/obtenerNotificaciones.js";
-
+import toast from "react-hot-toast";
 // Repositorio
 import { notificacionRepository } from "../../infraestructura/repository/notificacionRepository.js";
 
@@ -14,7 +14,7 @@ const dependencias = { notificacionRepository };
 const POR_PAGINA = 6;
 
 const FILTROS = {
-    TODAS: "todas",
+    LEIDAS: "leidas",
     NO_LEIDAS: "no-leidas",
 };
 
@@ -35,6 +35,11 @@ const formatearFecha = (fecha) => {
         hour12: true,
     });
 };
+
+const normalizarNotificacion = (notificacion) => ({
+    ...notificacion,
+    leida: String(notificacion.estado).toUpperCase() === "LEIDA",
+});
 
 // Todo lo que venga entre comillas ("así", “así” o «así») sale en negrilla y más grande
 const resaltarComillas = (texto) => {
@@ -60,7 +65,7 @@ export default function NotificacionesView() {
     // Siempre se guardan TODAS; el filtro se aplica en pantalla.
     // Así los contadores (total / sin leer) nunca dependen del filtro activo.
     const [notificaciones, setNotificaciones] = useState([]);
-    const [filtro, setFiltro] = useState(FILTROS.TODAS);
+    const [filtro, setFiltro] = useState(FILTROS.NO_LEIDAS);
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState(null);
     const [marcandoTodas, setMarcandoTodas] = useState(false);
@@ -68,6 +73,12 @@ export default function NotificacionesView() {
     const [pagina, setPagina] = useState(1);
 
     const total = notificaciones.length;
+
+    const leidasCount = useMemo(
+        () => notificaciones.filter((n) => n.leida).length,
+        [notificaciones]
+    );
+
     const noLeidasCount = useMemo(
         () => notificaciones.filter((n) => !n.leida).length,
         [notificaciones]
@@ -75,9 +86,9 @@ export default function NotificacionesView() {
 
     const visibles = useMemo(
         () =>
-            filtro === FILTROS.NO_LEIDAS
-                ? notificaciones.filter((n) => !n.leida)
-                : notificaciones,
+            filtro === FILTROS.LEIDAS
+                ? notificaciones.filter((n) => n.leida)
+                : notificaciones.filter((n) => !n.leida),
         [notificaciones, filtro]
     );
 
@@ -99,7 +110,8 @@ export default function NotificacionesView() {
 
         try {
             const data = await obtenerNotificaciones(dependencias);
-            setNotificaciones(data ?? []);
+
+            setNotificaciones((data ?? []).map(normalizarNotificacion));
         } catch (err) {
             setError(
                 err?.message || "No se pudieron cargar las notificaciones"
@@ -120,12 +132,16 @@ export default function NotificacionesView() {
             await marcarNotificacionLeida(dependencias, id);
 
             setNotificaciones((prev) =>
-                prev.map((n) => (n.id === id ? { ...n, leida: true } : n))
+                prev.map((n) =>
+                    n.id === id
+                        ? { ...n, leida: true, estado: "LEIDA" }
+                        : n
+                )
             );
         } catch (err) {
             setError(
                 err?.message ||
-                    "No se pudo marcar la notificación como leída"
+                "No se pudo marcar la notificación como leída"
             );
         } finally {
             setIdEnProceso(null);
@@ -133,14 +149,21 @@ export default function NotificacionesView() {
     };
 
     const handleMarcarTodas = async () => {
+        if (noLeidasCount === 0) {
+            toast.error("No tienes notificaciones pendientes por leer");
+            return;
+        }
+
         setMarcandoTodas(true);
 
         try {
             await marcarTodasNotificacionesLeidas(dependencias);
 
             setNotificaciones((prev) =>
-                prev.map((n) => ({ ...n, leida: true }))
+                prev.map((n) => ({ ...n, leida: true, estado: "LEIDA" }))
             );
+
+            toast.success("Todas las notificaciones fueron marcadas como leídas");
         } catch (err) {
             setError(
                 err?.message || "No se pudieron marcar todas como leídas"
@@ -151,8 +174,8 @@ export default function NotificacionesView() {
     };
 
     const tabs = [
-        { key: FILTROS.TODAS, label: "Todas", count: total },
-        { key: FILTROS.NO_LEIDAS, label: "No leídas", count: noLeidasCount },
+        { key: FILTROS.NO_LEIDAS, label: "Sin leer", count: noLeidasCount },
+        { key: FILTROS.LEIDAS, label: "Leídas", count: leidasCount },
     ];
 
     return (
@@ -169,11 +192,10 @@ export default function NotificacionesView() {
                             <span>
                                 Sin leer{" "}
                                 <strong
-                                    className={`text-base ${
-                                        noLeidasCount > 0
-                                            ? "text-red-600"
-                                            : "text-neutral-900"
-                                    }`}
+                                    className={`text-base ${noLeidasCount > 0
+                                        ? "text-red-600"
+                                        : "text-neutral-900"
+                                        }`}
                                 >
                                     {noLeidasCount}
                                 </strong>
@@ -194,7 +216,7 @@ export default function NotificacionesView() {
                     <button
                         type="button"
                         onClick={handleMarcarTodas}
-                        disabled={marcandoTodas || noLeidasCount === 0}
+                        disabled={marcandoTodas}
                         className="shrink-0 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50 disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300 disabled:hover:bg-transparent"
                     >
                         {marcandoTodas ? "Marcando..." : "Leer todas"}
@@ -212,19 +234,17 @@ export default function NotificacionesView() {
                             setFiltro(tab.key);
                             setPagina(1);
                         }}
-                        className={`-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium transition-colors ${
-                            filtro === tab.key
-                                ? "border-neutral-900 text-neutral-900"
-                                : "border-transparent text-neutral-400 hover:text-neutral-600"
-                        }`}
+                        className={`-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-medium transition-colors ${filtro === tab.key
+                            ? "border-neutral-900 text-neutral-900"
+                            : "border-transparent text-neutral-400 hover:text-neutral-600"
+                            }`}
                     >
                         {tab.label}
                         <span
-                            className={`rounded-full px-2 py-0.5 text-xs ${
-                                filtro === tab.key
-                                    ? "bg-neutral-900 text-white"
-                                    : "bg-neutral-100 text-neutral-500"
-                            }`}
+                            className={`rounded-full px-2 py-0.5 text-xs ${filtro === tab.key
+                                ? "bg-neutral-900 text-white"
+                                : "bg-neutral-100 text-neutral-500"
+                                }`}
                         >
                             {tab.count}
                         </span>
@@ -262,7 +282,7 @@ export default function NotificacionesView() {
                     <p className="text-sm font-medium text-neutral-700">
                         {filtro === FILTROS.NO_LEIDAS
                             ? "No tienes notificaciones sin leer"
-                            : "Aún no tienes notificaciones"}
+                            : "No tienes notificaciones leídas"}
                     </p>
 
                     <p className="mt-1 text-sm text-neutral-400">
@@ -280,11 +300,10 @@ export default function NotificacionesView() {
                                     !n.leida && handleMarcarLeida(n.id)
                                 }
                                 disabled={idEnProceso === n.id}
-                                className={`w-full rounded-lg border text-left transition-colors ${
-                                    n.leida
-                                        ? "cursor-default border-neutral-200 bg-white"
-                                        : "border-neutral-300 bg-neutral-50 hover:bg-neutral-100"
-                                } ${idEnProceso === n.id ? "opacity-60" : ""}`}
+                                className={`w-full rounded-lg border text-left transition-colors ${n.leida
+                                    ? "cursor-default border-neutral-200 bg-white"
+                                    : "border-neutral-300 bg-neutral-50 hover:bg-neutral-100"
+                                    } ${idEnProceso === n.id ? "opacity-60" : ""}`}
                             >
                                 <div className="flex items-start gap-3 px-4 py-3">
                                     {/* Punto rojo SOLO si no está leída */}
@@ -299,11 +318,10 @@ export default function NotificacionesView() {
 
                                     <span className="min-w-0 flex-1">
                                         <span
-                                            className={`block text-sm ${
-                                                n.leida
-                                                    ? "font-normal text-neutral-500"
-                                                    : "font-semibold text-neutral-900"
-                                            }`}
+                                            className={`block text-sm ${n.leida
+                                                ? "font-normal text-neutral-500"
+                                                : "font-semibold text-neutral-900"
+                                                }`}
                                         >
                                             {resaltarComillas(n.titulo)}
                                         </span>

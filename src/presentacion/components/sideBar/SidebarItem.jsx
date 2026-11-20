@@ -41,6 +41,11 @@ export const Director_NAV = [
     href: "/practicas",
   },
   {
+    label: "Documentos Practicantes",
+    icon: <FileStack />,
+    href: "/tipoDocumentos",
+  },
+  {
     label: "Grupos",
     icon: <Users />,
     href: "/grupos",
@@ -230,11 +235,6 @@ export const TutorDocente_NAV = [
     icon: <FileStack />,
     href: "/documentos",
   },
-  {
-    label: "Documentos Practicantes",
-    icon: <FileStack />,
-    href: "/tipoDocumentos",
-  },
 
   {
     label: "Notificaciones",
@@ -305,7 +305,7 @@ export const ROLE_NAV = {
 
 export const HOME_ROUTES = {
   "Administrador": "/usuarios",
-  "Director de programa": "/homeDirector",
+  "Director de programa": "/dashboard",
   "Empresa": "/subirConvenio",
   "Practicante": "/homePracticante",
   "Candidato": "/perfil",

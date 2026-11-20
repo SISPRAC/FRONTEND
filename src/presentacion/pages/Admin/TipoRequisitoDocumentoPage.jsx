@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Trash, SquarePen } from "lucide-react";
@@ -45,41 +46,50 @@ export default function TipoRequisitoDocumentoPage() {
     const loadRequisitos = async () => {
         try {
             const data = await obtenerTiposRequisitoDocumento({
-                tipoRequisitoDocumentoRepository
+                tipoRequisitoDocumentoRepository,
             });
 
             setRows(Array.isArray(data) ? data : data?.data || []);
             setCurrentPage(1);
         } catch (error) {
             console.log(error);
-            toast.error("No fue posible cargar los requisitos documentales.");
+            toast.error(
+                "No fue posible cargar los requisitos documentales."
+            );
         }
     };
 
-    // Solo practicantes
+    // Solo practicantes.
     const rowsPracticante = useMemo(
-        () => rows.filter(row => Number(row.rol_id) === ROL_PRACTICANTE_ID),
+        () =>
+            rows.filter(
+                (row) => Number(row.rol_id) === ROL_PRACTICANTE_ID
+            ),
         [rows]
     );
 
-    // Filtro por búsqueda
+    // Filtro por búsqueda.
     const rowsFiltradas = useMemo(() => {
         const termino = busqueda.trim().toLowerCase();
+
         if (!termino) return rowsPracticante;
 
-        return rowsPracticante.filter(row =>
-            row.nombre?.toLowerCase().includes(termino) ||
-            row.descripcion?.toLowerCase().includes(termino)
+        return rowsPracticante.filter(
+            (row) =>
+                row.nombre?.toLowerCase().includes(termino) ||
+                row.descripcion?.toLowerCase().includes(termino)
         );
     }, [rowsPracticante, busqueda]);
 
+    // Validar nombres repetidos.
     const nombreRepetido = (nombre, idActual = null) =>
         rowsPracticante.some(
-            row =>
-                row.id !== idActual &&
+            (row) =>
+                Number(row.id) !== Number(idActual) &&
                 normalizar(row.nombre) === normalizar(nombre)
         );
 
+    // Construir FormData.
     const buildFormData = (formData) => {
         const data = new FormData();
 
@@ -96,12 +106,14 @@ export default function TipoRequisitoDocumentoPage() {
         return data;
     };
 
+    // Abrir creación.
     const handleCreate = () => {
         setSelectedRequisito(null);
         setMode("create");
         setIsOpen(true);
     };
 
+    // Abrir edición.
     const handleEdit = async (id) => {
         try {
             const data = await obtenerTipoRequisitoDocumento(
@@ -121,12 +133,15 @@ export default function TipoRequisitoDocumentoPage() {
             setIsOpen(true);
         } catch (error) {
             console.log(error);
+
             toast.error(
-                error.response?.data?.message || "Error al cargar el requisito."
+                error.response?.data?.message ||
+                "Error al cargar el requisito."
             );
         }
     };
 
+    // Crear requisito.
     const handleSave = async (formData) => {
         if (nombreRepetido(formData.nombre)) {
             toast.error("Ya existe un documento con ese nombre.");
@@ -140,16 +155,20 @@ export default function TipoRequisitoDocumentoPage() {
             );
 
             await loadRequisitos();
+
             toast.success("Requisito creado.");
             setIsOpen(false);
         } catch (error) {
             console.log(error);
+
             toast.error(
-                error.response?.data?.message || "Error al crear el requisito."
+                error.response?.data?.message ||
+                "Error al crear el requisito."
             );
         }
     };
 
+    // Actualizar requisito.
     const handleUpdate = async (formData) => {
         if (nombreRepetido(formData.nombre, formData.id)) {
             toast.error("Ya existe un documento con ese nombre.");
@@ -164,28 +183,36 @@ export default function TipoRequisitoDocumentoPage() {
             );
 
             await loadRequisitos();
+
             toast.success("Requisito actualizado.");
             setIsOpen(false);
         } catch (error) {
             console.log(error);
+
             toast.error(
-                error.response?.data?.message || "Error al actualizar."
+                error.response?.data?.message ||
+                "Error al actualizar."
             );
         }
     };
 
+    // Abrir confirmación de eliminación.
     const deleteRow = (id) => {
-        setRequisitoToDelete(rows.find(row => row.id === id));
+        setRequisitoToDelete(rows.find((row) => row.id === id));
         setDeleteModal(true);
     };
 
     const cerrarDelete = () => {
         if (eliminando) return;
+
         setDeleteModal(false);
         setRequisitoToDelete(null);
     };
 
+    // Eliminar requisito.
     const handleDelete = async () => {
+        if (!requisitoToDelete) return;
+
         try {
             setEliminando(true);
 
@@ -195,13 +222,16 @@ export default function TipoRequisitoDocumentoPage() {
             );
 
             await loadRequisitos();
+
             toast.success("Requisito eliminado.");
             setDeleteModal(false);
             setRequisitoToDelete(null);
         } catch (error) {
             console.log(error);
+
             toast.error(
-                error.response?.data?.message || "Error al eliminar."
+                error.response?.data?.message ||
+                "Error al eliminar."
             );
         } finally {
             setEliminando(false);
@@ -214,6 +244,7 @@ export default function TipoRequisitoDocumentoPage() {
                 Documentos Practicante
             </h1>
 
+            {/* Búsqueda */}
             <div className="bg-white rounded-2xl shadow-sm border p-5 mb-6">
                 <label className="block mb-2 font-semibold text-slate-700">
                     Buscar documento
@@ -231,6 +262,7 @@ export default function TipoRequisitoDocumentoPage() {
                 />
             </div>
 
+            {/* Tabla */}
             <GenericTable
                 rows={rowsFiltradas}
                 currentPage={currentPage}
@@ -242,44 +274,55 @@ export default function TipoRequisitoDocumentoPage() {
                         : "No hay requisitos documentales registrados para practicantes."
                 }
                 columns={[
-                    { key: "nombre", label: "Documento", primary: true },
+                    {
+                        key: "nombre",
+                        label: "Documento",
+                        primary: true,
+                    },
                     {
                         key: "descripcion",
                         label: "Descripción",
-                        render: row => row.descripcion || "Sin descripción"
+                        render: (row) =>
+                            row.descripcion || "Sin descripción",
                     },
                     {
                         key: "obligatorio",
                         label: "Obligatorio",
-                        render: row => (row.obligatorio ? "Sí" : "No")
+                        render: (row) =>
+                            row.obligatorio ? "Sí" : "No",
                     },
                     {
                         key: "plantilla",
                         label: "Plantilla",
-                        render: row => (row.plantilla ? "Disponible" : "Sin plantilla")
+                        render: (row) =>
+                            row.plantilla
+                                ? "Disponible"
+                                : "Sin plantilla",
                     },
                     {
                         key: "estado",
                         label: "Estado",
-                        render: row => (row.estado ? "Activo" : "Inactivo")
-                    }
+                        render: (row) =>
+                            row.estado ? "Activo" : "Inactivo",
+                    },
                 ]}
                 actions={[
                     {
                         icon: <SquarePen size={22} />,
                         className: "hover:bg-blue-100",
-                        onClick: handleEdit
+                        onClick: handleEdit,
                     },
                     {
                         icon: <Trash size={22} />,
                         className: "hover:bg-red-100",
-                        onClick: deleteRow
-                    }
+                        onClick: deleteRow,
+                    },
                 ]}
             />
 
             <AddButton onClick={handleCreate} />
 
+            {/* Modal crear / editar */}
             <TipoRequisitoDocumentoModal
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
@@ -289,6 +332,7 @@ export default function TipoRequisitoDocumentoPage() {
                 mode={mode}
             />
 
+            {/* Confirmar eliminación */}
             <ConfirmModal
                 isOpen={deleteModal}
                 title="Eliminar requisito documental"

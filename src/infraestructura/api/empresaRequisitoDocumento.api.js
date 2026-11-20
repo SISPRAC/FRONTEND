@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const empresaRequisitoDocumentoApi = axios.create({
-    baseURL: "http://localhost:3000/api/empresaRequisitoDocumento",
-    withCredentials: true
-});
+const empresaRequisitoDocumentoApi =  createApi("/empresaRequisitoDocumento");
 
 empresaRequisitoDocumentoApi.interceptors.request.use(
     (config) => {

@@ -80,20 +80,7 @@ export default function LoginForm({
                             </div>
 
                             {/* Recordarme y recuperar contraseña */}
-                            <div className="w-full flex items-center justify-between mt-6 text-gray-500">
-
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        className="h-4 w-4 accent-red-600"
-                                        type="checkbox"
-                                        id="checkbox"
-                                        disabled={loading}
-                                    />
-                                    <label className="text-sm" htmlFor="checkbox">
-                                        Recuérdame
-                                    </label>
-                                </div>
-
+                            <div className="w-full flex items-center justify-end mt-6 text-gray-500">
                                 <Link
                                     className="text-sm underline hover:text-red-600 transition-colors"
                                     to="/recuperar-password"

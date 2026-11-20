@@ -34,13 +34,11 @@ import Layout from "./presentacion/shared/layouts/Layout";
 import VisitaEmpresarialPage from "./presentacion/pages/Director/VistaVisita";
 
 // Tutor Docente
-import HomeTutorDocente from "./presentacion/pages/TutorDocente/HomeTutorDocente";
 import MisGrupos from "./presentacion/pages/TutorDocente/MisGrupos";
 import GrupoVistaTutorDocente from "./presentacion/pages/TutorDocente/MisGruposDetalle";
 import GestionarVisita from "./presentacion/pages/TutorDocente/GestionarVisita";
 
 // Tutor Empresarial
-import HomeTutorEmpresarial from "./presentacion/pages/TutorEmpresarial/HomeTutorEmpresarial";
 import MisAperturas from "./presentacion/pages/TutorEmpresarial/MisAperturas";
 import MisAperturasTutorDetalle from "./presentacion/pages/TutorEmpresarial/MisAperturasTutorDetalle";
 
@@ -48,7 +46,6 @@ import MisAperturasTutorDetalle from "./presentacion/pages/TutorEmpresarial/MisA
 import VistaInformePracticante from "./presentacion/pages/CalificarInforme";
 
 // Candidato
-import HomeCandidato from "./presentacion/pages/Candidato/HomeCandidato";
 import ResponderEncuestasPage from "./presentacion/pages/Practicante/ResponderEncuestasPage";
 
 // Candidato / Practicante
@@ -62,7 +59,7 @@ import InformeDocumento from "./presentacion/pages/Practicante/InformeDocumento"
 import Documentos from "./presentacion/pages/Practicante/Documentos";
 
 // Empresa
-import HomeEmpresa from "./presentacion/pages/Empresa/HomeEmpresa";
+
 import SubirConvenio from "./presentacion/pages/Empresa/SubirConvenio";
 import CandidatosEmpresa from "./presentacion/pages/Empresa/CandidatosEmpresa";
 import CandidatoDetalleEmpresa from "./presentacion/pages/Empresa/CandidatoDetalleEmpresa";
@@ -73,7 +70,7 @@ import ActualizarEmpresa from "./presentacion/pages/Empresa/ActualizarDatosEmpre
 import TutoresEmpresariales from "./presentacion/pages/Empresa/GestionTutorEmpresa";
 
 // Admin
-import HomeAdmin from "./presentacion/pages/Admin/HomeAdmin";
+
 import Practicas from "./presentacion/pages/Admin/PracticaAdmin";
 import UsersPage from "./presentacion/pages/Admin/GestionarUsuarios";
 import PracticaRequisitoDocumentoPage from "./presentacion/pages/Admin/GestionDocumentos";
@@ -130,10 +127,7 @@ export default function App() {
 
             <Route element={<ProtectedRoute roles={["Administrador"]} />}>
 
-              <Route path="/homeAdmin" element={<HomeAdmin />} />
-
               <Route path="/usuarios" element={<UsersPage />} />
-
 
             </Route>
 
@@ -145,8 +139,6 @@ export default function App() {
             <Route element={<ProtectedRoute roles={["Director de programa"]} />}>
 
               <Route path="/dashboard" element={<DashboardDirector />} />
-
-              <Route path="/homeDirector" element={<DashboardDirector />} />
 
               <Route path="/requisitos-convenio" element={<RequisitosConvenio />} />
 
@@ -170,6 +162,7 @@ export default function App() {
               <Route path="/editarEncuesta/:id" element={<AgregarEncuestaPage />} />
 
               <Route path="/arl" element={<ARL />} />
+              <Route path="/tipoDocumentos" element={<TipoDocumentosPage />} />
 
               <Route path="/reportes" element={<ReportesPage />} />
 
@@ -212,8 +205,6 @@ export default function App() {
 
             <Route element={<ProtectedRoute roles={["Empresa"]} />}>
 
-              <Route path="/homeEmpresa" element={<HomeEmpresa />} />
-
               <Route path="/subirConvenio" element={<SubirConvenio />} />
 
               <Route path="/candidatos" element={<CandidatosEmpresa />} />
@@ -251,35 +242,28 @@ export default function App() {
 
             </Route>
 
+            {/* =====================================================
+                CANDIDATO
+                ===================================================== */}
 
             {/* =====================================================
-                PERFIL CANDIDATO / PRACTICANTE
-                ===================================================== */}
+              ACTUALIZAR PERFIL
+              CANDIDATO / PRACTICANTE / TUTOR DOCENTE / TUTOR EMPRESARIAL
+              ===================================================== */}
 
             <Route
               element={
                 <ProtectedRoute
                   roles={[
                     "Candidato",
-                    "Practicante"
+                    "Practicante",
+                    "Tutor Docente",
+                    "Tutor Empresarial"
                   ]}
                 />
               }
             >
-
               <Route path="/perfil" element={<ActualizarPerfil />} />
-
-            </Route>
-
-
-            {/* =====================================================
-                CANDIDATO
-                ===================================================== */}
-
-            <Route element={<ProtectedRoute roles={["Candidato"]} />}>
-
-              <Route path="/homeCandidato" element={<HomeCandidato />} />
-
             </Route>
 
 
@@ -289,15 +273,11 @@ export default function App() {
 
             <Route element={<ProtectedRoute roles={["Tutor Docente"]} />}>
 
-              <Route path="/homeTutorDocente" element={<HomeTutorDocente />} />
-
               <Route path="/misGrupos" element={<MisGrupos />} />
 
               <Route path="/protocolos" element={<ProtocolosPage />} />
 
               <Route path="/documentos" element={<PracticaRequisitoDocumentoPage />} />
-
-              <Route path="/tipoDocumentos" element={<TipoDocumentosPage />} />
 
               <Route path="/grupos/:id/practicantes" element={<GrupoVistaTutorDocente />} />
 
@@ -359,8 +339,6 @@ export default function App() {
                 ===================================================== */}
 
             <Route element={<ProtectedRoute roles={["Tutor Empresarial"]} />}>
-
-              <Route path="/homeTutorEmpresarial" element={<HomeTutorEmpresarial />} />
 
               <Route path="/mis-aperturas" element={<MisAperturas />} />
 

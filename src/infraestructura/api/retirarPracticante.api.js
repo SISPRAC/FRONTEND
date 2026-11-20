@@ -1,13 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const retiroPracticanteApi = axios.create({
-
-    baseURL: "http://localhost:3000/api/retiroPracticante",
-
-    withCredentials: true
-
-});
-
+const retiroPracticanteApi = createApi("/retiroPracticante");
 
 retiroPracticanteApi.interceptors.request.use(
 

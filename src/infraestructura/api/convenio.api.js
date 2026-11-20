@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const convenioApi = axios.create({
-    baseURL: "http://localhost:3000/api/convenio",
-    withCredentials: true
-});
+const convenioApi =  createApi("/convenio");
 
 // Interceptor JWT
 convenioApi.interceptors.request.use(

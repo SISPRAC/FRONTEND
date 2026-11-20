@@ -1,14 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-
-const practicaInformeApi = axios.create({
-
-    baseURL: "http://localhost:3000/api/practicaInforme",
-
-    withCredentials: true
-
-});
-
+const practicaInformeApi = createApi("/practicaInforme");
 
 // Agregar token automáticamente a cada petición
 practicaInformeApi.interceptors.request.use(

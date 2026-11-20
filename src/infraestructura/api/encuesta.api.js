@@ -1,10 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const encuestaApi = axios.create({
-    baseURL: "http://localhost:3000/api/encuesta",
-    withCredentials: true
-});
-
+const encuestaApi =  createApi("/encuesta");
 
 // Agregar token automáticamente a cada petición
 encuestaApi.interceptors.request.use(

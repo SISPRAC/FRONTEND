@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const habilidadBlandaApi = axios.create({
-    baseURL: "http://localhost:3000/api/habilidadesBlandas",
-    withCredentials: true
-});
+const habilidadBlandaApi =  createApi("/habilidadesBlandas");
 
 // Agregar token automáticamente a cada petición
 habilidadBlandaApi.interceptors.request.use(

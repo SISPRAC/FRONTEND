@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const tutorEmpresarialApi = axios.create({
-  baseURL: "http://localhost:3000/api/tutorEmpresarial",
-  withCredentials: true
-});
+const tutorEmpresarialApi  = createApi("/tutorEmpresarial");
 
 tutorEmpresarialApi.interceptors.request.use(
   (config) => {

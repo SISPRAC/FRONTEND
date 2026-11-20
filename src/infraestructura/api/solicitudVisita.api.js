@@ -1,10 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const solicitudVisitaApi = axios.create({
-    baseURL: "http://localhost:3000/api/solicitudVisita",
-    withCredentials: true
-});
-
+const solicitudVisitaApi  = createApi("/solicitudVisita");
 
 const getToken = () => {
     return localStorage.getItem("token");

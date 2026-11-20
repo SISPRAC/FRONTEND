@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const historialConvenioApi = axios.create({
-  baseURL: "http://localhost:3000/api/historialConvenio",
-  withCredentials: true
-});
+const historialConvenioApi =  createApi("/historialConvenio");
 
 export const registrarHistrialConvenioRequest = async (data) => {
   return await historialConvenioApi.post("/registrar", data);

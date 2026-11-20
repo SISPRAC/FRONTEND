@@ -31,7 +31,7 @@ export default function LoginPage() {
 
         switch (rol) {
             case "Administrador":        navigate("/usuarios"); break;
-            case "Director de programa": navigate("/homeDirector"); break;
+            case "Director de programa": navigate("/dashboard"); break;
             case "Empresa":              navigate("/subirConvenio"); break;
             case "Practicante":          navigate("/homePracticante"); break;
             case "Candidato":            navigate("/perfil"); break;

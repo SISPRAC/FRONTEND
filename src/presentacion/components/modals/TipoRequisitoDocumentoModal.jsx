@@ -1,9 +1,24 @@
+
 import { useEffect, useState } from "react";
-import { X, FileText, Upload, Loader2, Trash2, RefreshCw } from "lucide-react";
+import {
+    X,
+    FileText,
+    Upload,
+    Loader2,
+    Trash2,
+    RefreshCw,
+    Lock
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 
 const ROL_PRACTICANTE_ID = 4;
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
+const NOMBRES_DOCUMENTOS_FIJOS = [
+    "Plan de Trabajo",
+    "Informe Parcial",
+    "Informe Final",
+];
 
 const estadoInicial = {
     nombre: "",
@@ -25,29 +40,49 @@ const normalizar = (texto = "") =>
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/\s+/g, " ");
 
-/* ---------- Visor de PDF (con spinner mientras carga) ---------- */
+/* ---------- Visor PDF ---------- */
 function VisorPdf({ src }) {
     const [cargando, setCargando] = useState(true);
+    const [error, setError] = useState(false);
 
     useEffect(() => {
         setCargando(true);
+        setError(false);
     }, [src]);
 
     return (
-        <div className="relative flex-1">
-            {cargando && (
+        <div className="relative flex-1 min-h-0">
+            {cargando && !error && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-white text-sm text-gray-500">
                     <Loader2 size={20} className="animate-spin" />
                     Cargando vista previa...
                 </div>
             )}
 
-            <iframe
-                src={src}
-                title="Vista previa de la plantilla"
-                onLoad={() => setCargando(false)}
-                className="h-full w-full bg-white"
-            />
+            {error ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
+                    <FileText size={35} className="text-red-400" />
+                    <p className="text-sm font-medium text-gray-700">
+                        No fue posible visualizar el PDF.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                        Verifica que el archivo esté disponible y que el
+                        almacenamiento permita visualizarlo en el navegador.
+                    </p>
+                </div>
+            ) : (
+                <iframe
+                    key={src}
+                    src={src}
+                    title="Vista previa de la plantilla PDF"
+                    onLoad={() => setCargando(false)}
+                    onError={() => {
+                        setCargando(false);
+                        setError(true);
+                    }}
+                    className="h-full w-full bg-white"
+                />
+            )}
         </div>
     );
 }
@@ -57,7 +92,7 @@ export default function TipoRequisitoDocumentoModal({
     onClose,
     onSubmit,
     requisito,
-    requisitos = [], // lista existente, para validar nombres repetidos
+    requisitos = [],
     guardando = false,
 }) {
     const [formData, setFormData] = useState(estadoInicial);
@@ -69,8 +104,20 @@ export default function TipoRequisitoDocumentoModal({
 
     const esEdicion = !!requisito;
     const ocupado = guardando || enviando;
-    const plantillaActual = requisito?.plantilla?.url ? requisito.plantilla : null;
 
+    const plantillaActual = requisito?.plantilla?.url
+        ? requisito.plantilla
+        : null;
+
+    // Determinar si el nombre es uno de los documentos protegidos.
+    const nombreBloqueado =
+        esEdicion &&
+        NOMBRES_DOCUMENTOS_FIJOS.some(
+            (nombre) =>
+                normalizar(nombre) === normalizar(requisito?.nombre)
+        );
+
+    // Inicializar formulario.
     useEffect(() => {
         if (!isOpen) return;
 
@@ -84,9 +131,14 @@ export default function TipoRequisitoDocumentoModal({
                 estado: requisito.estado ?? true,
                 archivo: null,
             });
+
             setConPlantilla(!!requisito.plantilla?.url);
         } else {
-            setFormData({ ...estadoInicial, archivo: null });
+            setFormData({
+                ...estadoInicial,
+                archivo: null,
+            });
+
             setConPlantilla(false);
         }
 
@@ -95,7 +147,7 @@ export default function TipoRequisitoDocumentoModal({
         setEnviando(false);
     }, [isOpen, requisito]);
 
-    // URL temporal para previsualizar el PDF recién seleccionado
+    // Generar URL temporal para visualizar el PDF recién seleccionado.
     useEffect(() => {
         if (!archivoSeleccionado) {
             setPreviewUrl(null);
@@ -119,6 +171,7 @@ export default function TipoRequisitoDocumentoModal({
         }));
     };
 
+    // Validar y procesar PDF.
     const procesarArchivo = (file) => {
         if (!file) return;
 
@@ -128,12 +181,18 @@ export default function TipoRequisitoDocumentoModal({
         }
 
         if (file.size > MAX_FILE_SIZE) {
-            toast.error("El PDF es demasiado pesado. El tamaño máximo es de 2MB.");
+            toast.error(
+                "El PDF es demasiado pesado. El tamaño máximo es de 2MB."
+            );
             return;
         }
 
         setArchivoSeleccionado(file);
-        setFormData((prev) => ({ ...prev, archivo: file }));
+
+        setFormData((prev) => ({
+            ...prev,
+            archivo: file,
+        }));
     };
 
     const handleFileChange = (e) => {
@@ -144,25 +203,39 @@ export default function TipoRequisitoDocumentoModal({
     const handleDrop = (e) => {
         e.preventDefault();
         setArrastrando(false);
+
         if (ocupado) return;
+
         procesarArchivo(e.dataTransfer.files?.[0]);
     };
 
     const quitarArchivo = () => {
         setArchivoSeleccionado(null);
-        setFormData((prev) => ({ ...prev, archivo: null }));
+
+        setFormData((prev) => ({
+            ...prev,
+            archivo: null,
+        }));
     };
 
     const handleTogglePlantilla = (e) => {
         const activo = e.target.checked;
+
         setConPlantilla(activo);
-        if (!activo) quitarArchivo();
+
+        if (!activo) {
+            quitarArchivo();
+        }
     };
 
+    // Guardar requisito.
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const nombre = formData.nombre.trim();
+        // Si es un documento protegido, conservar su nombre original.
+        const nombre = nombreBloqueado
+            ? requisito.nombre
+            : formData.nombre.trim();
 
         if (!nombre) {
             toast.error("El nombre del documento es obligatorio.");
@@ -186,13 +259,18 @@ export default function TipoRequisitoDocumentoModal({
             return;
         }
 
-        if (conPlantilla && !archivoSeleccionado && !plantillaActual) {
+        if (
+            conPlantilla &&
+            !archivoSeleccionado &&
+            !plantillaActual
+        ) {
             toast.error("Selecciona un PDF o desactiva la plantilla.");
             return;
         }
 
         try {
             setEnviando(true);
+
             await onSubmit({
                 ...formData,
                 nombre,
@@ -204,9 +282,16 @@ export default function TipoRequisitoDocumentoModal({
         }
     };
 
-    // ---- Qué se muestra en el visor ----
-    const nombreVisor = archivoSeleccionado?.name || plantillaActual?.nombre || null;
-    const fuenteVisor = archivoSeleccionado ? previewUrl : plantillaActual?.url || null;
+    // Datos del visor.
+    const nombreVisor =
+        archivoSeleccionado?.name ||
+        plantillaActual?.nombre ||
+        null;
+
+    const fuenteVisor = archivoSeleccionado
+        ? previewUrl
+        : plantillaActual?.url || null;
+
     const hayPdf = !!nombreVisor && !!fuenteVisor;
 
     const inputPdf = (
@@ -258,7 +343,7 @@ export default function TipoRequisitoDocumentoModal({
                             conPlantilla ? "md:grid-cols-5" : ""
                         }`}
                     >
-                        {/* Columna izquierda: formulario */}
+                        {/* Columna izquierda */}
                         <div className="space-y-4 md:col-span-2">
                             <div>
                                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
@@ -273,9 +358,20 @@ export default function TipoRequisitoDocumentoModal({
                                     onChange={handleChange}
                                     placeholder="Ej. Hoja de vida"
                                     required
-                                    disabled={ocupado}
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100"
+                                    disabled={ocupado || nombreBloqueado}
+                                    className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 ${
+                                        nombreBloqueado
+                                            ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-500"
+                                            : "border-gray-300"
+                                    }`}
                                 />
+
+                                {nombreBloqueado && (
+                                    <p className="mt-1.5 flex items-center gap-1 text-xs text-amber-600">
+                                        <Lock size={13} />
+                                        Este nombre es fijo y no puede modificarse.
+                                    </p>
+                                )}
                             </div>
 
                             <div>
@@ -306,6 +402,7 @@ export default function TipoRequisitoDocumentoModal({
                                         disabled={ocupado}
                                         className="h-4 w-4 accent-red-600"
                                     />
+
                                     <span className="text-sm font-medium text-gray-700">
                                         Obligatorio
                                     </span>
@@ -320,13 +417,14 @@ export default function TipoRequisitoDocumentoModal({
                                         disabled={ocupado}
                                         className="h-4 w-4 accent-red-600"
                                     />
+
                                     <span className="text-sm font-medium text-gray-700">
                                         Activo
                                     </span>
                                 </label>
                             </div>
 
-                            {/* Toggle de plantilla (solo si aún no tiene una guardada) */}
+                            {/* Incluir plantilla */}
                             {!plantillaActual && (
                                 <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-red-200 bg-red-50/40 p-3">
                                     <input
@@ -336,10 +434,12 @@ export default function TipoRequisitoDocumentoModal({
                                         disabled={ocupado}
                                         className="h-4 w-4 accent-red-600"
                                     />
+
                                     <div className="flex flex-col">
                                         <span className="text-sm font-medium text-gray-700">
                                             Incluir plantilla (PDF)
                                         </span>
+
                                         <span className="text-xs text-gray-500">
                                             El practicante podrá descargarla como guía.
                                         </span>
@@ -348,7 +448,7 @@ export default function TipoRequisitoDocumentoModal({
                             )}
                         </div>
 
-                        {/* Columna derecha: plantilla */}
+                        {/* Columna derecha */}
                         {conPlantilla && (
                             <div className="flex flex-col md:col-span-3">
                                 <div className="mb-1.5 flex items-center justify-between gap-2">
@@ -372,7 +472,9 @@ export default function TipoRequisitoDocumentoModal({
 
                                             <label
                                                 className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 ${
-                                                    ocupado ? "pointer-events-none opacity-50" : ""
+                                                    ocupado
+                                                        ? "pointer-events-none opacity-50"
+                                                        : ""
                                                 }`}
                                             >
                                                 <RefreshCw size={14} />
@@ -387,10 +489,15 @@ export default function TipoRequisitoDocumentoModal({
                                     {hayPdf ? (
                                         <>
                                             <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-3 py-2 text-xs text-gray-600">
-                                                <FileText size={15} className="shrink-0 text-red-500" />
+                                                <FileText
+                                                    size={15}
+                                                    className="shrink-0 text-red-500"
+                                                />
+
                                                 <span className="min-w-0 flex-1 truncate">
                                                     {nombreVisor}
                                                 </span>
+
                                                 {archivoSeleccionado && (
                                                     <span className="shrink-0 rounded-full bg-green-50 px-2 py-0.5 text-green-700">
                                                         Nuevo
@@ -404,9 +511,14 @@ export default function TipoRequisitoDocumentoModal({
                                         <label
                                             onDragOver={(e) => {
                                                 e.preventDefault();
-                                                if (!ocupado) setArrastrando(true);
+
+                                                if (!ocupado) {
+                                                    setArrastrando(true);
+                                                }
                                             }}
-                                            onDragLeave={() => setArrastrando(false)}
+                                            onDragLeave={() =>
+                                                setArrastrando(false)
+                                            }
                                             onDrop={handleDrop}
                                             className={`m-3 flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 text-center transition ${
                                                 arrastrando
@@ -415,19 +527,26 @@ export default function TipoRequisitoDocumentoModal({
                                             }`}
                                         >
                                             <div className="rounded-full bg-red-50 p-3">
-                                                <Upload size={26} className="text-red-500" />
+                                                <Upload
+                                                    size={26}
+                                                    className="text-red-500"
+                                                />
                                             </div>
+
                                             <span className="text-sm font-medium text-gray-700">
                                                 {arrastrando
                                                     ? "Suelta el PDF aquí"
                                                     : "Arrastra tu PDF aquí"}
                                             </span>
+
                                             <span className="text-xs text-gray-500">
                                                 o haz clic para seleccionarlo
                                             </span>
+
                                             <span className="mt-1 rounded-full bg-gray-100 px-3 py-0.5 text-[11px] text-gray-500">
                                                 Solo PDF · Máximo 2MB
                                             </span>
+
                                             {inputPdf}
                                         </label>
                                     )}
@@ -452,7 +571,13 @@ export default function TipoRequisitoDocumentoModal({
                             disabled={ocupado}
                             className="inline-flex min-w-[140px] items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {ocupado && <Loader2 size={17} className="animate-spin" />}
+                            {ocupado && (
+                                <Loader2
+                                    size={17}
+                                    className="animate-spin"
+                                />
+                            )}
+
                             {botonTexto}
                         </button>
                     </div>

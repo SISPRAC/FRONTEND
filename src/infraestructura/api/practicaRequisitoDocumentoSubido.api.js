@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const practicaRequisitoDocumentoSubidoApi = axios.create({
-    baseURL: "http://localhost:3000/api/practicaRequisitoDocumentoSubido",
-    withCredentials: true
-});
+const practicaRequisitoDocumentoSubidoApi = createApi("/practicaRequisitoDocumentoSubido");
 
 practicaRequisitoDocumentoSubidoApi.interceptors.request.use(
     (config) => {

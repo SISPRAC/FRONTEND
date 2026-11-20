@@ -1,14 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-
-const tipoRequisitoDocumentoApi = axios.create({
-
-    baseURL: "http://localhost:3000/api/tipoRequisitoDocumento",
-
-    withCredentials: true
-
-});
-
+const tipoRequisitoDocumentoApi  = createApi("/tipoRequisitoDocumento");
 
 // Agregar token automáticamente a cada petición
 tipoRequisitoDocumentoApi.interceptors.request.use(

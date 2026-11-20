@@ -1,9 +1,6 @@
-import axios from "axios";
+import { createApi } from "./createApi.js";
 
-const rolApi = axios.create({
-  baseURL: "http://localhost:3000/api/rol",
-  withCredentials: true,
-});
+const rolApi = createApi("/rol");
 
 export const crearRolRequest = async (data) => {
   return await rolApi.post("/crear", data);
