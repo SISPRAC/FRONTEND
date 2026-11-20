@@ -2,7 +2,7 @@
 import { Routes, Route } from "react-router-dom";
 
 import LoginPage from "../src/presentacion/pages/LoginPage";
-import ForgotPasswordPage from "../src/presentacion/pages/ForgotPasswordPage";
+import ForgotPasswordPage from "../src/presentacion/pages/Forgotpasswordpage";
 import ResetPasswordPage from "../src/presentacion/pages/Resetpasswordpage";
 
 import RegisterCandidatePage from "../src/presentacion/pages/RegisterCandidatoPage";
