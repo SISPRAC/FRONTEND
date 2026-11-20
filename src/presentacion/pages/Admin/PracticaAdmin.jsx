@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 
-import AddButton from "../../components/buttons/AddButton";
+import AddButton from "../../components/buttons/Addbutton.jsx";
 import GenericTable from "../../components/Table/GenericTable";
 import PracticaModal from "../../components/modals/PracticaModal";
 import ConfirmModal from "../../components/modals/ConfirmModal";

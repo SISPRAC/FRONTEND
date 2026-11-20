@@ -4,7 +4,7 @@ import { Trash, SquarePen } from "lucide-react";
 
 
 import GenericTable from "../../components/Table/GenericTable";
-import AddButton from "../../components/buttons/AddButton";
+import AddButton from "../../components/buttons/Addbutton.jsx";
 import ConfirmModal from "../../components/modals/ConfirmModal";
 import PracticaRequisitoDocumentoModal from "../../components/modals/PracticaRequisitoDocumentoModal";
 import { getPracticaActual } from "../../../presentacion/components/utils/getPracticaActual.js";

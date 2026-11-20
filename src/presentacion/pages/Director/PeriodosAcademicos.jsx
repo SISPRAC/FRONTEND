@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 
-import AddButton from "../../components/buttons/AddButton";
+import AddButton from "../../components/buttons/Addbutton.jsx";
 import { periodoRepository } from "../../../infraestructura/repository/periodoRepository";
 import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos";
 import PeriodoModal from "../../components/modals/PeriodoModal";

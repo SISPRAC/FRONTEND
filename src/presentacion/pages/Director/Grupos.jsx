@@ -14,7 +14,7 @@ import { editarGrupo } from "../../../aplicacion/grupos/editarGrupo";
 import { createGrupo } from "../../../aplicacion/grupos/createGrupo";
 import { deleteGrupo } from "../../../aplicacion/grupos/eliminarGrupo";
 import { useNavigate } from "react-router-dom";
-import AddButton from "../../components/buttons/AddButton";
+import AddButton from "../../components/buttons/Addbutton.jsx";
 import GrupoModal from "../../components/modals/GrupoModal";
 import toast from "react-hot-toast";
 
