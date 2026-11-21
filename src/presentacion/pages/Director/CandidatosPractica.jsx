@@ -1,21 +1,27 @@
-import { Search, ChevronDown, X, UserPlus } from "lucide-react";
+import {
+    Search,
+    X,
+    UserPlus,
+    FileSpreadsheet
+} from "lucide-react";
+
 import GenericTable from "../../components/Table/GenericTable";
 import InvitarCandidatosModal from "../../components/modals/Invitarcandidatosmodal.jsx";
+import InvitarCandidatoIndividualModal from "../../components/modals/InvitarCandidatoIndividualModal.jsx";
 
 import { useEffect, useMemo, useState } from "react";
 
-// TODO: ajusta al caso de uso / repo real del GET de candidatos
 import { candidatoRepository } from "../../../infraestructura/repository/candidatoRepository.js";
 import { getCandidatos } from "../../../aplicacion/candidato/getCandidatos.js";
-
-const Vacio = () => <span className="text-slate-400">—</span>;
 
 const CandidatosPracticas = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [busqueda, setBusqueda] = useState("");
     const [rows, setRows] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [mostrarInvitar, setMostrarInvitar] = useState(false);
+
+    // opciones | individual | plantilla
+    const [modalInvitacion, setModalInvitacion] = useState(null);
 
     const cargarCandidatos = async () => {
         try {
@@ -36,7 +42,9 @@ const CandidatosPracticas = () => {
 
     const candidatosFiltrados = useMemo(() => {
         const texto = busqueda.toLowerCase().trim();
+
         if (!texto) return rows;
+
         return rows.filter(
             (c) =>
                 c.codigo?.toString().toLowerCase().includes(texto) ||
@@ -54,9 +62,10 @@ const CandidatosPracticas = () => {
 
             {/* BARRA SUPERIOR: botón invitar + buscador */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+
                 <button
                     type="button"
-                    onClick={() => setMostrarInvitar(true)}
+                    onClick={() => setModalInvitacion("opciones")}
                     className="flex items-center justify-center gap-2 h-10 px-4 rounded-xl bg-[#e8192c] text-white hover:bg-[#c8111f] text-sm font-semibold shadow-sm"
                 >
                     <UserPlus size={18} />
@@ -68,6 +77,7 @@ const CandidatosPracticas = () => {
                         size={16}
                         className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                     />
+
                     <input
                         type="text"
                         value={busqueda}
@@ -78,6 +88,7 @@ const CandidatosPracticas = () => {
                         placeholder="Buscar candidato..."
                         className="w-full h-10 pl-10 pr-9 rounded-xl border border-slate-200 bg-white text-sm text-slate-700 placeholder:text-slate-400 shadow-sm transition hover:border-slate-300 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                     />
+
                     {busqueda && (
                         <button
                             type="button"
@@ -97,19 +108,28 @@ const CandidatosPracticas = () => {
             {/* SKELETON / TABLA */}
             {loading ? (
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+
                     <div className="grid grid-cols-5 gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200">
                         {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="h-3 w-20 rounded bg-slate-200 animate-pulse" />
+                            <div
+                                key={i}
+                                className="h-3 w-20 rounded bg-slate-200 animate-pulse"
+                            />
                         ))}
                     </div>
+
                     {[1, 2, 3].map((fila) => (
                         <div
                             key={fila}
                             className="grid grid-cols-5 gap-4 items-center px-5 py-4 border-b border-slate-100 last:border-0"
                         >
                             {[1, 2, 3, 4].map((c) => (
-                                <div key={c} className="h-3 w-2/3 rounded bg-slate-200 animate-pulse" />
+                                <div
+                                    key={c}
+                                    className="h-3 w-2/3 rounded bg-slate-200 animate-pulse"
+                                />
                             ))}
+
                             <div className="flex justify-center">
                                 <div className="h-8 w-8 rounded-lg bg-slate-200 animate-pulse" />
                             </div>
@@ -132,12 +152,91 @@ const CandidatosPracticas = () => {
                 />
             )}
 
-            <InvitarCandidatosModal
-                isOpen={mostrarInvitar}
-                onClose={() => setMostrarInvitar(false)}
-                candidatosRegistrados={rows}
-                onInvitados={cargarCandidatos}
-            />
+            {/* MODAL DE OPCIONES */}
+            {modalInvitacion === "opciones" && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white w-full max-w-lg rounded-2xl p-7 shadow-xl relative">
+
+                        <button
+                            type="button"
+                            onClick={() => setModalInvitacion(null)}
+                            className="absolute top-4 right-4 text-slate-400 hover:text-red-500"
+                        >
+                            <X size={22} />
+                        </button>
+
+                        <h2 className="text-xl font-extrabold text-slate-800 text-center mb-2">
+                            Invitar candidatos
+                        </h2>
+
+                        <p className="text-sm text-slate-500 text-center mb-7">
+                            Selecciona cómo deseas realizar las invitaciones.
+                        </p>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                            {/* INVITACIÓN INDIVIDUAL */}
+                            <button
+                                type="button"
+                                onClick={() => setModalInvitacion("individual")}
+                                className="flex flex-col items-center text-center gap-3 p-6 border border-slate-200 rounded-xl hover:border-[#e8192c] hover:bg-red-50/40 transition"
+                            >
+                                <div className="w-12 h-12 rounded-xl bg-red-100 text-[#e8192c] flex items-center justify-center">
+                                    <UserPlus size={25} />
+                                </div>
+
+                                <span className="font-bold text-slate-800">
+                                    Individual
+                                </span>
+
+                                <span className="text-xs text-slate-500">
+                                    Registrar los datos de un candidato y enviar su invitación.
+                                </span>
+                            </button>
+
+                            {/* INVITACIÓN POR PLANTILLA */}
+                            <button
+                                type="button"
+                                onClick={() => setModalInvitacion("plantilla")}
+                                className="flex flex-col items-center text-center gap-3 p-6 border border-slate-200 rounded-xl hover:border-[#e8192c] hover:bg-red-50/40 transition"
+                            >
+                                <div className="w-12 h-12 rounded-xl bg-red-100 text-[#e8192c] flex items-center justify-center">
+                                    <FileSpreadsheet size={25} />
+                                </div>
+
+                                <span className="font-bold text-slate-800">
+                                    Por plantilla
+                                </span>
+
+                                <span className="text-xs text-slate-500">
+                                    Cargar un listado de candidatos mediante PDF o Excel.
+                                </span>
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL INDIVIDUAL */}
+            {modalInvitacion === "individual" && (
+                <InvitarCandidatoIndividualModal
+                    isOpen={true}
+                    onClose={() => setModalInvitacion(null)}
+                    onInvitados={cargarCandidatos}
+                />
+            )}
+
+            {/* MODAL POR PLANTILLA: CONSERVA LOS ESTADOS Y LA VISTA PREVIA */}
+            {modalInvitacion === "plantilla" && (
+                <InvitarCandidatosModal
+                    isOpen={true}
+                    onClose={() => setModalInvitacion(null)}
+                    candidatosRegistrados={rows}
+                    onInvitados={cargarCandidatos}
+                />
+            )}
+
         </div>
     );
 };
