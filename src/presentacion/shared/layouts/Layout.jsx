@@ -34,7 +34,6 @@ export default function Layout() {
         }
     });
 
-    // Mantener actualizado el rol guardado
     useEffect(() => {
         if (rolActivo) {
             localStorage.setItem("rolActivo", rolActivo);
@@ -43,11 +42,7 @@ export default function Layout() {
 
     // Bloquear scroll del documento cuando el menú móvil está abierto
     useEffect(() => {
-        if (sidebarMobileOpen) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "";
-        }
+        document.body.style.overflow = sidebarMobileOpen ? "hidden" : "";
 
         return () => {
             document.body.style.overflow = "";
@@ -72,7 +67,14 @@ export default function Layout() {
     const navItems = ROLE_NAV[rolActivo] ?? [];
 
     return (
-        <div className="flex min-h-screen bg-slate-100 overflow-x-hidden">
+        <div className="
+            flex
+            w-full
+            h-screen
+            h-[100dvh]
+            overflow-hidden
+            bg-slate-100
+        ">
 
             <Sidebar
                 navItems={navItems}
@@ -87,29 +89,36 @@ export default function Layout() {
             />
 
             {/* CONTENIDO PRINCIPAL */}
-            <div className="flex-1 flex flex-col min-w-0 min-h-screen">
+            <div className="
+                flex-1
+                min-w-0
+                min-h-0
+                h-full
+                flex
+                flex-col
+                overflow-hidden
+            ">
 
                 <TopBar
                     collapsed={sidebarCollapsed}
                     onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
                 />
 
-                <main
-                    className="
-                        flex-1
-                        min-w-0
-                        min-h-0
-                        overflow-y-auto
-                        overflow-x-hidden
-                        custom-scrollbar
-                        px-4
-                        py-6
-                        sm:px-6
-                        sm:py-8
-                        lg:px-10
-                        lg:py-10
-                    "
-                >
+                <main className="
+                    flex-1
+                    min-w-0
+                    min-h-0
+                    overflow-y-auto
+                    overflow-x-hidden
+                    overscroll-y-contain
+                    px-4
+                    py-6
+                    sm:px-6
+                    sm:py-8
+                    lg:px-10
+                    lg:py-10
+                ">
+
                     {/* BOTÓN MENÚ MÓVIL */}
                     {!sidebarMobileOpen && (
                         <button
@@ -123,6 +132,7 @@ export default function Layout() {
                                 z-30
                                 w-11
                                 h-11
+                                shrink-0
                                 flex
                                 items-center
                                 justify-center
@@ -144,8 +154,8 @@ export default function Layout() {
                     )}
 
                     <Outlet />
-                </main>
 
+                </main>
             </div>
         </div>
     );

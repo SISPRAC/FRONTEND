@@ -2,37 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Scrollbar general */
+/* Scrollbar principal del sistema: comportamiento nativo */
 .custom-scrollbar {
-    scrollbar-width: thin;
+    overflow: auto;
+    scrollbar-width: auto;
     scrollbar-color: #cbd5e1 transparent;
 }
 
+/* Chrome, Edge y Safari */
 .custom-scrollbar::-webkit-scrollbar {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
-    margin: 6px 0;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 20px;
-    border: 2px solid transparent;
-    background-clip: padding-box;
+    background-color: #cbd5e1;
+    border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-    border: 1px solid transparent;
-    background-clip: padding-box;
+    background-color: #94a3b8;
 }
 
-/* Scrollbar del Sidebar */
+/* Sidebar */
 .custom-scrollbar-sidebar {
+    overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
 }
@@ -47,18 +45,15 @@
 
 .custom-scrollbar-sidebar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.35);
-    border-radius: 20px;
+    border-radius: 10px;
 }
 
-.custom-scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.65);
-}
-
-/* Ocultar scrollbar visual en dispositivos táctiles */
+/* En dispositivos táctiles, conservar el desplazamiento natural */
 @media (hover: none) and (pointer: coarse) {
     .custom-scrollbar,
     .custom-scrollbar-sidebar {
         scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
     }
 
     .custom-scrollbar::-webkit-scrollbar,
