@@ -273,11 +273,19 @@ export default function RequisitosEmpresa({
     // MODAL
     // ---------------------------------------------------------------
 
+
     const abrirVistaPrevia = (tipo, file) => {
         if (!file) return;
 
         if (file.type !== "application/pdf") {
             toast.error("El archivo debe ser un PDF");
+            return;
+        }
+
+        const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+
+        if (file.size > MAX_FILE_SIZE) {
+            toast.error("El archivo es demasiado pesado. El tamaño máximo permitido es de 2 MB.");
             return;
         }
 
@@ -289,6 +297,7 @@ export default function RequisitosEmpresa({
             url: URL.createObjectURL(file),
         });
     };
+
 
     const abrirVerDocumento = (tipo, doc) => {
         setModal({
