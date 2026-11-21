@@ -23,14 +23,6 @@ export default function AuthLayout({ children }) {
                     {/* Logos */}
                     <div className="ml-5 w-[500px] h-[500px] flex flex-col items-center justify-center gap-6 mt-6 mb-12">
 
-                        <div className="w-96 h-48 flex items-center justify-center">
-                            <img
-                                className="max-w-full max-h-full object-contain"
-                                src={fondo}
-                                alt="logo"
-                            />
-                        </div>
-
                         <div className="w-24 h-px bg-gray-300" />
 
                         <div className="w-80 h-40 flex items-center justify-center">
