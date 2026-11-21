@@ -80,6 +80,11 @@ const CandidatoDetalleEmpresa = () => {
     try {
       setProcesando(true);
 
+      if (!comentarioRechazo.trim()) {
+        toast.error("Debes indicar el motivo del rechazo.");
+        return;
+      }
+
       await rechazarPostulacion(
         postulacionRepository,
         candidato.id,
