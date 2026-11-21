@@ -77,7 +77,7 @@ export default function Sidebar({
 
         try {
             return jwtDecode(token);
-        } catch (error) {
+        } catch {
             return null;
         }
 
@@ -155,11 +155,33 @@ export default function Sidebar({
 
     useEffect(() => {
 
-        if (setMobileOpen) {
-            setMobileOpen(false);
-        }
+        setMobileOpen?.(false);
+        setOpenMenu(false);
 
     }, [location.pathname, setMobileOpen]);
+
+    // =====================================================
+    // CERRAR CON ESCAPE
+    // =====================================================
+
+    useEffect(() => {
+
+        const handleEscape = (event) => {
+
+            if (event.key === "Escape") {
+                setMobileOpen?.(false);
+                setOpenMenu(false);
+            }
+
+        };
+
+        window.addEventListener("keydown", handleEscape);
+
+        return () => {
+            window.removeEventListener("keydown", handleEscape);
+        };
+
+    }, [setMobileOpen]);
 
     // =====================================================
     // LOGOUT
@@ -207,10 +229,7 @@ export default function Sidebar({
         }
 
         setOpenMenu(false);
-
-        if (setMobileOpen) {
-            setMobileOpen(false);
-        }
+        setMobileOpen?.(false);
 
         navigate(HOME_ROUTES[rol], {
             replace: true
@@ -225,12 +244,9 @@ export default function Sidebar({
     const handleNotifications = () => {
 
         setOpenMenu(false);
+        setMobileOpen?.(false);
 
         navigate("/notificaciones");
-
-        if (setMobileOpen) {
-            setMobileOpen(false);
-        }
 
     };
 
@@ -248,30 +264,34 @@ export default function Sidebar({
             : navItems;
 
     // =====================================================
-    // CLASES DINÁMICAS
+    // RENDERIZADO
     // =====================================================
-
-    const sidebarWidth = collapsed
-        ? "md:w-[80px]"
-        : "md:w-[300px]";
 
     return (
         <>
 
-            {/* FONDO OSCURO PARA MÓVIL */}
+            {/* =========================================
+                FONDO OSCURO PARA MÓVIL
+            ========================================= */}
 
-            {mobileOpen && (
-                <div
-                    onClick={() => setMobileOpen(false)}
-                    className="
-                        fixed inset-0 z-40
-                        bg-black/40
-                        md:hidden
-                    "
-                />
-            )}
+            <div
+                onClick={() => setMobileOpen?.(false)}
+                className={`
+                    fixed inset-0 z-40
+                    bg-slate-950/60
+                    backdrop-blur-[2px]
+                    md:hidden
+                    transition-opacity duration-300
+                    ${mobileOpen
+                        ? "opacity-100 visible"
+                        : "opacity-0 invisible pointer-events-none"
+                    }
+                `}
+            />
 
-            {/* SIDEBAR */}
+            {/* =========================================
+                SIDEBAR
+            ========================================= */}
 
             <aside
                 className={`
@@ -279,13 +299,16 @@ export default function Sidebar({
                     top-0 left-0
                     z-50
                     h-screen
-                    bg-red-600
+                    h-[100dvh]
                     flex flex-col
-                    shadow-[4px_0_16px_rgba(232,25,44,0.18)]
                     flex-shrink-0
+                    bg-gradient-to-b from-red-600 to-red-700
+                    shadow-[4px_0_24px_rgba(185,28,28,0.16)]
                     transition-all duration-300 ease-in-out
-                    ${sidebarWidth}
-                    w-[300px]
+
+                    w-[290px]
+                    ${collapsed ? "md:w-[80px]" : "md:w-[290px]"}
+
                     ${mobileOpen
                         ? "translate-x-0"
                         : "-translate-x-full md:translate-x-0"
@@ -293,59 +316,94 @@ export default function Sidebar({
                 `}
             >
 
-                {/* LOGO */}
+                {/* =====================================
+                    LOGO
+                ===================================== */}
 
                 <div
                     className={`
                         relative
                         h-[80px]
+                        min-h-[80px]
                         flex-shrink-0
                         flex items-center justify-center
                         border-b border-white/15
                         transition-all duration-300
-                        ${collapsed ? "px-2" : "px-4"}
+                        ${collapsed ? "md:px-2" : "px-4"}
                     `}
                 >
 
+                    {/* LOGO COMPLETO */}
+
                     <img
-                        src={collapsed ? LogoSolo : logo}
+                        src={logo}
                         alt="SISPRAC"
                         className={`
                             object-contain
-                            transition-all duration-300
-                            ${collapsed ? "h-16 w-16" : "h-16"}
+                            h-16
+                            max-w-[220px]
+                            ${collapsed ? "md:hidden" : ""}
                         `}
                     />
 
+                    {/* LOGO REDUCIDO EN ESCRITORIO */}
+
+                    {collapsed && (
+
+                        <img
+                            src={LogoSolo}
+                            alt="SISPRAC"
+                            className="
+                                hidden
+                                md:block
+                                object-contain
+                                h-16
+                                w-16
+                            "
+                        />
+
+                    )}
+
+                    {/* CERRAR MENÚ MÓVIL */}
+
                     <button
-                        onClick={() => setMobileOpen(false)}
+                        type="button"
+                        onClick={() => setMobileOpen?.(false)}
                         className="
                             md:hidden
-                            absolute right-4 top-4
+                            absolute right-4 top-5
                             w-9 h-9
                             flex items-center justify-center
-                            rounded-lg
-                            text-white bg-white/10
+                            rounded-xl
+                            text-white
+                            bg-white/10
                             hover:bg-white/20
-                            transition-colors
+                            active:scale-95
+                            transition-all
                         "
                         aria-label="Cerrar menú"
                     >
-                        <X size={22} />
+                        <X size={21} />
                     </button>
 
                 </div>
 
-                {/* NAVEGACIÓN */}
+                {/* =====================================
+                    NAVEGACIÓN
+                ===================================== */}
 
                 <nav
                     className={`
                         flex-1
+                        min-h-0
                         pt-5
+                        pb-4
                         flex flex-col
-                        gap-0.5
+                        gap-1
                         overflow-y-auto
-                        ${collapsed ? "items-center" : ""}
+                        overflow-x-hidden
+                        custom-scrollbar-sidebar
+                        ${collapsed ? "md:items-center" : ""}
                     `}
                 >
 
@@ -355,7 +413,7 @@ export default function Sidebar({
                             className={`
                                 flex items-center gap-3
                                 px-5 py-4 text-white/80
-                                ${collapsed ? "justify-center px-0" : ""}
+                                ${collapsed ? "md:justify-center md:px-0" : ""}
                             `}
                         >
 
@@ -385,35 +443,69 @@ export default function Sidebar({
                                 to={item.href}
                                 title={collapsed ? item.label : undefined}
                                 className={({ isActive }) => `
+                                    group
+                                    relative
                                     flex items-center
-                                    text-white text-[15px]
-                                    font-bold no-underline
+                                    flex-shrink-0
+                                    text-white
+                                    text-[14px]
+                                    font-semibold
+                                    no-underline
                                     transition-all duration-200
+
                                     ${collapsed
-                                        ? "justify-center w-[56px] h-[48px] rounded-xl px-0"
-                                        : "gap-3 px-5 py-[13px] mr-4 rounded-r-full"
+                                        ? "md:justify-center md:w-[56px] md:h-[48px] md:rounded-xl md:px-0"
+                                        : "gap-3 px-5 py-[13px] mx-3 rounded-xl"
                                     }
+
                                     ${isActive || item.active
-                                        ? "bg-white/20"
+                                        ? "bg-white/20 shadow-sm"
                                         : "hover:bg-white/10"
                                     }
                                 `}
                             >
 
-                                {item.icon && (
-                                    <span className="
-                                        w-[22px] h-[22px]
-                                        flex items-center justify-center
-                                        flex-shrink-0
-                                    ">
-                                        {item.icon}
-                                    </span>
-                                )}
+                                {({ isActive }) => (
 
-                                {!collapsed && (
-                                    <span className="truncate">
-                                        {item.label}
-                                    </span>
+                                    <>
+
+                                        <span
+                                            className={`
+                                                w-[22px] h-[22px]
+                                                flex items-center justify-center
+                                                flex-shrink-0
+                                                transition-transform duration-200
+                                                ${isActive
+                                                    ? "scale-105"
+                                                    : "group-hover:scale-110"
+                                                }
+                                            `}
+                                        >
+                                            {item.icon}
+                                        </span>
+
+                                        <span
+                                            className={`
+                                                truncate
+                                                ${collapsed ? "md:hidden" : ""}
+                                            `}
+                                        >
+                                            {item.label}
+                                        </span>
+
+                                        {isActive && (
+                                            <span className="
+                                                absolute
+                                                right-2
+                                                w-1.5 h-1.5
+                                                rounded-full
+                                                bg-white
+                                                md:hidden
+                                            " />
+                                        )}
+
+                                    </>
+
                                 )}
 
                             </NavLink>
@@ -424,14 +516,18 @@ export default function Sidebar({
 
                 </nav>
 
-                {/* PIE DEL SIDEBAR */}
+                {/* =====================================
+                    PIE DEL SIDEBAR
+                ===================================== */}
 
                 <div
                     ref={menuRef}
                     className={`
                         relative
+                        flex-shrink-0
                         border-t border-white/20
-                        ${collapsed ? "px-2" : ""}
+                        bg-black/[0.04]
+                        ${collapsed ? "md:px-2" : ""}
                     `}
                 >
 
@@ -441,12 +537,15 @@ export default function Sidebar({
 
                         <div
                             className={`
-                                absolute bottom-full mb-2
+                                absolute
+                                bottom-full
+                                mb-2
                                 rounded-xl
                                 bg-white
-                                shadow-xl
+                                shadow-2xl
                                 overflow-hidden
                                 z-[60]
+                                border border-slate-100
                                 ${collapsed
                                     ? "left-[70px] w-[220px]"
                                     : "left-3 right-3"
@@ -461,9 +560,13 @@ export default function Sidebar({
                                 <>
 
                                     <div className="
-                                        px-4 py-2
-                                        text-xs font-semibold
-                                        text-gray-500 uppercase
+                                        px-4 py-3
+                                        text-[11px]
+                                        font-bold
+                                        tracking-wider
+                                        text-slate-400
+                                        uppercase
+                                        bg-slate-50
                                     ">
                                         Cambiar rol
                                     </div>
@@ -472,14 +575,19 @@ export default function Sidebar({
 
                                         <button
                                             key={rol}
+                                            type="button"
                                             onClick={() => handleChangeRole(rol)}
                                             className={`
-                                                w-full flex items-center
-                                                px-4 py-3 text-left
-                                                hover:bg-gray-100
+                                                w-full
+                                                flex items-center
+                                                px-4 py-3
+                                                text-sm
+                                                text-left
+                                                transition-colors
+                                                hover:bg-red-50
                                                 ${rol === rolActivo
                                                     ? "bg-red-50 text-red-600 font-semibold"
-                                                    : "text-gray-700"
+                                                    : "text-slate-700"
                                                 }
                                             `}
                                         >
@@ -488,7 +596,7 @@ export default function Sidebar({
 
                                     ))}
 
-                                    <div className="border-t" />
+                                    <div className="border-t border-slate-100" />
 
                                 </>
 
@@ -497,12 +605,16 @@ export default function Sidebar({
                             {/* CERRAR SESIÓN */}
 
                             <button
+                                type="button"
                                 onClick={handleLogout}
                                 className="
-                                    w-full flex items-center gap-3
+                                    w-full
+                                    flex items-center gap-3
                                     px-4 py-3
+                                    text-sm font-semibold
                                     text-red-600
                                     hover:bg-red-50
+                                    transition-colors
                                 "
                             >
                                 <LogOut size={18} />
@@ -513,13 +625,15 @@ export default function Sidebar({
 
                     )}
 
-                    {/* USUARIO Y ACCIONES */}
+                    {/* =================================
+                        USUARIO Y ACCIONES
+                    ================================= */}
 
                     <div
                         className={`
                             flex
                             ${collapsed
-                                ? "flex-col"
+                                ? "md:flex-col"
                                 : "items-center justify-between"
                             }
                         `}
@@ -533,72 +647,79 @@ export default function Sidebar({
                             className={`
                                 cursor-pointer
                                 hover:bg-white/10
+                                active:bg-white/15
                                 transition-all duration-200
                                 flex items-center
-                                text-white/80
+                                text-white
+                                min-w-0
                                 ${collapsed
-                                    ? "justify-center px-2 py-4 w-full"
-                                    : "justify-between px-5 py-4 flex-1 min-w-0"
+                                    ? "md:justify-center md:px-2 md:py-4 md:w-full"
+                                    : "justify-between px-4 py-4 flex-1"
                                 }
                             `}
                         >
 
                             <div
                                 className={`
-                                    flex items-center
+                                    flex items-center min-w-0
                                     ${collapsed
-                                        ? "justify-center"
-                                        : "gap-3 flex-1 min-w-0"
+                                        ? "md:justify-center"
+                                        : "gap-3 flex-1"
                                     }
                                 `}
                             >
 
-                                <UserRound className="flex-shrink-0" />
+                                <UserRound
+                                    size={22}
+                                    className="flex-shrink-0"
+                                />
 
-                                {!collapsed && (
-
-                                    <div className="
+                                <div
+                                    className={`
                                         flex flex-col
                                         flex-1 min-w-0
                                         text-left
-                                    ">
+                                        ${collapsed ? "md:hidden" : ""}
+                                    `}
+                                >
 
-                                        <span
-                                            className="
-                                                font-semibold text-white
-                                                truncate
-                                            "
-                                            title={`${usuario?.nombres ?? ""} ${usuario?.apellidos ?? ""}`}
-                                        >
-                                            {usuario?.nombres} {usuario?.apellidos}
-                                        </span>
+                                    <span
+                                        className="
+                                            font-semibold
+                                            text-sm
+                                            text-white
+                                            truncate
+                                        "
+                                        title={`${usuario?.nombres ?? ""} ${usuario?.apellidos ?? ""}`}
+                                    >
+                                        {usuario?.nombres} {usuario?.apellidos}
+                                    </span>
 
-                                        <span
-                                            className="
-                                                text-xs text-white/60
-                                                truncate
-                                            "
-                                            title={rolActivo}
-                                        >
-                                            {rolActivo}
-                                        </span>
+                                    <span
+                                        className="
+                                            text-xs
+                                            text-white/65
+                                            truncate
+                                        "
+                                        title={rolActivo}
+                                    >
+                                        {rolActivo}
+                                    </span>
 
-                                    </div>
-
-                                )}
+                                </div>
 
                             </div>
 
                         </button>
 
-                        {/* CAMPANA Y CERRAR SESIÓN */}
+                        {/* NOTIFICACIONES Y CERRAR SESIÓN */}
 
                         <div
                             className={`
                                 flex items-center
                                 ${collapsed
-                                    ? "justify-center gap-3 pb-4"
-                                    : "gap-2 pr-4"
+                                    ? "md:justify-center md:gap-3 md:pb-4"
+                                    : "gap-1 pr-3"
                                 }
                             `}
                         >
@@ -621,7 +742,9 @@ export default function Sidebar({
                                     rounded-xl
                                     text-white
                                     hover:bg-white/15
+                                    active:scale-95
                                     transition-all duration-200
+                                    flex-shrink-0
                                 "
                             >
 
@@ -639,8 +762,8 @@ export default function Sidebar({
                                     <span
                                         className="
                                             absolute
-                                            -top-1
-                                            -right-1
+                                            -top-0.5
+                                            -right-0.5
                                             min-w-[19px]
                                             h-[19px]
                                             px-1
@@ -652,7 +775,6 @@ export default function Sidebar({
                                             font-extrabold
                                             border-2 border-red-600
                                             shadow-md
-                                            animate-bounce
                                         "
                                     >
                                         {noLeidasCount > 99
@@ -678,7 +800,9 @@ export default function Sidebar({
                                     text-white/80
                                     hover:text-white
                                     hover:bg-white/15
+                                    active:scale-95
                                     transition-all duration-200
+                                    flex-shrink-0
                                 "
                             >
                                 <LogOut size={20} />

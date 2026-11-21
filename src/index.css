@@ -1,3 +1,68 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Scrollbar general */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 6px 0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+/* Scrollbar del Sidebar */
+.custom-scrollbar-sidebar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+}
+
+.custom-scrollbar-sidebar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.custom-scrollbar-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.custom-scrollbar-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 20px;
+}
+
+.custom-scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.65);
+}
+
+/* Ocultar scrollbar visual en dispositivos táctiles */
+@media (hover: none) and (pointer: coarse) {
+    .custom-scrollbar,
+    .custom-scrollbar-sidebar {
+        scrollbar-width: none;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar,
+    .custom-scrollbar-sidebar::-webkit-scrollbar {
+        display: none;
+    }
+}

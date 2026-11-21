@@ -240,9 +240,13 @@ export default function CandidateForm({
         PASOS[i].campos.some((c) => errors?.[c]);
 
     useEffect(() => {
+        if (!errors) return;
+
         const primero = PASOS.findIndex((_, i) => errorEnPaso(i));
 
-        if (primero >= 0) setPaso(primero);
+        if (primero >= 0) {
+            setPaso((actual) => Math.min(actual, primero));
+        }
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [errors]);
@@ -788,11 +792,10 @@ export default function CandidateForm({
                                                     className="hidden"
                                                 />
 
-                                                <div className={`rounded-xl border-2 border-dashed p-4 transition-colors ${
-                                                    errors?.cv || cvError
-                                                        ? "border-red-300 bg-red-50/50"
-                                                        : "border-gray-200 bg-gray-50 hover:border-red-300"
-                                                }`}>
+                                                <div className={`rounded-xl border-2 border-dashed p-4 transition-colors ${errors?.cv || cvError
+                                                    ? "border-red-300 bg-red-50/50"
+                                                    : "border-gray-200 bg-gray-50 hover:border-red-300"
+                                                    }`}>
 
                                                     {form.cv ? (
                                                         <div className="flex items-center gap-3">
@@ -1267,7 +1270,11 @@ export default function CandidateForm({
 
                                     <button
                                         type="button"
-                                        onClick={() => setPaso((p) => Math.min(PASOS.length - 1, p + 1))}
+                                        onClick={() => {
+                                            if (paso < PASOS.length - 1) {
+                                                setPaso((actual) => actual + 1);
+                                            }
+                                        }}
                                         className="flex items-center gap-1 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-sm font-bold rounded-lg pl-6 pr-4 py-2.5 transition-all"
                                     >
                                         Siguiente
