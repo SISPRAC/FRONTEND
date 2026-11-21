@@ -180,6 +180,7 @@ export default function Sidebar({
             localStorage.removeItem("token");
             localStorage.removeItem("refreshToken");
             localStorage.removeItem("rolActivo");
+            localStorage.removeItem("user");
 
             navigate("/", {
                 replace: true

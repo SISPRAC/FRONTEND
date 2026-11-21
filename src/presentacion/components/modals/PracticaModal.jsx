@@ -5,16 +5,13 @@ import toast from "react-hot-toast";
 import { periodoRepository } from "../../../infraestructura/repository/periodoRepository.js";
 import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos.js";
 
-import { practicaRepository } from "../../../infraestructura/repository/practicaRepository.js";
-import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";
-
 export default function PracticaModal({
   isOpen,
   onClose,
   onSubmit,
   mode,
   practica,
-  practicas
+  practicas = []
 }) {
 
   const initialForm = {
@@ -24,9 +21,7 @@ export default function PracticaModal({
   };
 
   const [formData, setFormData] = useState(initialForm);
-
   const [periodos, setPeriodos] = useState([]);
-
   const [loading, setLoading] = useState(false);
 
   const [errors, setErrors] = useState({
@@ -108,30 +103,57 @@ export default function PracticaModal({
 
     if (loading) return;
 
+    // 1. Validar primero los campos obligatorios
     const newErrors = {
       periodo_id: !formData.periodo_id,
       fecha_inicio: !formData.fecha_inicio,
-      fecha_fin:
-        !formData.fecha_fin ||
-        formData.fecha_fin < fechaHoy ||
-        formData.fecha_fin < formData.fecha_inicio,
+      fecha_fin: !formData.fecha_fin,
     };
 
     setErrors(newErrors);
 
     if (Object.values(newErrors).includes(true)) {
-
-      if (newErrors.fecha_fin) {
-        toast.error(
-          "La fecha final no puede ser anterior a hoy ni a la fecha inicial"
-        );
-      } else {
-        toast.error("Datos requeridos");
-      }
-
+      toast.error("Datos requeridos");
       return;
     }
 
+    // 2. Validar que la fecha inicial no sea anterior a hoy
+    if (formData.fecha_inicio < fechaHoy) {
+
+      setErrors({
+        ...newErrors,
+        fecha_inicio: true,
+      });
+
+      toast.error("La fecha inicial no puede ser anterior a hoy");
+      return;
+    }
+
+    // 3. Validar que la fecha final no sea anterior a hoy
+    if (formData.fecha_fin < fechaHoy) {
+
+      setErrors({
+        ...newErrors,
+        fecha_fin: true,
+      });
+
+      toast.error("La fecha final no puede ser anterior a hoy");
+      return;
+    }
+
+    // 4. Validar que la fecha final no sea anterior a la inicial
+    if (formData.fecha_fin < formData.fecha_inicio) {
+
+      setErrors({
+        ...newErrors,
+        fecha_fin: true,
+      });
+
+      toast.error("La fecha final no puede ser anterior a la fecha inicial");
+      return;
+    }
+
+    // 5. Crear o actualizar
     try {
 
       setLoading(true);
@@ -309,6 +331,7 @@ export default function PracticaModal({
 
             <input
               type="date"
+              min={fechaHoy}
               value={formData.fecha_inicio}
               disabled={loading}
               onChange={(e) => {
@@ -346,9 +369,9 @@ export default function PracticaModal({
             <input
               type="date"
               min={
-                fechaHoy > formData.fecha_inicio
-                  ? fechaHoy
-                  : formData.fecha_inicio || fechaHoy
+                formData.fecha_inicio > fechaHoy
+                  ? formData.fecha_inicio
+                  : fechaHoy
               }
               value={formData.fecha_fin}
               disabled={loading}
@@ -417,7 +440,7 @@ export default function PracticaModal({
               {
                 loading
                   ? mode === "edit"
-                    ? "Actualizando..."
+                    ? "Editando..."
                     : "Creando..."
                   : mode === "edit"
                     ? "Actualizar"

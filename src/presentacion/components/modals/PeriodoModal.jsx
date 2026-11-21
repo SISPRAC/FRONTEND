@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -19,17 +20,19 @@ export default function PeriodoModal({
   const currentYear = new Date().getFullYear();
   const opcionesNombre = [`${currentYear}-01`, `${currentYear}-02`];
 
-  // los demás períodos (si estoy editando, excluyo el mío)
   const otrosPeriodos = periodos.filter(
     (p) => mode !== "edit" || p.id !== periodo?.id
   );
-  const nombresUsados = otrosPeriodos.map((p) => p.nombre);
-  const disponibles = opcionesNombre.filter((n) => !nombresUsados.includes(n));
 
-  // por si el backend manda fechas ISO con hora
+  const nombresUsados = otrosPeriodos.map((p) => p.nombre);
+  const disponibles = opcionesNombre.filter(
+    (n) => !nombresUsados.includes(n)
+  );
+
   const toDate = (d) => String(d).slice(0, 10);
 
   const [formData, setFormData] = useState(initialForm);
+  const [loading, setLoading] = useState(false);
 
   const [errors, setErrors] = useState({
     nombre: false,
@@ -60,9 +63,12 @@ export default function PeriodoModal({
   }, [mode, periodo, isOpen]);
 
   const handleClose = () => {
-    if (mode != "edit") {
+    if (loading) return;
+
+    if (mode !== "edit") {
       setFormData(initialForm);
     }
+
     onClose();
 
     setErrors({
@@ -74,6 +80,8 @@ export default function PeriodoModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (loading) return;
 
     const newErrors = {
       nombre: !formData.nombre.trim(),
@@ -88,14 +96,14 @@ export default function PeriodoModal({
       return;
     }
 
-    // 1. nombre: solo año actual y 01 / 02 (al crear)
+    // 1. Nombre: solo año actual y 01 / 02 (al crear)
     if (mode === "create" && !opcionesNombre.includes(formData.nombre)) {
       setErrors({ ...newErrors, nombre: true });
       toast.error(`El nombre debe ser ${opcionesNombre.join(" o ")}`);
       return;
     }
 
-    // 2. nombre repetido
+    // 2. Nombre repetido
     if (nombresUsados.includes(formData.nombre)) {
       setErrors({ ...newErrors, nombre: true });
       toast.error(`Ya existe el período ${formData.nombre}`);
@@ -105,14 +113,14 @@ export default function PeriodoModal({
     const inicio = toDate(formData.fecha_inicio);
     const fin = toDate(formData.fecha_fin);
 
-    // 3. fin no puede ser antes que inicio
+    // 3. Fin no puede ser antes que inicio
     if (fin < inicio) {
       setErrors({ ...newErrors, fecha_fin: true });
       toast.error("La fecha final no puede ser anterior a la inicial");
       return;
     }
 
-    // 4. no cruzarse con otros períodos
+    // 4. No cruzarse con otros períodos
     const choque = otrosPeriodos.find(
       (p) => inicio <= toDate(p.fecha_fin) && fin >= toDate(p.fecha_inicio)
     );
@@ -125,7 +133,14 @@ export default function PeriodoModal({
       return;
     }
 
-    await onSubmit(formData);
+    try {
+      setLoading(true);
+      await onSubmit(formData);
+    } catch (error) {
+      console.error("Error al guardar período:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -139,7 +154,6 @@ export default function PeriodoModal({
       z-50
     ">
 
-      {/* caja modal */}
       <div className="
         bg-white
         w-full max-w-lg
@@ -149,13 +163,14 @@ export default function PeriodoModal({
         relative
       ">
 
-        {/* cerrar */}
         <button
           onClick={handleClose}
+          disabled={loading}
           className="
             absolute top-4 right-4
             text-slate-400
             hover:text-red-500
+            disabled:opacity-50
           "
         >
           ✕
@@ -168,12 +183,9 @@ export default function PeriodoModal({
           mb-6
           text-center
         ">
-          {mode === "edit"
-            ? "Editar Período"
-            : "Crear Período"}
+          {mode === "edit" ? "Editar Período" : "Crear Período"}
         </h2>
 
-        {/* formulario */}
         <form onSubmit={handleSubmit} className="space-y-4">
 
           <div>
@@ -183,6 +195,7 @@ export default function PeriodoModal({
 
             <select
               value={formData.nombre}
+              disabled={loading}
               onChange={(e) => {
                 setFormData({
                   ...formData,
@@ -194,8 +207,9 @@ export default function PeriodoModal({
                   nombre: false,
                 });
               }}
-              className={`border p-2 rounded w-full ${errors.nombre ? "border-red-500" : "border-gray-300"
-                }`}
+              className={`border p-2 rounded w-full ${
+                errors.nombre ? "border-red-500" : "border-gray-300"
+              }`}
             >
               <option disabled value="">Seleccione el período</option>
 
@@ -209,7 +223,6 @@ export default function PeriodoModal({
                 </option>
               ))}
 
-              {/* al editar un período de otro año, que no desaparezca */}
               {formData.nombre && !opcionesNombre.includes(formData.nombre) && (
                 <option value={formData.nombre}>{formData.nombre}</option>
               )}
@@ -224,6 +237,7 @@ export default function PeriodoModal({
             <input
               type="date"
               value={formData.fecha_inicio}
+              disabled={loading}
               onChange={(e) => {
                 setFormData({
                   ...formData,
@@ -235,8 +249,9 @@ export default function PeriodoModal({
                   fecha_inicio: false,
                 });
               }}
-              className={`border p-2 rounded w-full ${errors.fecha_inicio ? "border-red-500" : "border-gray-300"
-                }`}
+              className={`border p-2 rounded w-full ${
+                errors.fecha_inicio ? "border-red-500" : "border-gray-300"
+              }`}
             />
           </div>
 
@@ -248,6 +263,7 @@ export default function PeriodoModal({
             <input
               type="date"
               value={formData.fecha_fin}
+              disabled={loading}
               onChange={(e) => {
                 setFormData({
                   ...formData,
@@ -259,8 +275,9 @@ export default function PeriodoModal({
                   fecha_fin: false,
                 });
               }}
-              className={`border p-2 rounded w-full ${errors.fecha_fin ? "border-red-500" : "border-gray-300"
-                }`}
+              className={`border p-2 rounded w-full ${
+                errors.fecha_fin ? "border-red-500" : "border-gray-300"
+              }`}
             />
           </div>
 
@@ -269,11 +286,13 @@ export default function PeriodoModal({
             <button
               type="button"
               onClick={handleClose}
+              disabled={loading}
               className="
                 px-5 py-2
                 rounded-xl
                 bg-slate-200
                 hover:bg-slate-300
+                disabled:opacity-50
               "
             >
               Cancelar
@@ -281,17 +300,20 @@ export default function PeriodoModal({
 
             <button
               type="submit"
+              disabled={loading}
               className="
                 px-5 py-2
                 rounded-xl
                 bg-[#e8192c]
                 text-white
                 hover:bg-[#c8111f]
+                disabled:opacity-70
+                disabled:cursor-not-allowed
               "
             >
-              {mode === "edit"
-                ? "Actualizar"
-                : "Guardar"}
+              {loading
+                ? (mode === "edit" ? "Editando..." : "Creando...")
+                : (mode === "edit" ? "Actualizar" : "Crear")}
             </button>
 
           </div>

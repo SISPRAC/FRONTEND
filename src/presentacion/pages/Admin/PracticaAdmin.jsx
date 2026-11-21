@@ -21,6 +21,7 @@ export default function PracticasPage() {
 
   const [rows, setRows] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState("create");
@@ -31,11 +32,15 @@ export default function PracticasPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    loadPracticas();
+    loadPracticas(true);
   }, []);
 
-  const loadPracticas = async () => {
+  const loadPracticas = async (showLoading = false) => {
     try {
+
+      if (showLoading) {
+        setLoading(true);
+      }
 
       const data = await getPracticas({
         practicaRepository
@@ -47,7 +52,20 @@ export default function PracticasPage() {
       setCurrentPage(1);
 
     } catch (error) {
+
       console.log(error);
+
+      toast.error(
+        error.response?.data?.message ||
+        "Error al cargar las prácticas"
+      );
+
+    } finally {
+
+      if (showLoading) {
+        setLoading(false);
+      }
+
     }
   };
 
@@ -196,86 +214,153 @@ export default function PracticasPage() {
         Gestión de Prácticas
       </h1>
 
-      <GenericTable
-        rows={rows}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-        columns={[
-          {
-            key: "Periodo",
-            label: "Período",
-            primary: true,
-            render: row => row.Periodo?.nombre
-          },
-          {
-            key: "fecha_inicio",
-            label: "Inicio"
-          },
-          {
-            key: "fecha_fin",
-            label: "Fin"
-          },
-          {
-            key: "estado",
-            label: "Estado",
-            render: row => {
-              const estado = ESTADOS_CONFIG[row.estado] || {
-                bg: "bg-gray-100",
-                text: "text-gray-700",
-                dot: "bg-gray-500"
-              };
+      {loading ? (
 
-              const nombreEstado = row.estado === "EN_CURSO"
-                ? "En curso"
-                : row.estado === "FINALIZADA"
-                  ? "Finalizada"
-                  : row.estado;
+        // Skeleton de la tabla
+        <div className="w-full animate-pulse">
 
-              return (
-                <span
-                  className={`
-                    inline-flex
-                    items-center
-                    gap-2
-                    px-3
-                    py-1
-                    rounded-full
-                    text-sm
-                    font-medium
-                    ${estado.bg}
-                    ${estado.text}
-                  `}
-                >
+          {/* Encabezado */}
+          <div className="
+            grid grid-cols-5
+            gap-4
+            bg-slate-100
+            rounded-t-xl
+            px-6 py-5
+            border border-slate-200
+          ">
+            {[1, 2, 3, 4, 5].map((item) => (
+              <div
+                key={item}
+                className="h-5 bg-slate-200 rounded-md"
+              />
+            ))}
+          </div>
+
+          {/* Filas */}
+          <div className="
+            border-x border-b
+            border-slate-200
+            rounded-b-xl
+            overflow-hidden
+          ">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+
+              <div
+                key={item}
+                className="
+                  grid grid-cols-5
+                  gap-4
+                  items-center
+                  px-6 py-5
+                  border-b border-slate-100
+                  last:border-b-0
+                "
+              >
+
+                <div className="h-5 w-3/4 bg-slate-200 rounded-md" />
+
+                <div className="h-5 w-2/3 bg-slate-200 rounded-md" />
+
+                <div className="h-5 w-2/3 bg-slate-200 rounded-md" />
+
+                <div className="h-6 w-24 bg-slate-200 rounded-full" />
+
+                <div className="flex justify-center gap-3">
+                  <div className="h-9 w-9 bg-slate-200 rounded-lg" />
+                  <div className="h-9 w-9 bg-slate-200 rounded-lg" />
+                </div>
+
+              </div>
+
+            ))}
+          </div>
+
+        </div>
+
+      ) : (
+
+        <GenericTable
+          rows={rows}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          columns={[
+            {
+              key: "Periodo",
+              label: "Período",
+              primary: true,
+              render: row => row.Periodo?.nombre
+            },
+            {
+              key: "fecha_inicio",
+              label: "Inicio"
+            },
+            {
+              key: "fecha_fin",
+              label: "Fin"
+            },
+            {
+              key: "estado",
+              label: "Estado",
+              render: row => {
+                const estado = ESTADOS_CONFIG[row.estado] || {
+                  bg: "bg-gray-100",
+                  text: "text-gray-700",
+                  dot: "bg-gray-500"
+                };
+
+                const nombreEstado = row.estado === "EN_CURSO"
+                  ? "En curso"
+                  : row.estado === "FINALIZADA"
+                    ? "Finalizada"
+                    : row.estado;
+
+                return (
                   <span
                     className={`
-                      w-2
-                      h-2
+                      inline-flex
+                      items-center
+                      gap-2
+                      px-3
+                      py-1
                       rounded-full
-                      ${estado.dot}
+                      text-sm
+                      font-medium
+                      ${estado.bg}
+                      ${estado.text}
                     `}
-                  />
+                  >
+                    <span
+                      className={`
+                        w-2
+                        h-2
+                        rounded-full
+                        ${estado.dot}
+                      `}
+                    />
 
-                  {nombreEstado}
-                </span>
-              );
+                    {nombreEstado}
+                  </span>
+                );
+              }
             }
-          }
-        ]}
-        actions={[
-          {
-            icon: <SquarePen size={24} />,
-            className: "hover:bg-blue-100",
-            onClick: handleEdit
-          },
-          {
-            icon: <Trash size={24} />,
-            className: "hover:bg-red-100",
-            onClick: deleteRow
-          }
-        ]}
-        emptyMessage="No hay prácticas registradas."
-        pageSize={6}
-      />
+          ]}
+          actions={[
+            {
+              icon: <SquarePen size={24} />,
+              className: "hover:bg-blue-100",
+              onClick: handleEdit
+            },
+            {
+              icon: <Trash size={24} />,
+              className: "hover:bg-red-100",
+              onClick: deleteRow
+            }
+          ]}
+          emptyMessage="No hay prácticas registradas."
+          pageSize={6}
+        />
+
+      )}
 
       <AddButton onClick={handleCreate} />
 
