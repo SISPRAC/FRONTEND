@@ -4,15 +4,7 @@ import bg from "../../assets/images/backgrounds/fondo.jpg";
 import programa from "../../assets/images/logo/Programa_Ingeniería_de_Sistemas.png";
 import fondo from "../../assets/images/logo/LogoReportes.png";
 
-import {
-    LoaderCircle,
-    Mail,
-    Lock,
-    Eye,
-    EyeOff,
-    ShieldCheck
-} from "lucide-react";
-
+import { LoaderCircle, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 
@@ -27,200 +19,148 @@ export default function LoginForm({
 
     return (
         <div
-            className="relative min-h-screen w-full bg-cover bg-center bg-no-repeat"
+            className="relative min-h-screen w-full bg-cover bg-center"
             style={{ backgroundImage: `url(${bg})` }}
         >
-            {/* Fondo */}
-            <div className="absolute inset-0 bg-slate-900/25" />
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-white/40 flex items-center justify-center p-4">
 
-            {/* Contenido */}
-            <div className="relative min-h-screen flex items-center justify-center p-4 sm:p-6">
+                {/* Contenedor principal */}
+                <div className="flex flex-col md:flex-row items-center gap-8 bg-white/90 p-8 md:p-12 rounded-2xl shadow-xl">
 
-                {/* Panel principal */}
-                <div className="w-full max-w-4xl bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl overflow-hidden">
+                    {/* Formulario */}
+                    <div className="w-full md:w-[420px] flex items-center justify-center">
 
-                    <div className="flex flex-col md:flex-row">
+                        <form
+                            className="w-full flex flex-col items-center justify-center"
+                            onSubmit={onSubmit}
+                        >
+                            {/* Logo SISPRAC */}
+                            <div className="w-30 h-24 flex items-center justify-center mb-2">
+                                <img
+                                    src={fondo}
+                                    alt="Logo SISPRAC"
+                                    className="max-w-full max-h-full object-contain"
+                                />
+                            </div>
 
-                        {/* Formulario */}
-                        <div className="w-full md:w-[52%] flex items-center justify-center p-6 sm:p-9 lg:p-10">
+                            <p className="text-sm text-gray-500 text-center mb-6">
+                                ¡Bienvenido! Por favor, inicia sesión para continuar.
+                            </p>
 
-                            <form
-                                className="w-full max-w-sm flex flex-col items-center"
-                                onSubmit={onSubmit}
-                            >
-                                {/* Logo SISPRAC */}
-                                <div className="w-32 h-20 flex items-center justify-center mb-3">
-                                    <img
-                                        src={fondo}
-                                        alt="Logo SISPRAC"
-                                        className="max-w-full max-h-full object-contain"
-                                    />
-                                </div>
+                            {/* Correo */}
+                            <div className="flex items-center w-full bg-white border border-gray-300 h-12 rounded-full overflow-hidden px-5 gap-3">
+                                <svg width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path fillRule="evenodd" clipRule="evenodd" d="M0 .55.571 0H15.43l.57.55v9.9l-.571.55H.57L0 10.45zm1.143 1.138V9.9h13.714V1.69l-6.503 4.8h-.697zM13.749 1.1H2.25L8 5.356z" fill="#6B7280" />
+                                </svg>
 
-                                <h1 className="text-2xl font-bold text-gray-900 text-center">
-                                    Bienvenido
-                                </h1>
-
-                                <p className="text-sm text-gray-500 text-center mt-2 mb-7">
-                                    Inicia sesión para continuar en SISPRAC.
-                                </p>
-
-                                {/* Correo */}
-                                <div className="w-full mb-5">
-                                    <label
-                                        htmlFor="correo"
-                                        className="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Correo electrónico
-                                    </label>
-
-                                    <div className="flex items-center w-full h-11 bg-white border border-gray-300 rounded-xl px-4 gap-3 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 transition-all">
-
-                                        <Mail
-                                            size={17}
-                                            className="text-gray-400 shrink-0"
-                                        />
-
-                                        <input
-                                            id="correo"
-                                            type="email"
-                                            name="correo"
-                                            placeholder="ejemplo@correo.com"
-                                            className="w-full h-full bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
-                                            required
-                                            autoComplete="email"
-                                            onChange={onChange}
-                                            disabled={loading}
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* Contraseña */}
-                                <div className="w-full">
-                                    <label
-                                        htmlFor="password"
-                                        className="block text-sm font-medium text-gray-700 mb-2"
-                                    >
-                                        Contraseña
-                                    </label>
-
-                                    <div className="flex items-center w-full h-11 bg-white border border-gray-300 rounded-xl px-4 gap-3 focus-within:border-red-500 focus-within:ring-2 focus-within:ring-red-100 transition-all">
-
-                                        <Lock
-                                            size={17}
-                                            className="text-gray-400 shrink-0"
-                                        />
-
-                                        <input
-                                            id="password"
-                                            type={verPassword ? "text" : "password"}
-                                            name="password"
-                                            placeholder="Ingresa tu contraseña"
-                                            className="w-full h-full bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
-                                            required
-                                            autoComplete="current-password"
-                                            onChange={onChange}
-                                            disabled={loading}
-                                        />
-
-                                        <button
-                                            type="button"
-                                            onClick={() => setVerPassword(!verPassword)}
-                                            className="text-gray-400 hover:text-gray-700 transition-colors shrink-0"
-                                            aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
-                                            tabIndex={-1}
-                                        >
-                                            {verPassword
-                                                ? <EyeOff size={18} />
-                                                : <Eye size={18} />
-                                            }
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Recuperar contraseña */}
-                                <div className="w-full flex justify-end mt-4">
-                                    <Link
-                                        to="/recuperar-password"
-                                        className="text-sm text-gray-500 hover:text-red-600 transition-colors"
-                                    >
-                                        ¿Olvidaste tu contraseña?
-                                    </Link>
-                                </div>
-
-                                {/* Botón iniciar sesión */}
-                                <button
-                                    type="submit"
+                                <input
+                                    type="email"
+                                    name="correo"
+                                    placeholder="Correo electrónico"
+                                    className="bg-transparent text-gray-700 placeholder-gray-500 outline-none text-sm w-full h-full"
+                                    required
+                                    onChange={onChange}
                                     disabled={loading}
-                                    className={`mt-6 w-full h-11 rounded-xl text-sm font-medium text-white transition-all flex items-center justify-center gap-2
-                                        ${
-                                            loading
-                                                ? "bg-red-400 cursor-not-allowed"
-                                                : "bg-red-600 hover:bg-red-700 active:scale-[0.98]"
-                                        }`}
+                                />
+                            </div>
+
+                            {/* Contraseña */}
+                            <div className="flex items-center mt-5 w-full bg-white border border-gray-300 h-12 rounded-full overflow-hidden px-5 gap-3">
+
+                                <svg width="13" height="17" viewBox="0 0 13 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M13 8.5c0-.938-.729-1.7-1.625-1.7h-.812V4.25C10.563 1.907 8.74 0 6.5 0S2.438 1.907 2.438 4.25V6.8h-.813C.729 6.8 0 7.562 0 8.5v6.8c0 .938.729 1.7 1.625 1.7h9.75c.896 0 1.625-.762 1.625-1.7zM4.063 4.25c0-1.406 1.093-2.55 2.437-2.55s2.438 1.144 2.438 2.55V6.8H4.061z" fill="#6B7280" />
+                                </svg>
+
+                                <input
+                                    type={verPassword ? "text" : "password"}
+                                    name="password"
+                                    placeholder="Contraseña"
+                                    className="bg-transparent text-gray-700 placeholder-gray-500 outline-none text-sm w-full h-full"
+                                    required
+                                    onChange={onChange}
+                                    disabled={loading}
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setVerPassword(!verPassword)}
+                                    disabled={loading}
+                                    className="text-gray-400 hover:text-gray-700 transition-colors shrink-0"
+                                    aria-label={verPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                                 >
-                                    {loading ? (
-                                        <>
-                                            <LoaderCircle
-                                                size={18}
-                                                className="animate-spin"
-                                            />
-                                            Validando...
-                                        </>
+                                    {verPassword ? (
+                                        <EyeOff size={18} />
                                     ) : (
-                                        "Iniciar sesión"
+                                        <Eye size={18} />
                                     )}
                                 </button>
+                            </div>
 
-                                {/* Separador */}
-                                <div className="flex items-center gap-3 w-full my-5">
-                                    <div className="flex-1 h-px bg-gray-200" />
-
-                                    <span className="text-xs text-gray-400 whitespace-nowrap">
-                                        O continúa con
-                                    </span>
-
-                                    <div className="flex-1 h-px bg-gray-200" />
-                                </div>
-
-                                {/* Google */}
-                                <div
-                                    className={`w-full flex justify-center overflow-hidden ${
-                                        loading ? "pointer-events-none opacity-50" : ""
-                                    }`}
+                            {/* Recuperar contraseña */}
+                            <div className="w-full flex items-center justify-end mt-6 text-gray-500">
+                                <Link
+                                    className="text-sm underline hover:text-red-600 transition-colors"
+                                    to="/recuperar-password"
                                 >
-                                    <GoogleLogin
-                                        onSuccess={(cred) =>
-                                            onGoogleSuccess(cred.credential)
-                                        }
-                                        onError={onGoogleError}
-                                        shape="pill"
-                                        text="signin_with"
-                                        width="320"
-                                    />
-                                </div>
+                                    ¿Olvidaste la contraseña?
+                                </Link>
+                            </div>
 
-                                {/* Seguridad */}
-                                <div className="flex items-center justify-center gap-2 mt-6 text-gray-400">
-                                    <ShieldCheck size={14} />
-                                    <span className="text-xs">
-                                        Acceso seguro a la plataforma
-                                    </span>
-                                </div>
-                            </form>
-                        </div>
+                            {/* Botón iniciar sesión */}
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className={`mt-7 w-full h-11 rounded-full text-white transition-all flex items-center justify-center gap-2
+                                    ${loading
+                                        ? "bg-red-400 cursor-not-allowed"
+                                        : "bg-red-600 hover:bg-red-700"
+                                    }`}
+                            >
+                                {loading ? (
+                                    <>
+                                        <LoaderCircle size={20} className="animate-spin" />
+                                        Validando...
+                                    </>
+                                ) : (
+                                    "Iniciar sesión"
+                                )}
+                            </button>
 
-                        {/* Imagen institucional */}
-                        <div className="hidden md:flex md:w-[48%] items-center justify-center bg-gray-50 border-l border-gray-100 p-8 lg:p-10">
+                            {/* Separador Google */}
+                            <div className="flex items-center gap-4 w-full my-5">
+                                <div className="flex-1 h-px bg-gray-300" />
+                                <p className="text-nowrap text-sm text-gray-500">
+                                    o continúa con Google
+                                </p>
+                                <div className="flex-1 h-px bg-gray-300" />
+                            </div>
 
-                            <img
-                                src={programa}
-                                alt="Programa de Ingeniería de Sistemas"
-                                className="w-full max-w-[340px] max-h-[340px] object-contain"
-                            />
+                            {/* Google Login */}
+                            <div className={`w-full flex justify-center ${loading ? "pointer-events-none opacity-50" : ""}`}>
+                                <GoogleLogin
+                                    onSuccess={(cred) => onGoogleSuccess(cred.credential)}
+                                    onError={onGoogleError}
+                                    shape="pill"
+                                    text="signin_with"
+                                    width="320"
+                                />
+                            </div>
 
-                        </div>
+                        </form>
                     </div>
+
+                    {/* Logo Ingeniería de Sistemas */}
+                    <div className="hidden md:flex w-[400px] h-[400px] items-center justify-center border-l border-gray-200 pl-8">
+
+                        <img
+                            className="max-w-full max-h-full object-contain"
+                            src={programa}
+                            alt="Programa de Ingeniería de Sistemas"
+                        />
+
+                    </div>
+
                 </div>
             </div>
         </div>
