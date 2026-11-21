@@ -20,6 +20,8 @@ export default function PeriodosAcademicos() {
 
   const [rows, setRows] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState("create");
   const [selectedPeriodo, setSelectedPeriodo] = useState(null);
@@ -29,11 +31,15 @@ export default function PeriodosAcademicos() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    loadPeriodos();
+    loadPeriodos(true);
   }, []);
 
-  const loadPeriodos = async () => {
+  const loadPeriodos = async (showLoading = false) => {
     try {
+      if (showLoading) {
+        setLoading(true);
+      }
+
       const data = await getPeriodos({
         periodoRepository
       });
@@ -43,6 +49,16 @@ export default function PeriodosAcademicos() {
 
     } catch (error) {
       console.error(error);
+
+      toast.error(
+        error.response?.data?.message ||
+        "Error al cargar los períodos académicos"
+      );
+
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -54,7 +70,10 @@ export default function PeriodosAcademicos() {
 
   const handleEdit = async (id) => {
     try {
-      const periodo = await getPeriodoById({ periodoRepository }, id);
+      const periodo = await getPeriodoById(
+        { periodoRepository },
+        id
+      );
 
       setSelectedPeriodo(periodo);
       setMode("edit");
@@ -163,40 +182,99 @@ export default function PeriodosAcademicos() {
         Periodos Académicos
       </h1>
 
-      <GenericTable
-        rows={rows}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-        columns={[
-          {
-            key: "nombre",
-            label: "Nombre",
-            primary: true
-          },
-          {
-            key: "fecha_inicio",
-            label: "Inicio"
-          },
-          {
-            key: "fecha_fin",
-            label: "Fin"
-          }
-        ]}
-        actions={[
-          {
-            icon: <SquarePen size={24} />,
-            className: "hover:bg-blue-100",
-            onClick: handleEdit
-          },
-          {
-            icon: <Trash size={24} />,
-            className: "hover:bg-red-100",
-            onClick: deleteRow
-          }
-        ]}
-        emptyMessage="No hay períodos registrados."
-        pageSize={6}
-      />
+      {loading ? (
+
+        // Skeleton de la tabla
+        <div className="w-full animate-pulse">
+
+          {/* Encabezado */}
+          <div className="
+            grid grid-cols-4
+            gap-4
+            bg-slate-100
+            rounded-t-xl
+            px-6 py-5
+            border border-slate-200
+          ">
+            {[1, 2, 3, 4].map((item) => (
+              <div
+                key={item}
+                className="h-5 bg-slate-200 rounded-md"
+              />
+            ))}
+          </div>
+
+          {/* Filas */}
+          <div className="
+            border-x border-b
+            border-slate-200
+            rounded-b-xl
+            overflow-hidden
+          ">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
+              <div
+                key={item}
+                className="
+                  grid grid-cols-4
+                  gap-4
+                  items-center
+                  px-6 py-5
+                  border-b border-slate-100
+                  last:border-b-0
+                "
+              >
+                <div className="h-5 w-3/4 bg-slate-200 rounded-md" />
+                <div className="h-5 w-2/3 bg-slate-200 rounded-md" />
+                <div className="h-5 w-2/3 bg-slate-200 rounded-md" />
+
+                <div className="flex justify-center gap-3">
+                  <div className="h-9 w-9 bg-slate-200 rounded-lg" />
+                  <div className="h-9 w-9 bg-slate-200 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+
+      ) : (
+
+        <GenericTable
+          rows={rows}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          columns={[
+            {
+              key: "nombre",
+              label: "Nombre",
+              primary: true
+            },
+            {
+              key: "fecha_inicio",
+              label: "Inicio"
+            },
+            {
+              key: "fecha_fin",
+              label: "Fin"
+            }
+          ]}
+          actions={[
+            {
+              icon: <SquarePen size={24} />,
+              className: "hover:bg-blue-100",
+              onClick: handleEdit
+            },
+            {
+              icon: <Trash size={24} />,
+              className: "hover:bg-red-100",
+              onClick: deleteRow
+            }
+          ]}
+          emptyMessage="No hay períodos registrados."
+          pageSize={6}
+        />
+
+      )}
 
       <AddButton
         onClick={handleCreate}
