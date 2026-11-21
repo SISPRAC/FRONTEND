@@ -243,7 +243,7 @@ export default function StaffForm({
               </Field>
 
               {esTutorDocente && (
-                <Field label="Código" error={errors?.codigo}>
+                <Field label="Código del docente" error={errors?.codigo}>
                   <input
                     type="text"
                     name="codigo"
