@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -19,11 +20,27 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 
 const MAX_EVIDENCIAS = 3;
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 
 /* TODO: pegar aquí el link del formato de la práctica */
 const FORMATO_PRACTICA_URL = encodeURI(
     "/plantillas/Formato_Visita_Empresarial_UFPS.docx"
 );
+
+/* ================================================= */
+/* VALIDAR TAMAÑO DEL ARCHIVO */
+/* ================================================= */
+
+const validarTamanoArchivo = (file) => {
+    if (file.size > MAX_FILE_SIZE) {
+        toast.error(
+            `El archivo "${file.name}" supera el límite permitido de 2 MB.`
+        );
+        return false;
+    }
+
+    return true;
+};
 
 const formatearFecha = (fecha) => {
     if (!fecha) return "Sin fecha";
@@ -43,7 +60,7 @@ const formatearHora = (hora) => {
 };
 
 /* ================================================= */
-/* VISOR DE ARCHIVOS (ver / revisar antes de aceptar) */
+/* VISOR DE ARCHIVOS */
 /* ================================================= */
 
 const VisorArchivo = ({
@@ -61,6 +78,7 @@ const VisorArchivo = ({
                 (revisando ? onDescartar : onClose)?.();
             }
         };
+
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, [revisando, onClose, onDescartar]);
@@ -69,6 +87,7 @@ const VisorArchivo = ({
     const tipo = archivo?.file?.type || "";
 
     const esPdf = tipo === "application/pdf" || /\.pdf$/i.test(nombre);
+
     const esImagen =
         tipo.startsWith("image/") ||
         /\.(png|jpe?g|gif|webp)$/i.test(nombre) ||
@@ -93,6 +112,7 @@ const VisorArchivo = ({
                                 {titulo}
                             </p>
                         )}
+
                         <h3 className="truncate text-sm font-semibold">
                             {nombre}
                         </h3>
@@ -195,6 +215,7 @@ const ModalConfirmar = ({ guardando, onCancel, onConfirm }) => {
                     <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-amber-50 text-amber-600">
                         <ShieldAlert size={20} />
                     </span>
+
                     <h3 className="text-base font-bold">
                         Confirmar registro de la visita
                     </h3>
@@ -254,6 +275,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
     const [descripcion, setDescripcion] = useState(
         visita?.visita?.descripcion || ""
     );
+
     const [informe, setInforme] = useState(null);
     const [evidencias, setEvidencias] = useState([]);
     const [verInforme, setVerInforme] = useState(false);
@@ -261,11 +283,6 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
     const [cargandoArchivos, setCargandoArchivos] = useState(true);
     const [confirmando, setConfirmando] = useState(false);
 
-    /*
-     * Cola de archivos pendientes de revisión.
-     * Cada item: { kind: "acta" | "foto" | "reemplazo", file, url, nombre, index? }
-     * Solo el primero se muestra; al aceptar/descartar pasa al siguiente.
-     */
     const [cola, setCola] = useState([]);
     const pendiente = cola[0] || null;
 
@@ -273,6 +290,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
     const informeInput = useRef(null);
     const fotoInput = useRef(null);
     const reemplazoFotoInput = useRef(null);
+
     const [fotoReemplazarIndex, setFotoReemplazarIndex] = useState(null);
 
     /* ================================================= */
@@ -352,6 +370,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                         <p className="mb-4 text-sm text-slate-500">
                             No se encontró la información de la visita.
                         </p>
+
                         <button
                             type="button"
                             onClick={() => navigate(-1)}
@@ -366,13 +385,16 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
     }
 
     /* ================================================= */
-    /* SELECCIÓN DE ARCHIVOS (van a la cola de revisión) */
+    /* SELECCIÓN DE ARCHIVOS */
     /* ================================================= */
 
     const seleccionarActa = (e) => {
         const file = e.target.files?.[0];
         e.target.value = "";
+
         if (!file) return;
+
+        if (!validarTamanoArchivo(file)) return;
 
         if (file.type !== "application/pdf") {
             toast.error("El acta debe ser un archivo PDF");
@@ -401,13 +423,22 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
             return;
         }
 
+        const validas = archivos
+            .slice(0, disponibles)
+            .filter((file) => {
+                if (!validarTamanoArchivo(file)) return false;
+
+                if (!file.type.startsWith("image/")) {
+                    toast.error(`${file.name}: solo se permiten imágenes`);
+                    return false;
+                }
+
+                return true;
+            });
+
         if (archivos.length > disponibles) {
             toast.error("Solo puedes tener hasta 3 fotografías");
         }
-
-        const validas = archivos
-            .slice(0, disponibles)
-            .filter((f) => f.type.startsWith("image/"));
 
         setCola((c) => [
             ...c,
@@ -431,6 +462,8 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
         e.target.value = "";
 
         if (!file || fotoReemplazarIndex === null) return;
+
+        if (!validarTamanoArchivo(file)) return;
 
         if (!file.type.startsWith("image/")) {
             toast.error("Solo se permiten imágenes");
@@ -457,7 +490,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
     };
 
     /* ================================================= */
-    /* ACEPTAR / DESCARTAR ARCHIVO EN REVISIÓN */
+    /* ACEPTAR / DESCARTAR ARCHIVO */
     /* ================================================= */
 
     const aceptarPendiente = () => {
@@ -473,13 +506,17 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                 url,
                 file
             }));
+
             toast.success("Acta agregada");
         }
 
         if (kind === "foto") {
             setEvidencias((prev) =>
-                prev.length >= MAX_EVIDENCIAS ? prev : [...prev, { file, url }]
+                prev.length >= MAX_EVIDENCIAS
+                    ? prev
+                    : [...prev, { file, url }]
             );
+
             toast.success("Fotografía agregada");
         }
 
@@ -487,6 +524,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
             setEvidencias((prev) => {
                 const copia = [...prev];
                 const actual = copia[index];
+
                 if (!actual) return prev;
 
                 copia[index] = {
@@ -498,8 +536,10 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                         actual.id ??
                         null
                 };
+
                 return copia;
             });
+
             toast.success("Fotografía reemplazada");
         }
 
@@ -508,6 +548,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
 
     const descartarPendiente = () => {
         if (!pendiente) return;
+
         URL.revokeObjectURL(pendiente.url);
         setCola((c) => c.slice(1));
     };
@@ -521,6 +562,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
             onBack();
             return;
         }
+
         navigate(-1);
     };
 
@@ -540,25 +582,39 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
 
             evidencias.forEach((ev) => {
                 if (!ev.file) return;
+
                 formData.append("fotos", ev.file);
-                fotosReemplazo.push(ev.reemplazar_visita_archivo_id || null);
+                fotosReemplazo.push(
+                    ev.reemplazar_visita_archivo_id || null
+                );
             });
 
             if (fotosReemplazo.length > 0) {
-                formData.append("fotos_reemplazo", JSON.stringify(fotosReemplazo));
+                formData.append(
+                    "fotos_reemplazo",
+                    JSON.stringify(fotosReemplazo)
+                );
             }
 
             if (informe?.file) {
                 formData.append("acta", informe.file);
             }
 
-            await actualizarVisita({ visitaRepository, visitaId, data: formData });
+            await actualizarVisita({
+                visitaRepository,
+                visitaId,
+                data: formData
+            });
 
-            toast.success("Visita registrada. Se notificó al director de programa");
+            toast.success(
+                "Visita registrada. Se notificó al director de programa"
+            );
+
             setConfirmando(false);
             handleBack();
         } catch (error) {
             console.error("Error al actualizar la visita:", error);
+
             toast.error(
                 error?.response?.data?.message ||
                 "No se pudo actualizar la visita"
@@ -587,8 +643,10 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
     const formatoUrl = FORMATO_PRACTICA_URL;
 
     const etiqueta = "mb-1.5 text-xs font-medium text-slate-500";
+
     const campo =
         "mb-2 flex items-baseline gap-2 text-sm font-semibold text-slate-700";
+
     const card =
         "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm";
 
@@ -604,6 +662,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
     return (
         <div>
             <section className="flex flex-col gap-3 text-slate-800 md:h-[calc(100dvh-5rem)] md:overflow-hidden">
+
                 {/* ENCABEZADO */}
 
                 <header className="flex flex-none items-center gap-3">
@@ -639,13 +698,12 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                 {/* CONTENIDO */}
 
                 <div className="grid gap-3 md:min-h-0 md:flex-1 md:grid-cols-[300px_minmax(0,1fr)]">
+
                     {/* RESUMEN */}
 
                     <aside
                         className={`${card} flex flex-col divide-y divide-slate-100 md:min-h-0`}
                     >
-                        {/* Empresa */}
-
                         <div className="flex flex-none items-center gap-3 pb-3">
                             <span className="grid h-10 w-10 flex-none place-items-center overflow-hidden rounded-xl bg-red-50 text-base font-bold text-red-600">
                                 {visita?.empresa?.logo ? (
@@ -660,22 +718,24 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                             </span>
 
                             <div className="min-w-0">
-                                <p className="text-xs text-slate-500">Empresa</p>
+                                <p className="text-xs text-slate-500">
+                                    Empresa
+                                </p>
                                 <p className="truncate font-semibold">
                                     {empresaNombre}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Tutor + fechas */}
-
                         <div className="flex-none py-3">
                             <p className="text-xs text-slate-500">
                                 Tutor empresarial
                             </p>
+
                             <p className="text-sm font-semibold text-slate-700">
                                 {tutorEmpresarialNombre}
                             </p>
+
                             {tutorEmpresarial?.cargo && (
                                 <p className="mt-0.5 text-xs text-slate-500">
                                     {tutorEmpresarial.cargo}
@@ -685,6 +745,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                             <p className="mt-3 text-xs text-slate-500">
                                 Fecha y hora asignada
                             </p>
+
                             <p className="text-sm font-semibold">
                                 {formatearFecha(fechaVisita)}
                                 {" · "}
@@ -696,6 +757,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                                     <p className="mt-3 text-xs text-slate-500">
                                         Última modificación
                                     </p>
+
                                     <p className="text-sm font-semibold">
                                         {formatearFecha(fechaRealizada)}
                                     </p>
@@ -703,7 +765,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                             )}
                         </div>
 
-                        {/* Practicantes (scroll interno) */}
+                        {/* PRACTICANTES */}
 
                         <div className="flex min-h-0 flex-col py-3 md:flex-1">
                             <h2 className={etiqueta}>
@@ -731,9 +793,11 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                                                     {" - "}
                                                 </>
                                             ) : null}
+
                                             {p.nombres ||
                                                 p.nombre ||
                                                 "Practicante sin nombre"}
+
                                             {p.apellidos ? ` ${p.apellidos}` : ""}
                                         </li>
                                     ))
@@ -745,10 +809,12 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                             </ul>
                         </div>
 
-                        {/* Informe / acta */}
+                        {/* INFORME / ACTA */}
 
                         <div className="flex-none pt-3">
-                            <h2 className={etiqueta}>Informe de visita</h2>
+                            <h2 className={etiqueta}>
+                                Informe de visita
+                            </h2>
 
                             {cargandoArchivos ? (
                                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-500">
@@ -776,6 +842,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                                                     ? "Nuevo archivo"
                                                     : "Informe cargado"}
                                             </strong>
+
                                             <small className="block truncate text-xs text-slate-500">
                                                 {informe.nombre}
                                             </small>
@@ -816,10 +883,14 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                     {/* REGISTRO DE LA VISITA */}
 
                     <div className={`${card} flex flex-col gap-4 md:min-h-0`}>
-                        {/* Descripción */}
+
+                        {/* DESCRIPCIÓN */}
 
                         <div className="flex min-h-0 flex-col md:flex-1">
-                            <label htmlFor="descripcion" className={campo}>
+                            <label
+                                htmlFor="descripcion"
+                                className={campo}
+                            >
                                 Descripción de la visita
                             </label>
 
@@ -832,11 +903,12 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                             />
                         </div>
 
-                        {/* Evidencias */}
+                        {/* EVIDENCIAS */}
 
                         <div className="flex-none">
                             <h2 className={campo}>
                                 Evidencia
+
                                 <small className="font-medium text-slate-400">
                                     {evidencias.length} de {MAX_EVIDENCIAS}
                                 </small>
@@ -929,7 +1001,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                 </footer>
             </section>
 
-            {/* Ver informe ya cargado (solo lectura) */}
+            {/* VISOR DE INFORME */}
 
             {verInforme && informe && (
                 <VisorArchivo
@@ -938,7 +1010,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                 />
             )}
 
-            {/* Revisar archivo recién seleccionado: aceptar o descartar */}
+            {/* REVISIÓN DE ARCHIVOS */}
 
             {pendiente && (
                 <VisorArchivo
@@ -949,7 +1021,7 @@ const VisitaEmpresarial = ({ visita: visitaProp, onBack, onCancel }) => {
                 />
             )}
 
-            {/* Confirmación final */}
+            {/* CONFIRMACIÓN FINAL */}
 
             {confirmando && (
                 <ModalConfirmar

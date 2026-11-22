@@ -11,10 +11,11 @@ export default function Layout() {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
 
-    const outletContext = useOutletContext();
-
-    const perfilCompletado = outletContext?.perfilCompletado ?? null;
-    const setPerfilCompletado = outletContext?.setPerfilCompletado;
+    // Recibir el estado compartido desde ProtectedRoute.
+    const {
+        perfilCompletado,
+        setPerfilCompletado
+    } = useOutletContext();
 
     const [rolActivo, setRolActivo] = useState(() => {
         const token = localStorage.getItem("token");
@@ -40,7 +41,7 @@ export default function Layout() {
         }
     }, [rolActivo]);
 
-    // Bloquear scroll del documento cuando el menú móvil está abierto
+    // Bloquear scroll del documento cuando el menú móvil está abierto.
     useEffect(() => {
         document.body.style.overflow = sidebarMobileOpen ? "hidden" : "";
 
@@ -49,7 +50,7 @@ export default function Layout() {
         };
     }, [sidebarMobileOpen]);
 
-    // Cerrar menú móvil con Escape
+    // Cerrar menú móvil con Escape.
     useEffect(() => {
         const handleEscape = (event) => {
             if (event.key === "Escape") {
@@ -88,7 +89,6 @@ export default function Layout() {
                 setPerfilCompletado={setPerfilCompletado}
             />
 
-            {/* CONTENIDO PRINCIPAL */}
             <div className="
                 flex-1
                 min-w-0
@@ -119,7 +119,6 @@ export default function Layout() {
                     lg:py-10
                 ">
 
-                    {/* BOTÓN MENÚ MÓVIL */}
                     {!sidebarMobileOpen && (
                         <button
                             type="button"
@@ -153,7 +152,13 @@ export default function Layout() {
                         </button>
                     )}
 
-                    <Outlet />
+                    {/* Transmitir el contexto a las páginas internas. */}
+                    <Outlet
+                        context={{
+                            perfilCompletado,
+                            setPerfilCompletado
+                        }}
+                    />
 
                 </main>
             </div>

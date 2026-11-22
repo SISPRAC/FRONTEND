@@ -839,7 +839,7 @@ export default function VistaInformePracticante({ soloLectura: soloLecturaProp =
             message:
                 "¿Estás seguro de que deseas aprobar este informe? Esta acción no se puede deshacer.",
             confirmLabel: "Sí, aprobar",
-            confirmColor: "bg-emerald-600 hover:bg-emerald-700",
+            confirmColor: "bg-red-600 hover:bg-red-700",
             showTextarea: false
         },
 

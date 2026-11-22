@@ -289,7 +289,31 @@ export default function ActualizarPerfil() {
                 };
 
                 setForm(datosPerfil);
-                setPerfilOriginal(datosPerfil);
+                setPerfilOriginal({ ...datosPerfil });
+
+                // Detectar si el perfil tiene campos obligatorios pendientes.
+                const camposRequeridos = [
+                    ...CAMPOS_OBLIGATORIOS_BASE,
+                    ...(esUsuarioPracticante
+                        ? CAMPOS_OBLIGATORIOS_PRACTICANTE
+                        : []),
+                    ...(esUsuarioTutorEmpresa
+                        ? ["cargo"]
+                        : [])
+                ];
+
+                const perfilIncompleto = camposRequeridos.some((campo) => {
+                    const valor = datosPerfil[campo];
+
+                    return (
+                        valor === null ||
+                        valor === undefined ||
+                        String(valor).trim() === ""
+                    );
+                });
+
+                // Si faltan datos, activar directamente el formulario.
+                setEditando(perfilIncompleto);
 
             } catch (error) {
                 console.error("Error cargando perfil:", error);
@@ -430,9 +454,32 @@ export default function ActualizarPerfil() {
     };
 
     const handleCancelarEdicion = () => {
-        setForm(perfilOriginal);
+        const camposRequeridos = [
+            ...CAMPOS_OBLIGATORIOS_BASE,
+            ...(esPracticante
+                ? CAMPOS_OBLIGATORIOS_PRACTICANTE
+                : []),
+            ...(esTutorEmpresa
+                ? ["cargo"]
+                : [])
+        ];
+
+        const perfilIncompleto = camposRequeridos.some((campo) => {
+            const valor = perfilOriginal[campo];
+
+            return (
+                valor === null ||
+                valor === undefined ||
+                String(valor).trim() === ""
+            );
+        });
+
+        setForm({ ...perfilOriginal });
         setErrors({});
-        setEditando(false);
+        setMostrarConfirmacion(false);
+
+        // No permitir abandonar la edición si faltan datos obligatorios.
+        setEditando(perfilIncompleto);
     };
 
     const handleSubmit = async (e) => {
@@ -458,21 +505,18 @@ export default function ActualizarPerfil() {
                 form
             );
 
+            // Actualizar el estado global del Layout inmediatamente.
             setPerfilCompletado(true);
 
             toast.success("Perfil actualizado correctamente");
 
-            setPerfilOriginal(form);
+            setPerfilOriginal({ ...form });
             setEditando(false);
 
             if (rolActivo === "Practicante") {
-                navigate("/homePracticante", {
-                    replace: true
-                });
+                window.location.replace("/homePracticante");
             } else {
-                navigate("/perfil", {
-                    replace: true
-                });
+                window.location.reload();
             }
 
         } catch (error) {

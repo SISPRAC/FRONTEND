@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import {
     Eye,
@@ -25,25 +26,29 @@ import { obtenerDocumentosPracticantePorPractica } from "../../../aplicacion/pra
 
 import { practicaRequisitoDocumentoSubidoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoSubidoRepository.js";
 import { getPracticaActual } from "../../../presentacion/components/utils/getPracticaActual.js";
+
 // -----------------------------------------------------------------------
 // Badge de estado
 // -----------------------------------------------------------------------
 
 function DocEstadoBadge({ estado }) {
     const styles = {
-        APROBADO: "bg-green-100 text-green-700",
-        Aceptado: "bg-green-100 text-green-700",
-        Subido: "bg-green-100 text-green-700",
-        PENDIENTE: "bg-gray-200 text-gray-600",
-        Pendiente: "bg-gray-200 text-gray-600",
-        RECHAZADO: "bg-red-100 text-red-600",
-        Rechazado: "bg-red-100 text-red-600",
+        APROBADO: "bg-red-50 text-red-700 border border-red-100",
+        Aceptado: "bg-red-50 text-red-700 border border-red-100",
+        Subido: "bg-red-50 text-red-700 border border-red-100",
+
+        PENDIENTE: "bg-gray-100 text-gray-600 border border-gray-200",
+        Pendiente: "bg-gray-100 text-gray-600 border border-gray-200",
+
+        RECHAZADO: "bg-red-100 text-red-700 border border-red-200",
+        Rechazado: "bg-red-100 text-red-700 border border-red-200",
     };
 
     return (
         <span
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${styles[estado] || styles.Pendiente
-                }`}
+            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+                styles[estado] || styles.Pendiente
+            }`}
         >
             {estado}
         </span>
@@ -55,7 +60,7 @@ function DocEstadoBadge({ estado }) {
 // -----------------------------------------------------------------------
 
 function ConfirmarAccionDialog({
-    tipo, // "aprobar" | "rechazar"
+    tipo,
     nombreDocumento,
     observacion,
     onObservacionChange,
@@ -108,7 +113,7 @@ function ConfirmarAccionDialog({
                             rows={4}
                             maxLength={2000}
                             disabled={procesando}
-                            className="w-full resize-none rounded-lg border border-gray-200 p-3 text-sm outline-none focus:border-red-400 disabled:bg-gray-100"
+                            className="w-full resize-none rounded-lg border border-gray-200 p-3 text-sm outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-100 disabled:bg-gray-100"
                         />
                     </div>
                 ) : (
@@ -133,10 +138,11 @@ function ConfirmarAccionDialog({
                         disabled={
                             procesando || (esRechazo && !observacion.trim())
                         }
-                        className={`rounded-lg px-5 py-2.5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${esRechazo
-                            ? "bg-red-600 hover:bg-red-700"
-                            : "bg-green-600 hover:bg-green-700"
-                            }`}
+                        className={`rounded-lg px-5 py-2.5 text-sm font-bold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                            esRechazo
+                                ? "bg-red-700 hover:bg-red-800"
+                                : "bg-red-600 hover:bg-red-700"
+                        }`}
                     >
                         {procesando
                             ? "Procesando..."
@@ -167,7 +173,7 @@ function ProtocoloCarouselModal({
 }) {
     const [index, setIndex] = useState(0);
     const [observacion, setObservacion] = useState("");
-    const [accion, setAccion] = useState(null); // null | "aprobar" | "rechazar"
+    const [accion, setAccion] = useState(null);
 
     useEffect(() => {
         if (open) {
@@ -187,7 +193,9 @@ function ProtocoloCarouselModal({
     const doc = documentos[index];
     const total = documentos.length;
 
-    const procesando = Boolean(doc && procesandoDocumentoId === doc.id);
+    const procesando = Boolean(
+        doc && procesandoDocumentoId === doc.id
+    );
 
     const esRechazado =
         doc?.estado === "RECHAZADO" || doc?.estado === "Rechazado";
@@ -206,6 +214,7 @@ function ProtocoloCarouselModal({
         } else if (accion === "rechazar") {
             await onRechazar(doc.id, observacion);
         }
+
         setAccion(null);
     };
 
@@ -234,7 +243,7 @@ function ProtocoloCarouselModal({
                     </button>
                 </div>
 
-                {/* Información del practicante (compacta) */}
+                {/* Información del practicante */}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-1 px-6 py-3 text-sm text-gray-800 md:grid-cols-4">
                     <p className="truncate">
                         <span className="font-bold">Código:</span>{" "}
@@ -281,7 +290,7 @@ function ProtocoloCarouselModal({
                             <DocEstadoBadge estado={doc.estado} />
                         </div>
 
-                        {/* Motivo del rechazo (arriba, visible al revisar) */}
+                        {/* Motivo del rechazo */}
                         {esRechazado && doc.observacion && (
                             <div className="mx-6 mb-3 flex items-start gap-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3">
                                 <AlertCircle
@@ -307,7 +316,7 @@ function ProtocoloCarouselModal({
                                 <button
                                     type="button"
                                     onClick={goPrev}
-                                    className="absolute left-2 z-10 rounded-lg bg-white p-2 text-gray-500 shadow transition hover:text-red-500"
+                                    className="absolute left-2 z-10 rounded-lg bg-white p-2 text-gray-500 shadow transition hover:bg-red-50 hover:text-red-600"
                                     aria-label="Documento anterior"
                                 >
                                     <ChevronLeft size={20} />
@@ -337,7 +346,7 @@ function ProtocoloCarouselModal({
                                 <button
                                     type="button"
                                     onClick={goNext}
-                                    className="absolute right-2 z-10 rounded-lg bg-white p-2 text-gray-500 shadow transition hover:text-red-500"
+                                    className="absolute right-2 z-10 rounded-lg bg-white p-2 text-gray-500 shadow transition hover:bg-red-50 hover:text-red-600"
                                     aria-label="Documento siguiente"
                                 >
                                     <ChevronRight size={20} />
@@ -363,7 +372,7 @@ function ProtocoloCarouselModal({
                                         type="button"
                                         onClick={() => setAccion("rechazar")}
                                         disabled={procesando}
-                                        className="rounded-lg bg-red-600 px-8 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="rounded-lg bg-gray-700 px-8 py-2.5 text-sm font-bold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         Rechazar
                                     </button>
@@ -372,7 +381,7 @@ function ProtocoloCarouselModal({
                                         type="button"
                                         onClick={() => setAccion("aprobar")}
                                         disabled={procesando}
-                                        className="rounded-lg bg-green-600 px-8 py-2.5 text-sm font-bold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="rounded-lg bg-red-600 px-8 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         Aprobar
                                     </button>
@@ -418,8 +427,6 @@ const selectClass =
 // Vista de practicantes
 // -----------------------------------------------------------------------
 
-
-
 export default function PracticantesProtocolos() {
     // Prácticas
     const [practicas, setPracticas] = useState([]);
@@ -459,6 +466,7 @@ export default function PracticantesProtocolos() {
             try {
                 setLoadingPracticas(true);
                 setError(null);
+
                 const data = await getPracticas({
                     practicaRepository,
                 });
@@ -467,8 +475,8 @@ export default function PracticantesProtocolos() {
                     const lista = data || [];
                     setPracticas(lista);
 
-                    // seleccionar automáticamente la práctica en curso
                     const actual = getPracticaActual(lista);
+
                     if (actual) {
                         setPracticaId(String(actual.id));
                     }
@@ -877,7 +885,9 @@ export default function PracticantesProtocolos() {
             {/* Error */}
             {error && (
                 <div className="mb-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3">
-                    <p className="text-sm font-medium text-red-600">{error}</p>
+                    <p className="text-sm font-medium text-red-600">
+                        {error}
+                    </p>
                 </div>
             )}
 
@@ -905,10 +915,11 @@ export default function PracticantesProtocolos() {
                         label: "# Documentos",
                         render: (row) => (
                             <span
-                                className={`font-semibold ${row.documentosCompleto
-                                    ? "text-green-600"
-                                    : "text-red-500"
-                                    }`}
+                                className={`font-semibold ${
+                                    row.documentosCompleto
+                                        ? "text-red-600"
+                                        : "text-gray-500"
+                                }`}
                             >
                                 {row.documentosResumen}
                             </span>

@@ -77,6 +77,7 @@ const evaluarVentana = (fechaInicio, fechaLimite) => {
 };
 
 const PAGE_SIZE = 6;
+const MAX_SIZE_PDF = 2 * 1024 * 1024; // 2 MB
 
 // =============================================================
 // SKELETON
@@ -269,17 +270,31 @@ const Documentos = ({ rol = "Practicante" }) => {
   const handleConfirmarSubida = async (archivo) => {
     try {
 
-      if (!documentoSeleccionado.ventanaHabilitada) {
-        toast.error(documentoSeleccionado.motivoBloqueo || MENSAJE_CONTACTAR_TUTOR);
-        return false;
-      }
       if (!documentoSeleccionado) {
         toast.error("No se ha seleccionado un requisito.");
         return false;
       }
 
+      if (!documentoSeleccionado.ventanaHabilitada) {
+        toast.error(documentoSeleccionado.motivoBloqueo || MENSAJE_CONTACTAR_TUTOR);
+        return false;
+      }
+
       if (!archivo) {
         toast.error("Debes seleccionar un archivo.");
+        return false;
+      }
+
+      if (
+        !archivo.name.toLowerCase().endsWith(".pdf") ||
+        (archivo.type && archivo.type !== "application/pdf")
+      ) {
+        toast.error("Solo se permiten archivos PDF.");
+        return false;
+      }
+
+      if (archivo.size > MAX_SIZE_PDF) {
+        toast.error("El archivo no puede pesar más de 2 MB.");
         return false;
       }
 
@@ -325,13 +340,13 @@ const Documentos = ({ rol = "Practicante" }) => {
 
   const handleConfirmarEdicion = async (archivo) => {
     try {
+      if (!documentoSeleccionado) {
+        toast.error("No se ha seleccionado un requisito.");
+        return false;
+      }
 
       if (!documentoSeleccionado.ventanaHabilitada) {
         toast.error(documentoSeleccionado.motivoBloqueo || MENSAJE_CONTACTAR_TUTOR);
-        return false;
-      }
-      if (!documentoSeleccionado) {
-        toast.error("No se ha seleccionado un requisito.");
         return false;
       }
 
@@ -347,6 +362,19 @@ const Documentos = ({ rol = "Practicante" }) => {
 
       if (!archivo) {
         toast.error("Debes seleccionar un archivo.");
+        return false;
+      }
+
+      if (
+        !archivo.name.toLowerCase().endsWith(".pdf") ||
+        (archivo.type && archivo.type !== "application/pdf")
+      ) {
+        toast.error("Solo se permiten archivos PDF.");
+        return false;
+      }
+
+      if (archivo.size > MAX_SIZE_PDF) {
+        toast.error("El archivo no puede pesar más de 2 MB.");
         return false;
       }
 
@@ -622,7 +650,6 @@ const ModalBase = ({
 }) => (
   <div
     className={`fixed inset-0 bg-black/40 flex items-center justify-center p-4 ${zIndex}`}
-    onClick={onClose}
   >
     <div
       className={`bg-white rounded-xl shadow-xl w-full ${ancho} max-h-[90vh] flex flex-col`}
@@ -743,11 +770,22 @@ const ModalFormularioDocumento = ({
 
     if (!seleccionado) return;
 
-    if (
-      seleccionado.type !== "application/pdf" &&
-      !seleccionado.name.toLowerCase().endsWith(".pdf")
-    ) {
+    const esPDF =
+      seleccionado.name.toLowerCase().endsWith(".pdf") &&
+      (!seleccionado.type || seleccionado.type === "application/pdf");
+
+    if (!esPDF) {
       toast.error("Solo se permiten archivos PDF.");
+      setArchivo(null);
+      setMostrarVistaPrevia(false);
+      e.target.value = "";
+      return;
+    }
+
+    if (seleccionado.size > MAX_SIZE_PDF) {
+      toast.error("El archivo no puede pesar más de 2 MB.");
+      setArchivo(null);
+      setMostrarVistaPrevia(false);
       e.target.value = "";
       return;
     }
@@ -762,6 +800,20 @@ const ModalFormularioDocumento = ({
 
   const handleConfirmar = async () => {
     if (!archivo || enviando) return;
+
+    const esPDF =
+      archivo.name.toLowerCase().endsWith(".pdf") &&
+      (!archivo.type || archivo.type === "application/pdf");
+
+    if (!esPDF) {
+      toast.error("Solo se permiten archivos PDF.");
+      return;
+    }
+
+    if (archivo.size > MAX_SIZE_PDF) {
+      toast.error("El archivo no puede pesar más de 2 MB.");
+      return;
+    }
 
     setEnviando(true);
 
@@ -825,13 +877,13 @@ const ModalFormularioDocumento = ({
 
               <span className="text-xs text-slate-400">
                 {archivo
-                  ? "Archivo seleccionado correctamente"
-                  : "Selecciona el documento que deseas enviar"}
+                  ? `PDF seleccionado · ${(archivo.size / 1024 / 1024).toFixed(2)} MB`
+                  : "Solo archivos PDF · Tamaño máximo: 2 MB"}
               </span>
 
               <input
                 type="file"
-                accept="application/pdf,.pdf"
+                accept=".pdf,application/pdf"
                 className="hidden"
                 onChange={handleSeleccionarArchivo}
               />

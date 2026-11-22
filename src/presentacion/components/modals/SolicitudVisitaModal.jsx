@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useEffect } from "react";
 import {
     X,
@@ -10,7 +11,6 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import EstadoBadge from "../estadoBadge/EstadoBadge";
-// Ajusta la ruta según donde tengas el ConfirmModal
 import ConfirmModal from "../modals/ConfirmModal";
 
 const FECHA_VACIA = {
@@ -20,9 +20,9 @@ const FECHA_VACIA = {
     hora_fin: ""
 };
 
-const PASO_MIN = 60;        // mismo valor que en SolicitudVisitaCard
-const HORA_MIN_DIA = 6;     // primera hora ofrecida (6:00 AM)
-const HORA_MAX_DIA = 20;    // última hora ofrecida (8:00 PM)
+const PASO_MIN = 60;
+const HORA_MIN_DIA = 6;
+const HORA_MAX_DIA = 20;
 
 const HORAS_OPCIONES = (() => {
     const horas = [];
@@ -57,16 +57,12 @@ const formatearHora = (hora) => {
  * ============================================================
  */
 
-/*
- * Un practicante solo puede solicitar visita si tiene empresa asignada.
- */
 const tieneEmpresa = (practicante) => {
     const empresa = String(practicante?.empresa ?? "").trim().toLowerCase();
 
     return Boolean(empresa) && empresa !== "sin empresa";
 };
 
-// Fecha de hoy en hora local (YYYY-MM-DD), sin desfase por UTC.
 const obtenerFechaHoy = () => {
     const d = new Date();
     const anio = d.getFullYear();
@@ -76,11 +72,9 @@ const obtenerFechaHoy = () => {
     return `${anio}-${mes}-${dia}`;
 };
 
-// Normalizan los valores que vienen de la BD para poder compararlos.
 const normalizarFecha = (valor) => (valor ? String(valor).slice(0, 10) : "");
 const normalizarHora = (valor) => (valor ? String(valor).slice(0, 5) : "");
 
-// Dos disponibilidades son iguales si coinciden fechas Y horas.
 const claveDisponibilidad = (f) =>
     [
         normalizarFecha(f.fecha_inicio),
@@ -90,9 +84,10 @@ const claveDisponibilidad = (f) =>
     ].join("|");
 
 const claseInput = (hayError) =>
-    `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${hayError
-        ? "border-red-500 bg-red-50 focus:ring-red-200"
-        : "border-slate-300 focus:ring-red-200"
+    `w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+        hayError
+            ? "border-red-500 bg-red-50 focus:ring-red-200"
+            : "border-slate-300 focus:ring-red-200"
     }`;
 
 const MensajeError = ({ mensaje }) =>
@@ -164,22 +159,17 @@ const SolicitudVisitaModal = ({
      * ============================================================
      * VALIDACIÓN DE NUEVAS DISPONIBILIDADES
      * ============================================================
-     *
-     * - La fecha inicial no puede ser anterior a hoy.
-     * - La fecha final no puede ser anterior a la inicial.
-     * - La hora final debe ser posterior a la inicial.
-     * - No se puede repetir la misma fecha con el mismo horario
-     *   (ni contra las existentes ni contra otras nuevas).
-     *   La misma fecha con otra hora SÍ está permitida.
      */
 
     const hoy = obtenerFechaHoy();
 
     const erroresFechas = useMemo(() => {
         const hoyLocal = obtenerFechaHoy();
+
         const clavesExistentes = new Set(
             fechasExistentes.map(claveDisponibilidad)
         );
+
         const clavesNuevas = new Set();
 
         return fechas.map((f) => {
@@ -273,12 +263,10 @@ const SolicitudVisitaModal = ({
     };
 
     const tieneSolicitudActiva = (practicante) => {
-        // Aceptada no puede seleccionarse.
         if (esAceptada(practicante)) {
             return true;
         }
 
-        // Si no hay estado pero existe en el Set, bloqueamos por seguridad.
         if (
             !practicante.estadoSolicitudVisita &&
             idsConSolicitud.has(practicante.id)
@@ -290,7 +278,6 @@ const SolicitudVisitaModal = ({
     };
 
     const obtenerMotivoNoDisponible = (practicante) => {
-        // Sin empresa no se puede solicitar visita.
         if (!tieneEmpresa(practicante)) {
             return "No disponible: el practicante no tiene una empresa asignada.";
         }
@@ -319,7 +306,6 @@ const SolicitudVisitaModal = ({
     const handleToggle = (practicante) => {
         const { id, empresa } = practicante;
 
-        // No permitir seleccionar practicantes sin empresa.
         if (!tieneEmpresa(practicante)) {
             toast.error(
                 "Este practicante no tiene empresa asignada, no se puede solicitar visita."
@@ -327,7 +313,6 @@ const SolicitudVisitaModal = ({
             return;
         }
 
-        // No permitir seleccionar practicantes retirados o finalizados.
         if (
             idsPracticantesNoSeleccionables?.has(id) ||
             practicante.estado === "Retirado" ||
@@ -336,23 +321,19 @@ const SolicitudVisitaModal = ({
             return;
         }
 
-        // Aceptada no puede seleccionarse.
         if (esAceptada(practicante)) {
             return;
         }
 
-        // Si existe una solicitud sin estado, tampoco permitimos crear otra.
         if (!practicante.estadoSolicitudVisita && idsConSolicitud.has(id)) {
             return;
         }
 
-        // Si ya está seleccionado, quitarlo.
         if (seleccionados.includes(id)) {
             setSeleccionados((prev) => prev.filter((x) => x !== id));
             return;
         }
 
-        // Solo una empresa por solicitud.
         if (empresaSeleccionada && empresaSeleccionada !== empresa) {
             toast.error(
                 "Solo puede seleccionar practicantes de una empresa por solicitud."
@@ -377,7 +358,6 @@ const SolicitudVisitaModal = ({
             return;
         }
 
-        // Evitar múltiples clics mientras se procesa la acción.
         if (gestionandoVisitaId !== null) {
             return;
         }
@@ -405,6 +385,11 @@ const SolicitudVisitaModal = ({
     const handleMostrarCancelacion = (practicante) => {
         if (!practicante?.solicitudVisitaId) {
             toast.error("No se encontró el ID de la solicitud.");
+            return;
+        }
+
+        // La cancelación solamente está permitida para solicitudes pendientes.
+        if (!esPendiente(practicante)) {
             return;
         }
 
@@ -454,10 +439,6 @@ const SolicitudVisitaModal = ({
             return;
         }
 
-        /*
-         * Tomamos el primer practicante.
-         * Si es una solicitud existente, sus fechas se mostrarán como solo lectura.
-         */
         const practicantePrincipal = practicantes.find(
             (p) => p.id === seleccionados[0]
         );
@@ -465,11 +446,6 @@ const SolicitudVisitaModal = ({
         const fechasAnteriores = practicantePrincipal?.fechasPropuestas || [];
 
         setFechasExistentes(fechasAnteriores);
-
-        /*
-         * Siempre iniciamos una nueva disponibilidad
-         * para que el usuario pueda agregar otra opción.
-         */
         setFechas([{ ...FECHA_VACIA }]);
 
         setPaso(2);
@@ -524,7 +500,9 @@ const SolicitudVisitaModal = ({
 
     const actualizarFecha = (index, campo, valor) => {
         setFechas((prev) =>
-            prev.map((f, i) => (i === index ? { ...f, [campo]: valor } : f))
+            prev.map((f, i) =>
+                i === index ? { ...f, [campo]: valor } : f
+            )
         );
     };
 
@@ -535,13 +513,12 @@ const SolicitudVisitaModal = ({
      */
 
     const handleEnviar = async () => {
-        /*
-         * Validamos únicamente las NUEVAS disponibilidades.
-         * Las anteriores ya están guardadas en la base de datos.
-         */
         const fechasCompletas = fechas.every(
             (f) =>
-                f.fecha_inicio && f.fecha_fin && f.hora_inicio && f.hora_fin
+                f.fecha_inicio &&
+                f.fecha_fin &&
+                f.hora_inicio &&
+                f.hora_fin
         );
 
         if (!fechasCompletas) {
@@ -562,15 +539,13 @@ const SolicitudVisitaModal = ({
             (p) => p.id === seleccionados[0]
         );
 
-        /*
-         * Pendiente, Rechazada y Cancelada utilizan EDITAR.
-         * Sin solicitud utiliza CREAR.
-         */
         const esEdicion =
             practicantePrincipal &&
-            (esPendiente(practicantePrincipal) ||
+            (
+                esPendiente(practicantePrincipal) ||
                 esRechazada(practicantePrincipal) ||
-                esCancelada(practicantePrincipal));
+                esCancelada(practicantePrincipal)
+            );
 
         const solicitudId = practicantePrincipal?.solicitudVisitaId || null;
 
@@ -590,11 +565,6 @@ const SolicitudVisitaModal = ({
             solicitudId,
             editar: esEdicion,
             practicantes: seleccionados,
-
-            /*
-             * Solamente mandamos las nuevas fechas.
-             * Las anteriores ya existen en la BD y no deben modificarse.
-             */
             fechas
         });
     };
@@ -613,9 +583,8 @@ const SolicitudVisitaModal = ({
         <>
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                    {/* =====================================================
-                        HEADER
-                    ===================================================== */}
+
+                    {/* HEADER */}
 
                     <div className="flex justify-between items-center px-6 py-4 border-b border-slate-200">
                         <div>
@@ -638,14 +607,11 @@ const SolicitudVisitaModal = ({
                         </button>
                     </div>
 
-                    {/* =====================================================
-                        BODY
-                    ===================================================== */}
+                    {/* BODY */}
 
                     <div className="px-6 py-5 overflow-y-auto flex-1">
-                        {/* =================================================
-                            PASO 1
-                        ================================================= */}
+
+                        {/* PASO 1 */}
 
                         {paso === 1 && (
                             <div className="space-y-6">
@@ -668,322 +634,269 @@ const SolicitudVisitaModal = ({
                                             </div>
 
                                             <div className="divide-y divide-slate-100">
-                                                {practicantesEmpresa.map(
-                                                    (practicante) => {
-                                                        const seleccionado =
-                                                            seleccionados.includes(
-                                                                practicante.id
-                                                            );
+                                                {practicantesEmpresa.map((practicante) => {
+                                                    const seleccionado =
+                                                        seleccionados.includes(practicante.id);
 
-                                                        const motivoNoDisponible =
-                                                            obtenerMotivoNoDisponible(
-                                                                practicante
-                                                            );
+                                                    const motivoNoDisponible =
+                                                        obtenerMotivoNoDisponible(practicante);
 
-                                                        const noSeleccionable =
-                                                            Boolean(
-                                                                motivoNoDisponible
-                                                            );
+                                                    const noSeleccionable =
+                                                        Boolean(motivoNoDisponible);
 
-                                                        const solicitudPendiente =
-                                                            esPendiente(practicante);
+                                                    const solicitudPendiente =
+                                                        esPendiente(practicante);
 
-                                                        const solicitudAceptada =
-                                                            esAceptada(practicante);
+                                                    const solicitudAceptada =
+                                                        esAceptada(practicante);
 
-                                                        const solicitudRechazada =
-                                                            esRechazada(practicante);
+                                                    const solicitudRechazada =
+                                                        esRechazada(practicante);
 
-                                                        const solicitudCancelada =
-                                                            esCancelada(practicante);
+                                                    const solicitudCancelada =
+                                                        esCancelada(practicante);
 
-                                                        // La fecha llega desde la consulta de la visita asociada.
-                                                        const visitaRealizada =
-                                                            Boolean(
-                                                                practicante.fechaRealizada
-                                                            );
+                                                    const visitaRealizada =
+                                                        Boolean(practicante.fechaRealizada);
 
-                                                        const solicitudExiste =
-                                                            tieneSolicitud(
-                                                                practicante
-                                                            );
+                                                    const solicitudExiste =
+                                                        tieneSolicitud(practicante);
 
-                                                        const solicitudActiva =
-                                                            tieneSolicitudActiva(
-                                                                practicante
-                                                            );
+                                                    const solicitudActiva =
+                                                        tieneSolicitudActiva(practicante);
 
-                                                        return (
-                                                            <div
-                                                                key={practicante.id}
-                                                                className="px-4 py-3 flex items-start gap-3 transition-colors hover:bg-slate-50"
-                                                            >
-                                                                {/* CHECKBOX
-                                                                    Si no es seleccionable (sin empresa,
-                                                                    retirado, finalizado...) NO se muestra. */}
-                                                                {!noSeleccionable && (
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        checked={seleccionado}
-                                                                        disabled={solicitudActiva}
-                                                                        onChange={() =>
-                                                                            handleToggle(
-                                                                                practicante
-                                                                            )
-                                                                        }
-                                                                        title={
-                                                                            solicitudActiva
-                                                                                ? "Ya existe una solicitud de visita activa."
-                                                                                : undefined
-                                                                        }
-                                                                        className={`h-4 w-4 shrink-0 mt-1 accent-red-600 ${solicitudActiva
+                                                    return (
+                                                        <div
+                                                            key={practicante.id}
+                                                            className="px-4 py-3 flex items-start gap-3 transition-colors hover:bg-slate-50"
+                                                        >
+                                                            {/* CHECKBOX */}
+
+                                                            {!noSeleccionable && (
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={seleccionado}
+                                                                    disabled={solicitudActiva}
+                                                                    onChange={() =>
+                                                                        handleToggle(practicante)
+                                                                    }
+                                                                    title={
+                                                                        solicitudActiva
+                                                                            ? "Ya existe una solicitud de visita activa."
+                                                                            : undefined
+                                                                    }
+                                                                    className={`h-4 w-4 shrink-0 mt-1 accent-red-600 ${
+                                                                        solicitudActiva
                                                                             ? "cursor-not-allowed opacity-50"
                                                                             : "cursor-pointer"
-                                                                            }`}
-                                                                    />
-                                                                )}
+                                                                    }`}
+                                                                />
+                                                            )}
 
-                                                                <div
-                                                                    className={`flex-1 min-w-0 ${solicitudActiva || noSeleccionable
+                                                            <div
+                                                                className={`flex-1 min-w-0 ${
+                                                                    solicitudActiva || noSeleccionable
                                                                         ? "cursor-not-allowed opacity-60"
                                                                         : "cursor-pointer"
-                                                                        }`}
-                                                                    onClick={() => {
-                                                                        if (
-                                                                            !solicitudActiva &&
-                                                                            !noSeleccionable
-                                                                        ) {
-                                                                            handleToggle(
-                                                                                practicante
-                                                                            );
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    {/* NOMBRE + ESTADO */}
+                                                                }`}
+                                                                onClick={() => {
+                                                                    if (
+                                                                        !solicitudActiva &&
+                                                                        !noSeleccionable
+                                                                    ) {
+                                                                        handleToggle(practicante);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {/* NOMBRE + ESTADO */}
 
-                                                                    <div className="flex items-start justify-between gap-3">
-                                                                        <p className="text-sm font-medium text-slate-700">
-                                                                            {practicante.practicante ||
-                                                                                "Practicante"}
-                                                                        </p>
+                                                                <div className="flex items-start justify-between gap-3">
+                                                                    <p className="text-sm font-medium text-slate-700">
+                                                                        {practicante.practicante ||
+                                                                            "Practicante"}
+                                                                    </p>
 
-                                                                        {practicante.estadoSolicitudVisita && (
-                                                                            <EstadoBadge
-                                                                                estado={
-                                                                                    practicante.estadoSolicitudVisita
-                                                                                }
-                                                                            />
-                                                                        )}
-                                                                    </div>
-
-                                                                    {/* CODIGO */}
-
-                                                                    {practicante.codigo && (
-                                                                        <p className="text-xs text-slate-500 mt-1">
-                                                                            Código:{" "}
-                                                                            {practicante.codigo}
-                                                                        </p>
+                                                                    {practicante.estadoSolicitudVisita && (
+                                                                        <EstadoBadge
+                                                                            estado={
+                                                                                practicante.estadoSolicitudVisita
+                                                                            }
+                                                                        />
                                                                     )}
+                                                                </div>
 
-                                                                    {/* PENDIENTE */}
+                                                                {/* CODIGO */}
 
-                                                                    {solicitudPendiente && (
-                                                                        <div className="mt-2 p-3 bg-amber-50 border border-amber-100 rounded-lg">
-                                                                            <p className="text-xs font-semibold text-amber-700">
-                                                                                Solicitud pendiente
+                                                                {practicante.codigo && (
+                                                                    <p className="text-xs text-slate-500 mt-1">
+                                                                        Código: {practicante.codigo}
+                                                                    </p>
+                                                                )}
+
+                                                                {/* PENDIENTE */}
+
+                                                                {solicitudPendiente && (
+                                                                    <div className="mt-2 p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                                                                        <p className="text-xs font-semibold text-amber-700">
+                                                                            Solicitud pendiente
+                                                                        </p>
+
+                                                                        <p className="text-xs text-amber-600 mt-1">
+                                                                            Puede agregar nuevas disponibilidades o cancelar la solicitud.
+                                                                        </p>
+
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                handleMostrarCancelacion(practicante);
+                                                                            }}
+                                                                            className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                                                                        >
+                                                                            <Ban size={14} />
+                                                                            Cancelar solicitud
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* ACEPTADA */}
+
+                                                                {solicitudAceptada && (
+                                                                    <div className="mt-2">
+                                                                        <p className="text-xs text-green-600 mb-2">
+                                                                            {visitaRealizada
+                                                                                ? "La visita ya fue realizada."
+                                                                                : "La solicitud de visita fue aceptada."}
+                                                                        </p>
+
+                                                                        {visitaRealizada && (
+                                                                            <p className="text-xs text-slate-600 mb-2">
+                                                                                Fecha de realización:{" "}
+                                                                                {String(
+                                                                                    practicante.fechaRealizada
+                                                                                ).slice(0, 10)}
                                                                             </p>
+                                                                        )}
 
-                                                                            <p className="text-xs text-amber-600 mt-1">
-                                                                                Puede agregar nuevas disponibilidades o cancelar la solicitud.
-                                                                            </p>
+                                                                        <div className="flex flex-wrap items-center gap-2">
+                                                                            {/* SOLO GESTIONAR VISITA */}
 
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={(e) => {
                                                                                     e.stopPropagation();
-                                                                                    handleMostrarCancelacion(
-                                                                                        practicante
-                                                                                    );
+                                                                                    handleGestionarVisita(practicante);
                                                                                 }}
-                                                                                className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                                                                                disabled={
+                                                                                    gestionandoVisitaId !== null ||
+                                                                                    noSeleccionable
+                                                                                }
+                                                                                title={
+                                                                                    noSeleccionable
+                                                                                        ? motivoNoDisponible
+                                                                                        : gestionandoVisitaId !== null
+                                                                                            ? "Hay otra visita cargándose."
+                                                                                            : "Gestionar visita"
+                                                                                }
+                                                                                className="inline-flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-600"
                                                                             >
-                                                                                <Ban size={14} />
-                                                                                Cancelar solicitud
+                                                                                {gestionandoVisitaId ===
+                                                                                practicante.solicitudVisitaId ? (
+                                                                                    <>
+                                                                                        <LoaderCircle
+                                                                                            size={14}
+                                                                                            className="animate-spin"
+                                                                                        />
+                                                                                        Cargando visita...
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <CalendarDays size={14} />
+                                                                                        Gestionar visita
+                                                                                    </>
+                                                                                )}
                                                                             </button>
                                                                         </div>
-                                                                    )}
+                                                                    </div>
+                                                                )}
 
-                                                                    {/* ACEPTADA */}
+                                                                {/* RECHAZADA */}
 
-                                                                    {solicitudAceptada && (
-                                                                        <div className="mt-2">
-                                                                            <p className="text-xs text-green-600 mb-2">
-                                                                                {visitaRealizada
-                                                                                    ? "La visita ya fue realizada."
-                                                                                    : "La solicitud de visita fue aceptada."}
+                                                                {solicitudRechazada && (
+                                                                    <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-lg">
+                                                                        <p className="text-xs font-semibold text-red-700">
+                                                                            Motivo del rechazo
+                                                                        </p>
+
+                                                                        {practicante.motivoSolicitudVisita ? (
+                                                                            <p className="text-xs text-red-600 mt-1">
+                                                                                {practicante.motivoSolicitudVisita}
                                                                             </p>
-
-                                                                            {visitaRealizada && (
-                                                                                <p className="text-xs text-slate-600 mb-2">
-                                                                                    Fecha de realización:{" "}
-                                                                                    {String(
-                                                                                        practicante.fechaRealizada
-                                                                                    ).slice(0, 10)}
-                                                                                </p>
-                                                                            )}
-
-                                                                            <div className="flex flex-wrap items-center gap-2">
-                                                                                {/* GESTIONAR */}
-
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={(e) => {
-                                                                                        e.stopPropagation();
-                                                                                        handleGestionarVisita(
-                                                                                            practicante
-                                                                                        );
-                                                                                    }}
-                                                                                    disabled={
-                                                                                        gestionandoVisitaId !==
-                                                                                        null ||
-                                                                                        noSeleccionable
-                                                                                    }
-                                                                                    title={
-                                                                                        noSeleccionable
-                                                                                            ? motivoNoDisponible
-                                                                                            : gestionandoVisitaId !==
-                                                                                                null
-                                                                                                ? "Hay otra visita cargándose."
-                                                                                                : "Gestionar visita"
-                                                                                    }
-                                                                                    className="inline-flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-red-600"
-                                                                                >
-                                                                                    {gestionandoVisitaId ===
-                                                                                        practicante.solicitudVisitaId ? (
-                                                                                        <>
-                                                                                            <LoaderCircle
-                                                                                                size={14}
-                                                                                                className="animate-spin"
-                                                                                            />
-                                                                                            Cargando visita...
-                                                                                        </>
-                                                                                    ) : (
-                                                                                        <>
-                                                                                            <CalendarDays size={14} />
-                                                                                            Gestionar visita
-                                                                                        </>
-                                                                                    )}
-                                                                                </button>
-
-                                                                                {/* CANCELAR SOLO SI LA VISITA NO SE HA REALIZADO */}
-
-                                                                                {!visitaRealizada && (
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        disabled={
-                                                                                            noSeleccionable
-                                                                                        }
-                                                                                        title={
-                                                                                            noSeleccionable
-                                                                                                ? motivoNoDisponible
-                                                                                                : "Cancelar solicitud de visita"
-                                                                                        }
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            handleMostrarCancelacion(
-                                                                                                practicante
-                                                                                            );
-                                                                                        }}
-                                                                                        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                                                                                    >
-                                                                                        <Ban size={14} />
-                                                                                        Cancelar solicitud
-                                                                                    </button>
-                                                                                )}
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
-
-                                                                    {/* RECHAZADA */}
-
-                                                                    {solicitudRechazada && (
-                                                                        <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-lg">
-                                                                            <p className="text-xs font-semibold text-red-700">
-                                                                                Motivo del rechazo
-                                                                            </p>
-
-                                                                            {practicante.motivoSolicitudVisita ? (
-                                                                                <p className="text-xs text-red-600 mt-1">
-                                                                                    {
-                                                                                        practicante.motivoSolicitudVisita
-                                                                                    }
-                                                                                </p>
-                                                                            ) : (
-                                                                                <p className="text-xs text-red-600 mt-1">
-                                                                                    No se indicó un motivo.
-                                                                                </p>
-                                                                            )}
-
-                                                                            <p className="text-xs text-blue-600 mt-2">
-                                                                                Puede seleccionar nuevamente al practicante para agregar otra disponibilidad.
-                                                                            </p>
-                                                                        </div>
-                                                                    )}
-
-                                                                    {/* CANCELADA */}
-
-                                                                    {solicitudCancelada && (
-                                                                        <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-                                                                            <p className="text-xs font-semibold text-slate-700">
-                                                                                Solicitud cancelada
-                                                                            </p>
-
-                                                                            <p className="text-xs text-slate-600 mt-1">
-                                                                                Motivo de la cancelación
-                                                                            </p>
-
-                                                                            <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">
-                                                                                {practicante.motivoSolicitudVisita ||
-                                                                                    "No se indicó un motivo de cancelación."}
-                                                                            </p>
-
-                                                                            <p className="text-xs text-blue-600 mt-2">
-                                                                                Puede seleccionar nuevamente al practicante para proponer otra solicitud.
-                                                                            </p>
-                                                                        </div>
-                                                                    )}
-
-                                                                    {/* SOLICITUD EXISTENTE SIN ESTADO */}
-
-                                                                    {!practicante.estadoSolicitudVisita &&
-                                                                        solicitudExiste && (
-                                                                            <p className="text-xs text-amber-600 mt-1">
-                                                                                Ya tiene una solicitud de visita registrada.
+                                                                        ) : (
+                                                                            <p className="text-xs text-red-600 mt-1">
+                                                                                No se indicó un motivo.
                                                                             </p>
                                                                         )}
 
-                                                                    {/* NO DISPONIBLE (sin empresa, retirado, finalizado, etc.) */}
+                                                                        <p className="text-xs text-blue-600 mt-2">
+                                                                            Puede seleccionar nuevamente al practicante para agregar otra disponibilidad.
+                                                                        </p>
+                                                                    </div>
+                                                                )}
 
-                                                                    {noSeleccionable && (
-                                                                        <p className="text-xs text-slate-500 mt-1">
-                                                                            {motivoNoDisponible}
+                                                                {/* CANCELADA */}
+
+                                                                {solicitudCancelada && (
+                                                                    <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                                                        <p className="text-xs font-semibold text-slate-700">
+                                                                            Solicitud cancelada
+                                                                        </p>
+
+                                                                        <p className="text-xs text-slate-600 mt-1">
+                                                                            Motivo de la cancelación
+                                                                        </p>
+
+                                                                        <p className="text-xs text-slate-600 mt-1 whitespace-pre-wrap">
+                                                                            {practicante.motivoSolicitudVisita ||
+                                                                                "No se indicó un motivo de cancelación."}
+                                                                        </p>
+
+                                                                        <p className="text-xs text-blue-600 mt-2">
+                                                                            Puede seleccionar nuevamente al practicante para proponer otra solicitud.
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+
+                                                                {/* SOLICITUD EXISTENTE SIN ESTADO */}
+
+                                                                {!practicante.estadoSolicitudVisita &&
+                                                                    solicitudExiste && (
+                                                                        <p className="text-xs text-amber-600 mt-1">
+                                                                            Ya tiene una solicitud de visita registrada.
                                                                         </p>
                                                                     )}
 
-                                                                    {/* SIN SOLICITUD */}
+                                                                {/* NO DISPONIBLE */}
 
-                                                                    {!noSeleccionable &&
-                                                                        !solicitudExiste &&
-                                                                        !practicante.estadoSolicitudVisita && (
-                                                                            <p className="text-xs text-slate-400 mt-1">
-                                                                                Sin solicitud de visita.
-                                                                            </p>
-                                                                        )}
-                                                                </div>
+                                                                {noSeleccionable && (
+                                                                    <p className="text-xs text-slate-500 mt-1">
+                                                                        {motivoNoDisponible}
+                                                                    </p>
+                                                                )}
+
+                                                                {/* SIN SOLICITUD */}
+
+                                                                {!noSeleccionable &&
+                                                                    !solicitudExiste &&
+                                                                    !practicante.estadoSolicitudVisita && (
+                                                                        <p className="text-xs text-slate-400 mt-1">
+                                                                            Sin solicitud de visita.
+                                                                        </p>
+                                                                    )}
                                                             </div>
-                                                        );
-                                                    }
-                                                )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     )
@@ -991,14 +904,10 @@ const SolicitudVisitaModal = ({
                             </div>
                         )}
 
-                        {/* =================================================
-                            PASO 2
-                        ================================================= */}
+                        {/* PASO 2 */}
 
                         {paso === 2 && (
                             <>
-                                {/* PRACTICANTES */}
-
                                 <p className="text-sm font-semibold text-slate-700 mb-3">
                                     Practicantes seleccionados
                                 </p>
@@ -1011,8 +920,7 @@ const SolicitudVisitaModal = ({
                                         >
                                             <div>
                                                 <p className="text-sm font-medium text-slate-700">
-                                                    {practicante.practicante ||
-                                                        "Practicante"}
+                                                    {practicante.practicante || "Practicante"}
                                                 </p>
 
                                                 {practicante.codigo && (
@@ -1024,18 +932,14 @@ const SolicitudVisitaModal = ({
 
                                             {practicante.estadoSolicitudVisita && (
                                                 <EstadoBadge
-                                                    estado={
-                                                        practicante.estadoSolicitudVisita
-                                                    }
+                                                    estado={practicante.estadoSolicitudVisita}
                                                 />
                                             )}
                                         </div>
                                     ))}
                                 </div>
 
-                                {/* =================================================
-                                    FECHAS EXISTENTES
-                                ================================================= */}
+                                {/* FECHAS EXISTENTES */}
 
                                 {fechasExistentes.length > 0 && (
                                     <div className="mb-6">
@@ -1096,9 +1000,7 @@ const SolicitudVisitaModal = ({
                                     </div>
                                 )}
 
-                                {/* =================================================
-                                    NUEVAS DISPONIBILIDADES
-                                ================================================= */}
+                                {/* NUEVAS DISPONIBILIDADES */}
 
                                 <div className="flex justify-between items-center mb-3">
                                     <div>
@@ -1132,19 +1034,16 @@ const SolicitudVisitaModal = ({
                                         return (
                                             <div
                                                 key={index}
-                                                className={`border rounded-xl p-4 bg-white ${errores.duplicada
-                                                    ? "border-red-500"
-                                                    : "border-red-100"
-                                                    }`}
+                                                className={`border rounded-xl p-4 bg-white ${
+                                                    errores.duplicada
+                                                        ? "border-red-500"
+                                                        : "border-red-100"
+                                                }`}
                                             >
-                                                {/* CABECERA */}
-
                                                 <div className="flex justify-between items-center mb-4">
-                                                    <div>
-                                                        <p className="text-sm font-semibold text-slate-700">
-                                                            Nueva disponibilidad {index + 1}
-                                                        </p>
-                                                    </div>
+                                                    <p className="text-sm font-semibold text-slate-700">
+                                                        Nueva disponibilidad {index + 1}
+                                                    </p>
 
                                                     {fechas.length > 1 && (
                                                         <button
@@ -1157,8 +1056,6 @@ const SolicitudVisitaModal = ({
                                                     )}
                                                 </div>
 
-                                                {/* DUPLICADA */}
-
                                                 {errores.duplicada && (
                                                     <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                                                         <p className="text-xs font-semibold text-red-700">
@@ -1168,16 +1065,12 @@ const SolicitudVisitaModal = ({
                                                 )}
 
                                                 <div className="space-y-4">
-                                                    {/* RANGO DE FECHAS */}
-
                                                     <div>
                                                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                                                             Rango de fechas
                                                         </p>
 
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                            {/* FECHA INICIAL */}
-
                                                             <div>
                                                                 <label className="block text-xs font-medium text-slate-500 mb-1">
                                                                     Fecha inicial
@@ -1207,8 +1100,6 @@ const SolicitudVisitaModal = ({
                                                                     mensaje={errores.fecha_inicio}
                                                                 />
                                                             </div>
-
-                                                            {/* FECHA FINAL */}
 
                                                             <div>
                                                                 <label className="block text-xs font-medium text-slate-500 mb-1">
@@ -1242,14 +1133,10 @@ const SolicitudVisitaModal = ({
                                                         </div>
                                                     </div>
 
-                                                    {/* HORARIO */}
-
                                                     <div>
                                                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
                                                             Horario disponible
                                                         </p>
-
-                                                        {/* HORA INICIAL */}
 
                                                         <div>
                                                             <label className="block text-xs font-medium text-slate-500 mb-1">
@@ -1261,16 +1148,30 @@ const SolicitudVisitaModal = ({
                                                                 onChange={(e) => {
                                                                     const nuevaHora = e.target.value;
 
-                                                                    actualizarFecha(index, "hora_inicio", nuevaHora);
+                                                                    actualizarFecha(
+                                                                        index,
+                                                                        "hora_inicio",
+                                                                        nuevaHora
+                                                                    );
 
-                                                                    // Si la hora final ya no es válida, se limpia
-                                                                    if (fecha.hora_fin && fecha.hora_fin <= nuevaHora) {
-                                                                        actualizarFecha(index, "hora_fin", "");
+                                                                    if (
+                                                                        fecha.hora_fin &&
+                                                                        fecha.hora_fin <= nuevaHora
+                                                                    ) {
+                                                                        actualizarFecha(
+                                                                            index,
+                                                                            "hora_fin",
+                                                                            ""
+                                                                        );
                                                                     }
                                                                 }}
-                                                                className={claseInput(Boolean(errores.duplicada))}
+                                                                className={claseInput(
+                                                                    Boolean(errores.duplicada)
+                                                                )}
                                                             >
-                                                                <option value="">Selecciona una hora</option>
+                                                                <option value="">
+                                                                    Selecciona una hora
+                                                                </option>
 
                                                                 {HORAS_OPCIONES.slice(0, -1).map((h) => (
                                                                     <option key={h} value={h}>
@@ -1279,8 +1180,6 @@ const SolicitudVisitaModal = ({
                                                                 ))}
                                                             </select>
                                                         </div>
-
-                                                        {/* HORA FINAL */}
 
                                                         <div>
                                                             <label className="block text-xs font-medium text-slate-500 mb-1">
@@ -1291,10 +1190,17 @@ const SolicitudVisitaModal = ({
                                                                 value={fecha.hora_fin}
                                                                 disabled={!fecha.hora_inicio}
                                                                 onChange={(e) =>
-                                                                    actualizarFecha(index, "hora_fin", e.target.value)
+                                                                    actualizarFecha(
+                                                                        index,
+                                                                        "hora_fin",
+                                                                        e.target.value
+                                                                    )
                                                                 }
                                                                 className={`${claseInput(
-                                                                    Boolean(errores.hora_fin || errores.duplicada)
+                                                                    Boolean(
+                                                                        errores.hora_fin ||
+                                                                        errores.duplicada
+                                                                    )
                                                                 )} disabled:bg-slate-100 disabled:text-slate-400`}
                                                             >
                                                                 <option value="">
@@ -1303,14 +1209,18 @@ const SolicitudVisitaModal = ({
                                                                         : "Elige primero la hora inicial"}
                                                                 </option>
 
-                                                                {HORAS_OPCIONES.filter((h) => h > fecha.hora_inicio).map((h) => (
+                                                                {HORAS_OPCIONES.filter(
+                                                                    (h) => h > fecha.hora_inicio
+                                                                ).map((h) => (
                                                                     <option key={h} value={h}>
                                                                         {formatearHora(h)}
                                                                     </option>
                                                                 ))}
                                                             </select>
 
-                                                            <MensajeError mensaje={errores.hora_fin} />
+                                                            <MensajeError
+                                                                mensaje={errores.hora_fin}
+                                                            />
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1322,9 +1232,7 @@ const SolicitudVisitaModal = ({
                         )}
                     </div>
 
-                    {/* =====================================================
-                        FOOTER
-                    ===================================================== */}
+                    {/* FOOTER */}
 
                     <div className="flex justify-between items-center px-6 py-4 border-t border-slate-200">
                         {paso === 2 ? (
@@ -1381,9 +1289,7 @@ const SolicitudVisitaModal = ({
                 </div>
             </div>
 
-            {/* =====================================================
-                MODAL DE CANCELACIÓN (ConfirmModal reutilizable)
-            ===================================================== */}
+            {/* MODAL DE CANCELACIÓN */}
 
             <ConfirmModal
                 isOpen={mostrarCancelacion}

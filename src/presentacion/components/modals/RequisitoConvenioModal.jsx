@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, FileText, Upload, Loader2, Trash2, Eye } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { renderAsync } from "docx-preview";
@@ -134,14 +135,14 @@ export default function RequisitoConvenioModal({
         setForm(
             requisito
                 ? {
-                      id: requisito.id,
-                      nombre: requisito.nombre ?? "",
-                      descripcion: requisito.descripcion ?? "",
-                      tipo_empresa: requisito.tipo_empresa ?? "",
-                      obligatorio: requisito.obligatorio ?? true,
-                      estado: requisito.estado ?? true,
-                      archivo: null
-                  }
+                    id: requisito.id,
+                    nombre: requisito.nombre ?? "",
+                    descripcion: requisito.descripcion ?? "",
+                    tipo_empresa: requisito.tipo_empresa ?? "",
+                    obligatorio: requisito.obligatorio ?? true,
+                    estado: requisito.estado ?? true,
+                    archivo: null
+                }
                 : initialForm
         );
         setSaving(false);
@@ -252,8 +253,8 @@ export default function RequisitoConvenioModal({
         );
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex h-[100dvh] w-screen items-center justify-center overflow-y-auto bg-black/60 p-4">
             <form
                 onSubmit={handleSubmit}
                 className="w-full max-w-5xl rounded-2xl bg-white shadow-xl"
@@ -388,9 +389,8 @@ export default function RequisitoConvenioModal({
                                     )}
 
                                     <label
-                                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 ${
-                                            saving ? "pointer-events-none opacity-50" : ""
-                                        }`}
+                                        className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 ${saving ? "pointer-events-none opacity-50" : ""
+                                            }`}
                                     >
                                         <Upload size={14} />
                                         {nombreVisor ? "Cambiar archivo" : "Seleccionar archivo"}
@@ -450,6 +450,8 @@ export default function RequisitoConvenioModal({
                     </div>
                 </div>
             </form>
-        </div>
+
+        </div>,
+        document.body
     );
 }

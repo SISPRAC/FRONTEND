@@ -158,8 +158,8 @@ export default function PracticaRequisitoDocumentoModal({
 
                 <h2 className="text-xl font-bold text-center text-[#e8192c] mb-5">
                     {esEdicion
-                        ? "Editar Requisito Documental"
-                        : "Nuevo Requisito Documental"}
+                        ? "Editar fecha de entrega"
+                        : "Agregar fecha de entrega"}
                 </h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">

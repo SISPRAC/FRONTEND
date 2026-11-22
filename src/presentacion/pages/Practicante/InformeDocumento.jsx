@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from "react";
 
 import { practicaRequisitoDocumentoRepository } from "../../../infraestructura/repository/practicaRequisitoDocumentoRepository.js";
@@ -9,7 +10,6 @@ import { crearEntregaInforme } from "../../../aplicacion/entregaInforme/crearEnt
 import TrazabilidadTimeline from "../../components/Trazabilidadtimeline.jsx";
 import { construirTrazabilidad } from "../../components/Construirtrazabilidad.jsx";
 
-// NUEVOS (ajusta las rutas)
 import VisorPdfModal from "../../components/modals/VisorPdfModal.jsx";
 import { descargarArchivo } from "../../components/utils/descargarArchivo.js";
 
@@ -29,18 +29,17 @@ import {
 
 import toast from "react-hot-toast";
 
+// ---------------------------------------------------------------
+// CONSTANTES
+// ---------------------------------------------------------------
 
-// ... AQUÍ QUEDAN IGUAL: parseFechaLocal, formatearFechaCorta,
-// obtenerEstadoFecha, esPlanDeTrabajoNombre, Bar,
-// InformeDocumentoSkeleton y EstadoPanel ...
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
 
 
 // ---------------------------------------------------------------
-// Formatear fecha
+// FORMATEAR FECHA
 // ---------------------------------------------------------------
 
-// Convierte "YYYY-MM-DD" (o ISO) a una fecha LOCAL a medianoche.
-// Evita el desfase de un día que ocurre con new Date("2026-11-08") en UTC-5.
 function parseFechaLocal(fecha) {
 
     if (!fecha) return null;
@@ -70,9 +69,7 @@ function formatearFechaCorta(fecha) {
 
     const date = parseFechaLocal(fecha);
 
-    if (!date) {
-        return fecha;
-    }
+    if (!date) return fecha;
 
     return date.toLocaleDateString("es-CO", {
         day: "2-digit",
@@ -83,7 +80,7 @@ function formatearFechaCorta(fecha) {
 
 
 // ---------------------------------------------------------------
-// Estado de la fecha límite: "retrasada" | "por_vencer" | null
+// ESTADO DE LA FECHA LÍMITE
 // ---------------------------------------------------------------
 
 function obtenerEstadoFecha(fechaLimite) {
@@ -103,7 +100,7 @@ function obtenerEstadoFecha(fechaLimite) {
 
 
 // ---------------------------------------------------------------
-// ¿El informe es el plan de trabajo?
+// ¿EL INFORME ES EL PLAN DE TRABAJO?
 // ---------------------------------------------------------------
 
 function esPlanDeTrabajoNombre(nombre) {
@@ -118,7 +115,7 @@ function esPlanDeTrabajoNombre(nombre) {
 
 
 // ---------------------------------------------------------------
-// Skeleton
+// SKELETON
 // ---------------------------------------------------------------
 
 const Bar = ({ className = "" }) => (
@@ -128,24 +125,18 @@ const Bar = ({ className = "" }) => (
 function InformeDocumentoSkeleton() {
 
     return (
-
         <div
             className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-pulse"
             role="status"
             aria-label="Cargando informe"
         >
-
-            {/* COLUMNA IZQUIERDA */}
-
             <div className="flex flex-col gap-4">
 
-                {/* Select */}
                 <div>
                     <Bar className="h-3 w-24 mb-2" />
                     <Bar className="h-10 w-full rounded-xl" />
                 </div>
 
-                {/* Fechas */}
                 <div>
                     <Bar className="h-4 w-32 mb-2" />
                     <div className="grid grid-cols-2 gap-3">
@@ -161,7 +152,6 @@ function InformeDocumentoSkeleton() {
                     </div>
                 </div>
 
-                {/* Formato / carga */}
                 <div>
                     <div className="flex items-center justify-between mb-2">
                         <Bar className="h-4 w-28" />
@@ -170,13 +160,8 @@ function InformeDocumentoSkeleton() {
                     <Bar className="h-32 w-full rounded-2xl" />
                 </div>
 
-                {/* Botón */}
                 <Bar className="h-10 w-32 rounded-2xl mx-auto" />
-
             </div>
-
-
-            {/* COLUMNA DERECHA */}
 
             <div className="flex flex-col gap-3">
 
@@ -200,7 +185,6 @@ function InformeDocumentoSkeleton() {
                     <Bar className="h-3 w-16" />
                 </div>
 
-                {/* Timeline */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-4 h-[340px] flex flex-col gap-5">
                     {[0, 1, 2].map((i) => (
                         <div key={i} className="flex gap-3">
@@ -213,18 +197,14 @@ function InformeDocumentoSkeleton() {
                         </div>
                     ))}
                 </div>
-
             </div>
-
         </div>
-
     );
-
 }
 
 
 // ---------------------------------------------------------------
-// Panel de estado
+// PANEL DE ESTADO
 // ---------------------------------------------------------------
 
 function EstadoPanel({
@@ -309,113 +289,85 @@ function EstadoPanel({
         };
     };
 
+    const docente = obtenerConfig(
+        estadoTutorDocente || "PENDIENTE",
+        "docente"
+    );
 
-    const docente =
-        obtenerConfig(estadoTutorDocente || "PENDIENTE", "docente");
-
-    const empresarial =
-        obtenerConfig(estadoTutorEmpresarial || "PENDIENTE", "empresarial");
-
+    const empresarial = obtenerConfig(
+        estadoTutorEmpresarial || "PENDIENTE",
+        "empresarial"
+    );
 
     return (
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-            <div
-                className={`${docente.bg} ${docente.border} border rounded-2xl px-3.5 py-3 flex items-center gap-3`}
-            >
-
-                <div
-                    className={`${docente.iconBg} w-9 h-9 rounded-xl flex items-center justify-center shrink-0`}
-                >
+            <div className={`${docente.bg} ${docente.border} border rounded-2xl px-3.5 py-3 flex items-center gap-3`}>
+                <div className={`${docente.iconBg} w-9 h-9 rounded-xl flex items-center justify-center shrink-0`}>
                     {docente.icon}
                 </div>
 
                 <div className="min-w-0">
-
                     <p className="text-xs font-bold text-slate-700">
                         {docente.title}
                     </p>
-
                     <p className={`text-xs font-semibold ${docente.text}`}>
                         {docente.subtitle}
                     </p>
-
                 </div>
-
             </div>
 
-
-            <div
-                className={`${empresarial.bg} ${empresarial.border} border rounded-2xl px-3.5 py-3 flex items-center gap-3`}
-            >
-
-                <div
-                    className={`${empresarial.iconBg} w-9 h-9 rounded-xl flex items-center justify-center shrink-0`}
-                >
+            <div className={`${empresarial.bg} ${empresarial.border} border rounded-2xl px-3.5 py-3 flex items-center gap-3`}>
+                <div className={`${empresarial.iconBg} w-9 h-9 rounded-xl flex items-center justify-center shrink-0`}>
                     {empresarial.icon}
                 </div>
 
                 <div className="min-w-0">
-
                     <p className="text-xs font-bold text-slate-700">
                         {empresarial.title}
                     </p>
-
                     <p className={`text-xs font-semibold ${empresarial.text}`}>
                         {empresarial.subtitle}
                     </p>
-
                 </div>
-
             </div>
-
         </div>
-
     );
-
 }
 
+
+// ---------------------------------------------------------------
+// COMPONENTE PRINCIPAL
+// ---------------------------------------------------------------
 
 export default function InformeDocumento() {
 
     const fileInputRef = useRef(null);
 
-    // CARGA INICIAL (solo la primera vez, para el skeleton)
     const [cargandoInicial, setCargandoInicial] = useState(true);
 
-    // INFORMES VIGENTES
     const [tipos, setTipos] = useState([]);
     const [tipoSeleccionado, setTipoSeleccionado] = useState(null);
 
-    // ARCHIVO
     const [archivo, setArchivo] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [enviando, setEnviando] = useState(false);
 
-    // MODALES
     const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
-    const [visor, setVisor] = useState(null); // { url, titulo }
+    const [visor, setVisor] = useState(null);
     const [descargandoFormato, setDescargandoFormato] = useState(false);
 
-    // FECHAS
     const [fechaInicio, setFechaInicio] = useState(null);
     const [fechaFin, setFechaFin] = useState(null);
 
-    // ESTADOS DE LOS TUTORES
-    const [estadoTutorDocente, setEstadoTutorDocente] =
-        useState("PENDIENTE");
-    const [estadoTutorEmpresarial, setEstadoTutorEmpresarial] =
-        useState("PENDIENTE");
+    const [estadoTutorDocente, setEstadoTutorDocente] = useState("PENDIENTE");
+    const [estadoTutorEmpresarial, setEstadoTutorEmpresarial] = useState("PENDIENTE");
 
-    // TRAZABILIDAD
     const [trazabilidad, setTrazabilidad] = useState([]);
 
-    // DOCUMENTO ACTUAL
     const [documentoId, setDocumentoId] = useState(null);
     const [archivoActual, setArchivoActual] = useState(null);
 
-    // PLAN DE TRABAJO: objetivo de la práctica
     const [objetivo, setObjetivo] = useState("");
     const [objetivoGuardado, setObjetivoGuardado] = useState("");
 
@@ -453,17 +405,16 @@ export default function InformeDocumento() {
 
     const esNuevoDocumento = !tieneDocumento;
 
-    const tipoActual =
-        tipos.find(
-            (tipo) =>
-                String(tipo.id) === String(tipoSeleccionado)
-        );
+    const tipoActual = tipos.find(
+        (tipo) => String(tipo.id) === String(tipoSeleccionado)
+    );
 
     const nombreInforme =
         tipoActual?.tipoRequisitoDocumento?.nombre || "Informe";
 
-    const esPlanDeTrabajo =
-        esPlanDeTrabajoNombre(tipoActual?.tipoRequisitoDocumento?.nombre);
+    const esPlanDeTrabajo = esPlanDeTrabajoNombre(
+        tipoActual?.tipoRequisitoDocumento?.nombre
+    );
 
     const puedeEditarTexto = esNuevoDocumento || puedeEditar;
 
@@ -476,7 +427,7 @@ export default function InformeDocumento() {
 
 
     // -----------------------------------------------------------
-    // CARGAR INFORMES VIGENTES
+    // CARGA INICIAL
     // -----------------------------------------------------------
 
     useEffect(() => {
@@ -484,11 +435,9 @@ export default function InformeDocumento() {
         cargarInformes();
 
         return () => {
-
             if (previewUrl) {
                 URL.revokeObjectURL(previewUrl);
             }
-
         };
 
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -520,16 +469,12 @@ export default function InformeDocumento() {
             return;
         }
 
-
         setFechaInicio(tipoActual.fecha_inicio);
         setFechaFin(tipoActual.fecha_limite);
 
-
-        const entregas =
-            Array.isArray(tipoActual.entregasInformes)
-                ? tipoActual.entregasInformes
-                : [];
-
+        const entregas = Array.isArray(tipoActual.entregasInformes)
+            ? tipoActual.entregasInformes
+            : [];
 
         if (entregas.length === 0) {
 
@@ -549,23 +494,15 @@ export default function InformeDocumento() {
             return;
         }
 
+        const entregasOrdenadas = [...entregas].sort(
+            (a, b) => Number(a.version || 0) - Number(b.version || 0)
+        );
 
-        const entregasOrdenadas =
-            [...entregas].sort(
-                (a, b) =>
-                    Number(a.version || 0) -
-                    Number(b.version || 0)
-            );
-
-        const ultimaEntrega =
-            entregasOrdenadas[entregasOrdenadas.length - 1];
-
+        const ultimaEntrega = entregasOrdenadas[entregasOrdenadas.length - 1];
 
         setDocumentoId(ultimaEntrega.id);
 
-        setArchivoActual(
-            ultimaEntrega.archivo?.url || null
-        );
+        setArchivoActual(ultimaEntrega.archivo?.url || null);
 
         setEstadoTutorDocente(
             ultimaEntrega.estado_tutor_docente || "PENDIENTE"
@@ -585,9 +522,7 @@ export default function InformeDocumento() {
         setObjetivo(textoPrevio);
         setObjetivoGuardado(textoPrevio);
 
-        setTrazabilidad(
-            construirTrazabilidad(entregasOrdenadas)
-        );
+        setTrazabilidad(construirTrazabilidad(entregasOrdenadas));
 
     }, [tipoActual]);
 
@@ -600,16 +535,16 @@ export default function InformeDocumento() {
 
         try {
 
-            const data =
-                await obtenerInformesPracticanteVigentes({
-                    practicaRequisitoDocumentoRepository
-                });
+            const data = await obtenerInformesPracticanteVigentes({
+                practicaRequisitoDocumentoRepository
+            });
 
             const informes = Array.isArray(data) ? data : [];
 
             setTipos(informes);
 
             setTipoSeleccionado((actual) => {
+
                 const sigueExistiendo = informes.some(
                     (i) => String(i.id) === String(actual)
                 );
@@ -621,45 +556,61 @@ export default function InformeDocumento() {
 
         } catch (error) {
 
-            console.error(
-                "No se pudieron cargar los informes:",
-                error
-            );
+            console.error("No se pudieron cargar los informes:", error);
 
-            toast.error(
-                "No se pudieron cargar los informes de la práctica"
-            );
+            toast.error("No se pudieron cargar los informes de la práctica");
 
         } finally {
 
             setCargandoInicial(false);
 
         }
-
     };
 
 
     // -----------------------------------------------------------
-    // ARCHIVO
+    // ARCHIVO: VALIDAR PDF Y TAMAÑO MÁXIMO DE 2 MB
     // -----------------------------------------------------------
 
     const setArchivoSeleccionado = (file) => {
 
         if (!file) return;
 
+        // Validar formato PDF
         if (file.type !== "application/pdf") {
+
+            toast.error("El archivo debe ser un PDF");
 
             setErrores((prev) => ({
                 ...prev,
                 archivo: true,
             }));
 
-            toast.error("El archivo debe ser un PDF");
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
 
             return;
-
         }
 
+        // Validar tamaño máximo: 2 MB
+        if (file.size > MAX_FILE_SIZE) {
+
+            toast.error("El PDF no puede superar los 2 MB");
+
+            setErrores((prev) => ({
+                ...prev,
+                archivo: true,
+            }));
+
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+
+            return;
+        }
+
+        // Liberar vista previa anterior
         if (previewUrl) {
             URL.revokeObjectURL(previewUrl);
         }
@@ -672,7 +623,6 @@ export default function InformeDocumento() {
             ...prev,
             archivo: false,
         }));
-
     };
 
 
@@ -683,28 +633,23 @@ export default function InformeDocumento() {
         if (file) {
             setArchivoSeleccionado(file);
         }
-
     };
 
 
+    // ARRAStrAR Y SOLTAR
     const handleDrop = (e) => {
 
         e.preventDefault();
 
-        if (documentoBloqueado || bloqueadoPorFecha) {
-            return;
-        }
+        if (documentoBloqueado || bloqueadoPorFecha) return;
 
-        if (!esNuevoDocumento && !puedeEditar) {
-            return;
-        }
+        if (!esNuevoDocumento && !puedeEditar) return;
 
         const file = e.dataTransfer.files?.[0];
 
         if (file) {
             setArchivoSeleccionado(file);
         }
-
     };
 
 
@@ -727,11 +672,13 @@ export default function InformeDocumento() {
         if (fileInputRef.current) {
             fileInputRef.current.value = "";
         }
-
     };
 
 
-    // VER EN MODAL (archivo recién seleccionado)
+    // -----------------------------------------------------------
+    // VISUALIZAR PDF
+    // -----------------------------------------------------------
+
     const handleVerPreview = () => {
 
         if (!previewUrl) return;
@@ -740,11 +687,9 @@ export default function InformeDocumento() {
             url: previewUrl,
             titulo: archivo?.name || "Vista previa",
         });
-
     };
 
 
-    // VER EN MODAL (documento ya subido)
     const handleVerDocumento = (url) => {
 
         if (!url) {
@@ -756,18 +701,16 @@ export default function InformeDocumento() {
             url,
             titulo: nombreInforme,
         });
-
     };
 
 
     // -----------------------------------------------------------
-    // DESCARGAR FORMATO (descarga directa, sin abrir pestaña)
+    // DESCARGAR FORMATO
     // -----------------------------------------------------------
 
     const handleDescargarFormato = async () => {
 
-        const url =
-            tipoActual?.tipoRequisitoDocumento?.plantilla?.url;
+        const url = tipoActual?.tipoRequisitoDocumento?.plantilla?.url;
 
         if (!url) {
             toast.error("Este informe no tiene un formato disponible");
@@ -791,12 +734,11 @@ export default function InformeDocumento() {
             setDescargandoFormato(false);
 
         }
-
     };
 
 
     // -----------------------------------------------------------
-    // VALIDAR
+    // VALIDAR FORMULARIO
     // -----------------------------------------------------------
 
     const validarFormulario = () => {
@@ -815,6 +757,13 @@ export default function InformeDocumento() {
 
             toast.error("Selecciona un PDF antes de enviar");
 
+        } else if (archivo.size > MAX_FILE_SIZE) {
+
+            nuevosErrores.archivo = true;
+            valido = false;
+
+            toast.error("El PDF no puede superar los 2 MB");
+
         }
 
         if (esPlanDeTrabajo && !objetivo.trim()) {
@@ -829,15 +778,13 @@ export default function InformeDocumento() {
         setErrores(nuevosErrores);
 
         return valido;
-
     };
 
 
     // -----------------------------------------------------------
-    // ENVIAR
+    // ENVIAR: PASO 1
     // -----------------------------------------------------------
 
-    // Paso 1: validar y abrir la confirmación
     const handleEnviar = () => {
 
         if (bloqueadoPorFecha) {
@@ -847,7 +794,6 @@ export default function InformeDocumento() {
             );
 
             return;
-
         }
 
         if (documentoAprobadoPorAmbos) {
@@ -857,7 +803,6 @@ export default function InformeDocumento() {
             );
 
             return;
-
         }
 
         if (
@@ -876,12 +821,9 @@ export default function InformeDocumento() {
             );
 
             return;
-
         }
 
-        if (!validarFormulario()) {
-            return;
-        }
+        if (!validarFormulario()) return;
 
         if (!tipoSeleccionado) {
             toast.error("Selecciona un tipo de informe");
@@ -889,13 +831,13 @@ export default function InformeDocumento() {
         }
 
         setMostrarConfirmacion(true);
-
     };
 
 
-    // Paso 2: envío real.
-    // El modal y el "Enviando..." se mantienen hasta que los datos
-    // ya estén refrescados, así no se ve el estado viejo.
+    // -----------------------------------------------------------
+    // ENVIAR: PASO 2
+    // -----------------------------------------------------------
+
     const enviarInforme = async () => {
 
         try {
@@ -920,13 +862,10 @@ export default function InformeDocumento() {
                 formData
             );
 
-            // 1) refrescar datos (el modal sigue abierto en "Enviando...")
             await cargarInformes();
 
-            // 2) dejar que el efecto aplique el estado nuevo
             await new Promise((resolve) => setTimeout(resolve, 0));
 
-            // 3) recién ahora limpiar y avisar
             setMostrarConfirmacion(false);
 
             if (previewUrl) {
@@ -961,7 +900,6 @@ export default function InformeDocumento() {
             setEnviando(false);
 
         }
-
     };
 
 
@@ -974,8 +912,6 @@ export default function InformeDocumento() {
 
     return (
 
-        // En pantallas grandes ocupa una sola vista (sin scroll de página).
-        // Ajusta 9rem a la altura de tu header/layout.
         <div className="flex flex-col lg:h-[calc(100vh-9rem)]">
 
             {cargandoInicial ? (
@@ -1003,8 +939,8 @@ export default function InformeDocumento() {
 
 
                     {/* ======================================================
-                    COLUMNA IZQUIERDA
-                ====================================================== */}
+                        COLUMNA IZQUIERDA
+                    ====================================================== */}
 
                     <div className="flex flex-col gap-3 min-h-0">
 
@@ -1019,9 +955,7 @@ export default function InformeDocumento() {
 
                             <select
                                 value={tipoSeleccionado ?? ""}
-                                onChange={(e) =>
-                                    setTipoSeleccionado(e.target.value)
-                                }
+                                onChange={(e) => setTipoSeleccionado(e.target.value)}
                                 className="w-full h-10 px-3 rounded-xl border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-red-400 bg-white"
                             >
 
@@ -1070,27 +1004,25 @@ export default function InformeDocumento() {
 
                                 </div>
 
-                                <div
-                                    className={`rounded-xl border px-3 py-1.5 ${estadoFecha === "retrasada"
+                                <div className={`rounded-xl border px-3 py-1.5 ${
+                                    estadoFecha === "retrasada"
                                         ? "border-red-300 bg-red-50"
                                         : estadoFecha === "por_vencer"
                                             ? "border-amber-300 bg-amber-50"
                                             : "border-slate-200 bg-slate-50"
-                                        }`}
-                                >
+                                }`}>
 
                                     <p className="text-xs font-semibold text-slate-500">
                                         Fecha máxima
                                     </p>
 
-                                    <p
-                                        className={`text-sm font-bold ${estadoFecha === "retrasada"
+                                    <p className={`text-sm font-bold ${
+                                        estadoFecha === "retrasada"
                                             ? "text-red-700"
                                             : estadoFecha === "por_vencer"
                                                 ? "text-amber-700"
                                                 : "text-slate-700"
-                                            }`}
-                                    >
+                                    }`}>
                                         {formatearFechaCorta(fechaFin)}
                                     </p>
 
@@ -1103,13 +1035,9 @@ export default function InformeDocumento() {
 
                                 <div className="mt-2 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5">
 
-                                    <AlertTriangle
-                                        size={16}
-                                        className="text-red-500 shrink-0"
-                                    />
+                                    <AlertTriangle size={16} className="text-red-500 shrink-0" />
 
                                     <div>
-
                                         <p className="text-xs font-bold text-red-700">
                                             Plazo de entrega vencido
                                         </p>
@@ -1118,7 +1046,6 @@ export default function InformeDocumento() {
                                             La fecha máxima ya pasó y no puedes subir el documento.
                                             Contáctate con tu tutor docente.
                                         </p>
-
                                     </div>
 
                                 </div>
@@ -1129,13 +1056,9 @@ export default function InformeDocumento() {
 
                                 <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5">
 
-                                    <Clock
-                                        size={16}
-                                        className="text-amber-500 shrink-0"
-                                    />
+                                    <Clock size={16} className="text-amber-500 shrink-0" />
 
                                     <div>
-
                                         <p className="text-xs font-bold text-amber-700">
                                             Próximo a vencer
                                         </p>
@@ -1143,7 +1066,6 @@ export default function InformeDocumento() {
                                         <p className="text-[11px] text-amber-600">
                                             Hoy es la fecha máxima de entrega.
                                         </p>
-
                                     </div>
 
                                 </div>
@@ -1153,7 +1075,7 @@ export default function InformeDocumento() {
                         </div>
 
 
-                        {/* PLAN DE TRABAJO: OBJETIVO DE LA PRÁCTICA */}
+                        {/* OBJETIVO DE LA PRÁCTICA */}
 
                         {esPlanDeTrabajo && (
 
@@ -1171,6 +1093,7 @@ export default function InformeDocumento() {
                                     value={objetivo}
                                     onChange={(e) => {
                                         setObjetivo(e.target.value);
+
                                         if (errores.objetivo) {
                                             setErrores((prev) => ({
                                                 ...prev,
@@ -1184,18 +1107,17 @@ export default function InformeDocumento() {
                                         objetivoGuardado ||
                                         "Describe el objetivo que buscas alcanzar durante tu práctica..."
                                     }
-                                    className={`w-full px-3 py-2 rounded-xl border text-sm text-slate-700 resize-none focus:outline-none bg-white disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${errores.objetivo
-                                        ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)]"
-                                        : "border-slate-200 focus:border-red-400"
-                                        }`}
+                                    className={`w-full px-3 py-2 rounded-xl border text-sm text-slate-700 resize-none focus:outline-none bg-white disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed ${
+                                        errores.objetivo
+                                            ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)]"
+                                            : "border-slate-200 focus:border-red-400"
+                                    }`}
                                 />
 
                                 {errores.objetivo && (
-
                                     <p className="text-[11px] text-red-500 mt-1">
                                         Debes escribir el objetivo de la práctica
                                     </p>
-
                                 )}
 
                             </div>
@@ -1238,10 +1160,7 @@ export default function InformeDocumento() {
 
                                 <div className="w-full h-28 border-2 border-slate-200 rounded-2xl bg-slate-50 flex flex-col items-center justify-center">
 
-                                    <CheckCircle2
-                                        size={22}
-                                        className="text-emerald-500 mb-0.5"
-                                    />
+                                    <CheckCircle2 size={22} className="text-emerald-500 mb-0.5" />
 
                                     <p className="text-sm font-semibold text-slate-700">
                                         Documento aprobado
@@ -1252,20 +1171,13 @@ export default function InformeDocumento() {
                                     </p>
 
                                     {archivoActual && (
-
                                         <button
-                                            onClick={() =>
-                                                handleVerDocumento(archivoActual)
-                                            }
+                                            onClick={() => handleVerDocumento(archivoActual)}
                                             className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 mt-0.5"
                                         >
-
                                             <Eye size={13} />
-
                                             Ver documento
-
                                         </button>
-
                                     )}
 
                                 </div>
@@ -1275,10 +1187,7 @@ export default function InformeDocumento() {
 
                                 <div className="w-full h-28 border-2 border-slate-300 rounded-2xl bg-slate-50 flex flex-col items-center justify-center px-6">
 
-                                    <Clock
-                                        size={22}
-                                        className="text-slate-500 mb-0.5"
-                                    />
+                                    <Clock size={22} className="text-slate-500 mb-0.5" />
 
                                     <p className="text-sm font-semibold text-slate-700">
                                         Documento vencido
@@ -1294,10 +1203,7 @@ export default function InformeDocumento() {
 
                                 <div className="w-full h-28 border-2 border-red-200 rounded-2xl bg-red-50/40 flex flex-col items-center justify-center px-6">
 
-                                    <AlertTriangle
-                                        size={22}
-                                        className="text-red-500 mb-0.5"
-                                    />
+                                    <AlertTriangle size={22} className="text-red-500 mb-0.5" />
 
                                     <p className="text-sm font-semibold text-slate-700">
                                         Plazo de entrega vencido
@@ -1308,18 +1214,13 @@ export default function InformeDocumento() {
                                     </p>
 
                                     {archivoActual && (
-
                                         <button
                                             onClick={() => handleVerDocumento(archivoActual)}
                                             className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 mt-0.5"
                                         >
-
                                             <Eye size={13} />
-
                                             Ver documento actual
-
                                         </button>
-
                                     )}
 
                                 </div>
@@ -1333,33 +1234,25 @@ export default function InformeDocumento() {
                                         className="absolute top-2 right-2 text-slate-400 hover:text-red-600"
                                         title="Quitar archivo"
                                     >
-
                                         <X size={16} />
-
                                     </button>
 
-                                    <FileText
-                                        size={22}
-                                        className="text-red-500 mb-0.5"
-                                    />
+                                    <FileText size={22} className="text-red-500 mb-0.5" />
 
                                     <p className="text-sm font-semibold text-slate-700 text-center truncate max-w-[220px]">
                                         {archivo.name}
                                     </p>
 
                                     <p className="text-xs text-slate-400 mb-1">
-                                        {(archivo.size / 1024).toFixed(0)} KB
+                                        {(archivo.size / 1024).toFixed(0)} KB / 2 MB
                                     </p>
 
                                     <button
                                         onClick={handleVerPreview}
                                         className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800"
                                     >
-
                                         <Eye size={13} />
-
                                         Ver
-
                                     </button>
 
                                 </div>
@@ -1374,13 +1267,9 @@ export default function InformeDocumento() {
 
                                             <div className="flex items-center gap-2 min-w-0">
 
-                                                <FileText
-                                                    size={20}
-                                                    className="text-red-500 shrink-0"
-                                                />
+                                                <FileText size={20} className="text-red-500 shrink-0" />
 
                                                 <div className="min-w-0">
-
                                                     <p className="text-xs font-semibold text-slate-700">
                                                         Documento actual
                                                     </p>
@@ -1388,22 +1277,16 @@ export default function InformeDocumento() {
                                                     <p className="text-[11px] text-slate-400 truncate">
                                                         Debes seleccionar un nuevo PDF para actualizarlo
                                                     </p>
-
                                                 </div>
 
                                             </div>
 
                                             <button
-                                                onClick={() =>
-                                                    handleVerDocumento(archivoActual)
-                                                }
+                                                onClick={() => handleVerDocumento(archivoActual)}
                                                 className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 shrink-0"
                                             >
-
                                                 <Eye size={13} />
-
                                                 Ver
-
                                             </button>
 
                                         </div>
@@ -1414,31 +1297,27 @@ export default function InformeDocumento() {
                                         htmlFor="documento-pdf"
                                         onDragOver={(e) => e.preventDefault()}
                                         onDrop={handleDrop}
-                                        className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-2xl bg-white cursor-pointer transition-colors ${errores.archivo
-                                            ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
-                                            : "border-red-300 hover:bg-red-50/40"
-                                            }`}
+                                        className={`flex flex-col items-center justify-center w-full h-24 border-2 border-dashed rounded-2xl bg-white cursor-pointer transition-colors ${
+                                            errores.archivo
+                                                ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
+                                                : "border-red-300 hover:bg-red-50/40"
+                                        }`}
                                     >
 
-                                        <UploadCloud
-                                            size={22}
-                                            className="text-slate-800 mb-1"
-                                        />
+                                        <UploadCloud size={22} className="text-slate-800 mb-1" />
 
                                         <span className="text-sm font-semibold text-slate-700">
                                             Seleccionar nuevo PDF
                                         </span>
 
                                         <span className="text-[11px] text-slate-400">
-                                            Puedes actualizar porque uno de los tutores rechazó el informe
+                                            Formato PDF · Tamaño máximo 2 MB
                                         </span>
 
                                         {errores.archivo && (
-
                                             <span className="text-[11px] text-red-500">
-                                                Debes seleccionar un archivo PDF
+                                                Selecciona un PDF válido de máximo 2 MB
                                             </span>
-
                                         )}
 
                                         <input
@@ -1458,10 +1337,7 @@ export default function InformeDocumento() {
 
                                 <div className="w-full h-28 border-2 rounded-2xl bg-white flex flex-col items-center justify-center px-6 relative border-slate-200">
 
-                                    <FileText
-                                        size={22}
-                                        className="text-red-500 mb-0.5"
-                                    />
+                                    <FileText size={22} className="text-red-500 mb-0.5" />
 
                                     <p className="text-sm font-semibold text-slate-700 text-center truncate max-w-[260px]">
                                         Documento actual
@@ -1472,16 +1348,11 @@ export default function InformeDocumento() {
                                     </p>
 
                                     <button
-                                        onClick={() =>
-                                            handleVerDocumento(archivoActual)
-                                        }
+                                        onClick={() => handleVerDocumento(archivoActual)}
                                         className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800"
                                     >
-
                                         <Eye size={13} />
-
                                         Ver
-
                                     </button>
 
                                 </div>
@@ -1492,27 +1363,27 @@ export default function InformeDocumento() {
                                     htmlFor="documento-pdf"
                                     onDragOver={(e) => e.preventDefault()}
                                     onDrop={handleDrop}
-                                    className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl bg-white cursor-pointer transition-colors ${errores.archivo
-                                        ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
-                                        : "border-red-300 hover:bg-red-50/40"
-                                        }`}
+                                    className={`flex flex-col items-center justify-center w-full h-28 border-2 border-dashed rounded-2xl bg-white cursor-pointer transition-colors ${
+                                        errores.archivo
+                                            ? "border-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.15)] bg-red-50/20"
+                                            : "border-red-300 hover:bg-red-50/40"
+                                    }`}
                                 >
 
-                                    <UploadCloud
-                                        size={22}
-                                        className="text-slate-800 mb-1"
-                                    />
+                                    <UploadCloud size={22} className="text-slate-800 mb-1" />
 
                                     <span className="text-sm font-semibold text-slate-700">
                                         Subir PDF
                                     </span>
 
+                                    <span className="text-[11px] text-slate-400">
+                                        Formato PDF · Tamaño máximo 2 MB
+                                    </span>
+
                                     {errores.archivo && (
-
                                         <span className="text-[11px] text-red-500 mt-1">
-                                            Debes seleccionar un archivo PDF
+                                            Selecciona un PDF válido de máximo 2 MB
                                         </span>
-
                                     )}
 
                                     <input
@@ -1531,7 +1402,7 @@ export default function InformeDocumento() {
                         </div>
 
 
-                        {/* BOTÓN ENVIAR / ACTUALIZAR */}
+                        {/* BOTÓN ENVIAR */}
 
                         <button
                             onClick={handleEnviar}
@@ -1564,10 +1435,8 @@ export default function InformeDocumento() {
                             ) && (
 
                                 <p className="text-center text-[11px] text-slate-400 -mt-1">
-
                                     El informe solo podrá actualizarse si el tutor
                                     docente o el tutor empresarial lo rechaza o lo comenta.
-
                                 </p>
 
                             )}
@@ -1576,8 +1445,8 @@ export default function InformeDocumento() {
 
 
                     {/* ======================================================
-                    COLUMNA DERECHA
-                ====================================================== */}
+                        COLUMNA DERECHA
+                    ====================================================== */}
 
                     <div className="flex flex-col gap-3 min-h-0">
 
@@ -1593,20 +1462,15 @@ export default function InformeDocumento() {
                             </h2>
 
                             {trazabilidad.length > 0 && (
-
                                 <span className="text-[10px] font-semibold text-slate-400">
                                     {trazabilidad.length} movimiento{trazabilidad.length !== 1 ? "s" : ""}
                                 </span>
-
                             )}
 
                         </div>
 
-                        {/* Ocupa el espacio restante; el scroll queda solo aquí dentro */}
                         <div className="bg-white border border-slate-200 rounded-2xl p-4 min-h-[240px] lg:min-h-0 lg:flex-1 overflow-y-auto">
-
                             <TrazabilidadTimeline eventos={trazabilidad} />
-
                         </div>
 
                     </div>
@@ -1617,8 +1481,8 @@ export default function InformeDocumento() {
 
 
             {/* ======================================================
-            MODAL: VER PDF (archivo seleccionado o documento subido)
-        ====================================================== */}
+                MODAL: VER PDF
+            ====================================================== */}
 
             {visor && (
 
@@ -1632,8 +1496,8 @@ export default function InformeDocumento() {
 
 
             {/* ======================================================
-            MODAL: CONFIRMAR ENVÍO
-        ====================================================== */}
+                MODAL: CONFIRMAR ENVÍO
+            ====================================================== */}
 
             {mostrarConfirmacion && previewUrl && (
 
@@ -1648,7 +1512,6 @@ export default function InformeDocumento() {
                     bloqueado={enviando}
                     onClose={() => setMostrarConfirmacion(false)}
                     pie={(
-
                         <>
 
                             {esPlanDeTrabajo && (
@@ -1704,7 +1567,6 @@ export default function InformeDocumento() {
                             </div>
 
                         </>
-
                     )}
                 />
 
@@ -1713,5 +1575,4 @@ export default function InformeDocumento() {
         </div>
 
     );
-
 }

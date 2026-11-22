@@ -405,7 +405,7 @@ const CandidatoDetalleEmpresa = () => {
         title="Aceptar candidato"
         message={`¿Seguro que desea aceptar al candidato ${candidato.nombre} para el cargo de ${candidato.vacante}?`}
         confirmLabel={procesando ? "Confirmando..." : "Sí, aceptar"}
-        confirmColor="bg-green-600 hover:bg-green-700"
+        confirmColor="bg-red-600 hover:bg-red-700"
         onConfirm={handleAceptar}
         onCancel={() => {
           if (procesando) return;

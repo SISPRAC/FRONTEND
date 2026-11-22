@@ -10,7 +10,8 @@ import {
     obtenerEncuestasEvaluacionPracticanteRequest,
     responderEncuestaEvaluacionPracticanteRequest,
     responderEncuestaPracticanteRequest,
-    obtenerRespuestasEncuestasPracticanteRequest
+    obtenerRespuestasEncuestasPracticanteRequest,
+    obtenerEncuestasParaReportePorPeriodoRequest
 } from "../api/encuesta.api.js";
 
 
@@ -138,6 +139,18 @@ export const encuestaRepository = {
 
     async responderEncuestaPracticante(data) {
         const response = await responderEncuestaPracticanteRequest(data);
+        return response.data;
+    },
+
+
+    // =============================
+    // REPORTE: ENCUESTAS RESPONDIDAS POR PERÍODO
+    // =============================
+
+    async getEncuestasParaReportePorPeriodo(periodo_id) {
+        const response =
+            await obtenerEncuestasParaReportePorPeriodoRequest(periodo_id);
+
         return response.data;
     }
 

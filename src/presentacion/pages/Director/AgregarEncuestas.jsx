@@ -571,7 +571,7 @@ export default function AgregarEncuestaPage() {
                             onChange={(e) => setRol(e.target.value)}
                             className={inputBase}
                         >
-                            <option value="">Seleccionar rol</option>
+                            <option disabled value="">Seleccionar rol</option>
                             {ROLES.map((r) => (
                                 <option key={r} value={r}>{r}</option>
                             ))}
