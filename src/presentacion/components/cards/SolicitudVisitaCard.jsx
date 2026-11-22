@@ -1,11 +1,19 @@
-import { useState, useMemo } from "react";
-import { CalendarDays, Check, X, Users, MapPin, LoaderCircle } from "lucide-react";
+
+import { useState } from "react";
+import {
+    CalendarDays,
+    Check,
+    X,
+    Users,
+    MapPin,
+    LoaderCircle
+} from "lucide-react";
+
 import EstadoBadge from "../estadoBadge/EstadoBadge";
 
 const MAX_VISIBLES = 3;
-const PASO_MIN = 60; // duración de cada franja horaria en minutos (30 para medias horas)
 
-// Evita problemas de zona horaria con fechas YYYY-MM-DD
+// Formatea YYYY-MM-DD sin problemas de zona horaria
 const formatFecha = (fecha) => {
     if (!fecha) return "Sin fecha";
 
@@ -42,55 +50,6 @@ const formatHora = (hora) => {
 const nombreCompleto = (p) =>
     [p.nombres, p.apellidos].filter(Boolean).join(" ") || "Practicante";
 
-// Parsea YYYY-MM-DD como fecha local (sin problemas de zona horaria)
-const parseFecha = (f) => {
-    const [y, m, d] = f.split("-").map(Number);
-    return new Date(y, m - 1, d);
-};
-
-const toISO = (date) =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
-        date.getDate()
-    ).padStart(2, "0")}`;
-
-// Todos los días entre inicio y fin (inclusive)
-const diasEnRango = (inicio, fin) => {
-    const dias = [];
-    const cursor = parseFecha(inicio);
-    const limite = parseFecha(fin || inicio);
-
-    while (cursor <= limite) {
-        dias.push(toISO(cursor));
-        cursor.setDate(cursor.getDate() + 1);
-    }
-
-    return dias;
-};
-
-const aMinutos = (h) => {
-    const [hh, mm] = h.split(":").map(Number);
-    return hh * 60 + mm;
-};
-
-const deMinutos = (min) =>
-    `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
-
-// Franjas horarias disponibles dentro de un rango
-const generarHoras = (inicio, fin) => {
-    const horas = [];
-    const ini = aMinutos(inicio);
-    const f = aMinutos(fin);
-
-    for (let m = ini; m + PASO_MIN <= f; m += PASO_MIN) {
-        horas.push(deMinutos(m));
-    }
-
-    // Si el rango es más corto que una franja, ofrece al menos la hora de inicio
-    if (horas.length === 0) horas.push(deMinutos(ini));
-
-    return horas;
-};
-
 const SolicitudVisitaCard = ({
     solicitud,
     onAceptar,
@@ -101,8 +60,6 @@ const SolicitudVisitaCard = ({
     estadosPracticantes = new Map()
 }) => {
     const [verTodos, setVerTodos] = useState(false);
-    const [fechaSel, setFechaSel] = useState("");
-    const [horaSel, setHoraSel] = useState("");
 
     const fechas = solicitud.fechasPropuestas || [];
     const practicantes = solicitud.practicantes || [];
@@ -138,57 +95,6 @@ const SolicitudVisitaCard = ({
     const esPendiente = estado === "Pendiente";
     const esRechazada = estado === "Rechazada";
     const esAceptada = estado === "Aceptada";
-
-    // ---------- Opciones de fecha ----------
-    const opcionesFecha = useMemo(() => {
-        const set = new Set();
-
-        fechas.forEach((f) => {
-            if (!f.fecha_inicio) return;
-            diasEnRango(f.fecha_inicio, f.fecha_fin).forEach((d) => set.add(d));
-        });
-
-        return [...set].sort();
-    }, [fechas]);
-
-    // Si solo hay una fecha, queda seleccionada automáticamente
-    const fechaEfectiva =
-        fechaSel && opcionesFecha.includes(fechaSel)
-            ? fechaSel
-            : opcionesFecha.length === 1
-            ? opcionesFecha[0]
-            : "";
-
-    // ---------- Opciones de hora (dependen de la fecha elegida) ----------
-    const opcionesHora = useMemo(() => {
-        if (!fechaEfectiva) return [];
-
-        const set = new Set();
-
-        fechas.forEach((f) => {
-            if (!f.fecha_inicio || !f.hora_inicio || !f.hora_fin) return;
-
-            const dias = diasEnRango(f.fecha_inicio, f.fecha_fin);
-
-            if (dias.includes(fechaEfectiva)) {
-                generarHoras(f.hora_inicio, f.hora_fin).forEach((h) =>
-                    set.add(h)
-                );
-            }
-        });
-
-        return [...set].sort();
-    }, [fechas, fechaEfectiva]);
-
-    // Si solo hay una hora, queda seleccionada automáticamente
-    const horaEfectiva =
-        horaSel && opcionesHora.includes(horaSel)
-            ? horaSel
-            : opcionesHora.length === 1
-            ? opcionesHora[0]
-            : "";
-
-    const seleccionCompleta = Boolean(fechaEfectiva && horaEfectiva);
 
     return (
         <div className="border rounded-xl p-4 flex flex-col h-full">
@@ -229,6 +135,7 @@ const SolicitudVisitaCard = ({
 
                         {practicantes.length > MAX_VISIBLES && (
                             <button
+                                type="button"
                                 onClick={() =>
                                     setVerTodos((v) => !v)
                                 }
@@ -242,90 +149,38 @@ const SolicitudVisitaCard = ({
                     </div>
                 </div>
 
-                {/* Fecha y hora */}
-                <div className="flex items-start gap-2 mt-3">
-                    <CalendarDays
-                        size={15}
-                        className="text-gray-400 mt-1 shrink-0"
-                    />
+                {/* Fechas y horarios propuestos */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {fechas.map((f) => (
+                        <div
+                            key={f.id}
+                            className="bg-gray-50 border border-gray-200 rounded-lg p-2.5"
+                        >
+                            <div className="flex items-center gap-2 text-xs text-gray-700">
+                                <CalendarDays
+                                    size={13}
+                                    className="text-red-500 shrink-0"
+                                />
 
-                    {fechas.length === 0 ? (
-                        <p className="text-xs text-gray-500">
-                            No hay fechas propuestas.
-                        </p>
-                    ) : esPendiente ? (
-                        <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                <span className="font-medium">
+                                    {formatFecha(f.fecha_inicio)}
 
-                            {/* Select de fecha */}
-                            <div className="flex-1">
-                                <label className="block text-xs text-gray-500 mb-1">
-                                    Fecha
-                                </label>
-
-                                <select
-                                    value={fechaEfectiva}
-                                    onChange={(e) => {
-                                        setFechaSel(e.target.value);
-                                        setHoraSel("");
-                                    }}
-                                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-red-500"
-                                >
-                                    {opcionesFecha.length !== 1 && (
-                                        <option value="">
-                                            Selecciona una fecha
-                                        </option>
-                                    )}
-
-                                    {opcionesFecha.map((d) => (
-                                        <option key={d} value={d}>
-                                            {formatFecha(d)}
-                                        </option>
-                                    ))}
-                                </select>
+                                    {f.fecha_fin &&
+                                        f.fecha_fin !== f.fecha_inicio &&
+                                        ` - ${formatFecha(f.fecha_fin)}`}
+                                </span>
                             </div>
 
-                            {/* Select de hora */}
-                            <div className="flex-1">
-                                <label className="block text-xs text-gray-500 mb-1">
-                                    Hora
-                                </label>
+                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1.5">
+                                <span className="font-medium text-gray-600">
+                                    Horario:
+                                </span>
 
-                                <select
-                                    value={horaEfectiva}
-                                    onChange={(e) => setHoraSel(e.target.value)}
-                                    disabled={!fechaEfectiva}
-                                    className="w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-red-500 disabled:bg-gray-100 disabled:text-gray-400"
-                                >
-                                    {opcionesHora.length !== 1 && (
-                                        <option value="">
-                                            Selecciona una hora
-                                        </option>
-                                    )}
-
-                                    {opcionesHora.map((h) => (
-                                        <option key={h} value={h}>
-                                            {formatHora(h)}
-                                        </option>
-                                    ))}
-                                </select>
+                                {formatHora(f.hora_inicio)} -{" "}
+                                {formatHora(f.hora_fin)}
                             </div>
-
                         </div>
-                    ) : (
-                        // Aceptada / rechazada: solo lectura
-                        <ul className="text-xs text-gray-600 space-y-1">
-                            {fechas.map((f) => (
-                                <li key={f.id}>
-                                    <span className="font-medium text-gray-800">
-                                        {formatFecha(f.fecha_inicio)} -{" "}
-                                        {formatFecha(f.fecha_fin)}
-                                    </span>{" "}
-                                    · {formatHora(f.hora_inicio)} -{" "}
-                                    {formatHora(f.hora_fin)}
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+                    ))}
                 </div>
 
             </div>
@@ -340,42 +195,37 @@ const SolicitudVisitaCard = ({
                     </p>
                 )}
 
-                {/* Solicitud pendiente con fechas */}
+                {/* Solicitud pendiente */}
                 {fechas.length > 0 && esPendiente && (
                     <>
                         <button
+                            type="button"
                             onClick={() => onRechazar(solicitud)}
                             disabled={
-                                bloquearAcciones || tienePracticantesNoDisponibles
+                                bloquearAcciones ||
+                                tienePracticantesNoDisponibles
                             }
                             title={
                                 tienePracticantesNoDisponibles
                                     ? motivoAccionesDeshabilitadas
                                     : undefined
                             }
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <X size={15} />
                             Rechazar
                         </button>
 
                         <button
-                            onClick={() =>
-                                onAceptar(solicitud, {
-                                    fecha: fechaEfectiva,
-                                    hora: horaEfectiva
-                                })
-                            }
+                            type="button"
+                            onClick={() => onAceptar(solicitud)}
                             disabled={
                                 bloquearAcciones ||
-                                tienePracticantesNoDisponibles ||
-                                !seleccionCompleta
+                                tienePracticantesNoDisponibles
                             }
                             title={
                                 tienePracticantesNoDisponibles
                                     ? motivoAccionesDeshabilitadas
-                                    : !seleccionCompleta
-                                    ? "Selecciona una fecha y una hora"
                                     : undefined
                             }
                             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -390,6 +240,7 @@ const SolicitudVisitaCard = ({
                 {fechas.length > 0 && esRechazada && (
                     <>
                         <button
+                            type="button"
                             disabled
                             className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 text-gray-400 bg-gray-100 rounded-lg cursor-not-allowed"
                         >
@@ -398,6 +249,7 @@ const SolicitudVisitaCard = ({
                         </button>
 
                         <button
+                            type="button"
                             disabled
                             className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-gray-200 text-gray-400 rounded-lg cursor-not-allowed"
                         >
@@ -413,7 +265,8 @@ const SolicitudVisitaCard = ({
                         type="button"
                         onClick={onVerVisita}
                         disabled={
-                            bloquearAcciones || tienePracticantesNoDisponibles
+                            bloquearAcciones ||
+                            tienePracticantesNoDisponibles
                         }
                         title={
                             tienePracticantesNoDisponibles
@@ -424,7 +277,10 @@ const SolicitudVisitaCard = ({
                     >
                         {visitaCargando ? (
                             <>
-                                <LoaderCircle size={16} className="animate-spin" />
+                                <LoaderCircle
+                                    size={16}
+                                    className="animate-spin"
+                                />
                                 Cargando visita...
                             </>
                         ) : (
@@ -437,7 +293,6 @@ const SolicitudVisitaCard = ({
                 )}
 
             </div>
-
         </div>
     );
 };

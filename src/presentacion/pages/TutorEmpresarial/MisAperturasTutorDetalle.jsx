@@ -585,7 +585,7 @@ const MisAperturasTutorEmpresarial = () => {
                 title="Aceptar visita"
                 message="¿Confirmas la fecha y hora seleccionadas para la visita?"
                 confirmLabel={procesando ? "Aceptando..." : "Aceptar visita"}
-                confirmColor="bg-green-600 hover:bg-green-700"
+                confirmColor="bg-red-600 hover:bg-red-700"
                 onConfirm={confirmarAceptar}
                 onCancel={() => !procesando && setVisitaPendiente(null)}
             />

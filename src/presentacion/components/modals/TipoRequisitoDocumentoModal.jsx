@@ -1,4 +1,5 @@
 
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import {
     X,
@@ -306,12 +307,11 @@ export default function TipoRequisitoDocumentoModal({
 
     const botonTexto = ocupado ? "Guardando..." : "Guardar";
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    return createPortal(
+        <div className="fixed inset-0 z-[9999] flex h-[100dvh] w-screen items-center justify-center overflow-y-auto bg-black/60 p-4">
             <div
-                className={`w-full rounded-2xl bg-white shadow-xl transition-all ${
-                    conPlantilla ? "max-w-5xl" : "max-w-xl"
-                }`}
+                className={`w-full rounded-2xl bg-white shadow-xl transition-all ${conPlantilla ? "max-w-5xl" : "max-w-xl"
+                    }`}
             >
                 {/* Encabezado */}
                 <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
@@ -339,9 +339,8 @@ export default function TipoRequisitoDocumentoModal({
 
                 <form onSubmit={handleSubmit} className="p-6">
                     <div
-                        className={`grid grid-cols-1 gap-6 ${
-                            conPlantilla ? "md:grid-cols-5" : ""
-                        }`}
+                        className={`grid grid-cols-1 gap-6 ${conPlantilla ? "md:grid-cols-5" : ""
+                            }`}
                     >
                         {/* Columna izquierda */}
                         <div className="space-y-4 md:col-span-2">
@@ -359,11 +358,10 @@ export default function TipoRequisitoDocumentoModal({
                                     placeholder="Ej. Hoja de vida"
                                     required
                                     disabled={ocupado || nombreBloqueado}
-                                    className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 ${
-                                        nombreBloqueado
+                                    className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition focus:border-red-500 focus:ring-2 focus:ring-red-100 ${nombreBloqueado
                                             ? "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-500"
                                             : "border-gray-300"
-                                    }`}
+                                        }`}
                                 />
 
                                 {nombreBloqueado && (
@@ -471,11 +469,10 @@ export default function TipoRequisitoDocumentoModal({
                                             )}
 
                                             <label
-                                                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 ${
-                                                    ocupado
+                                                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 ${ocupado
                                                         ? "pointer-events-none opacity-50"
                                                         : ""
-                                                }`}
+                                                    }`}
                                             >
                                                 <RefreshCw size={14} />
                                                 Cambiar PDF
@@ -520,11 +517,10 @@ export default function TipoRequisitoDocumentoModal({
                                                 setArrastrando(false)
                                             }
                                             onDrop={handleDrop}
-                                            className={`m-3 flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 text-center transition ${
-                                                arrastrando
+                                            className={`m-3 flex flex-1 cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 text-center transition ${arrastrando
                                                     ? "border-red-500 bg-red-50"
                                                     : "border-gray-300 bg-white hover:border-red-400 hover:bg-red-50/30"
-                                            }`}
+                                                }`}
                                         >
                                             <div className="rounded-full bg-red-50 p-3">
                                                 <Upload
@@ -582,7 +578,10 @@ export default function TipoRequisitoDocumentoModal({
                         </button>
                     </div>
                 </form>
+
             </div>
-        </div>
+        </div>,
+        document.body
     );
+
 }

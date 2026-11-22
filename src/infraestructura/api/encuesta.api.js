@@ -147,3 +147,15 @@ export const obtenerRespuestasEncuestasPracticanteRequest = async (
     );
 };
 
+
+// =============================
+// REPORTE: ENCUESTAS RESPONDIDAS POR PERÍODO
+// Director de Programa / Administrador
+// =============================
+export const obtenerEncuestasParaReportePorPeriodoRequest = async (
+    periodo_id
+) => {
+    return await encuestaApi.get(
+        `/reporte/periodo/${periodo_id}`
+    );
+};

@@ -1,18 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
-import { FileSpreadsheet, FileDown, Users, X, Briefcase } from "lucide-react";
+import {
+  FileSpreadsheet,
+  FileDown,
+  Users,
+  X,
+  Briefcase,
+  ClipboardList,
+  Search,
+} from "lucide-react";
 
 import { practicaRepository } from "../../../infraestructura/repository/practicaRepository.js";
 import { periodoRepository } from "../../../infraestructura/repository/periodoRepository.js";
 import { candidatoRepository } from "../../../infraestructura/repository/candidatoRepository.js";
 import { grupoRepository } from "../../../infraestructura/repository/grupoRepository.js";
+import { encuestaRepository } from "../../../infraestructura/repository/encuestaRepository.js";
 
 import { EmpresaRepository } from "../../../infraestructura/repository/empresaRepository.js";
 
 import { obtenerEmpresasParaReportePorPeriodo } from "../../../aplicacion/empresa/obtenerEmpresasParaReportePorPeriodo.js";
 import { obtenerCandidatosParaReportePorPeriodo } from "../../../aplicacion/candidato/obtenerCandidatosParaReportePorPeriodo.js";
 import { obtenerGruposParaReportePorPeriodo } from "../../../aplicacion/grupos/obtenerGruposParaReportePorPeriodo.js";
+import { obtenerEncuestasParaReportePorPeriodo } from "../../../aplicacion/encuesta/obtenerEncuestasParaReportePorPeriodo.js";
 
 import { getPracticas } from "../../../aplicacion/practica/getPracticas.js";
 import { getPeriodos } from "../../../aplicacion/periodo/getPeriodos.js";
@@ -342,6 +352,184 @@ const columnaPracticantes = {
   exportValue: exportPracticantes,
 };
 
+/* ------------------------------- Encuestas -------------------------------- */
+
+const formatearFecha = (valor) => {
+  if (!valor) return "Sin información";
+
+  const fecha = new Date(valor);
+  if (Number.isNaN(fecha.getTime())) return "Sin información";
+
+  return fecha.toLocaleDateString("es-CO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+// Texto para el modal / tabla: quién respondió (si fue la empresa, se indica)
+const textoRespondio = (e) =>
+  e.respondioEmpresa && e.empresa
+    ? `${e.respondidoPor} (Empresa ${e.empresa})`
+    : e.respondidoPor;
+
+// Texto para Excel / PDF de la columna "Respuestas" (no se usa en el export
+// aplanado, pero mantiene la tabla consistente si se reutiliza)
+const exportRespuestas = (row) =>
+  (row.respuestas ?? [])
+    .map((r) => `${r.numero}. ${r.pregunta}\n   ${r.respuesta}`)
+    .join("\n");
+
+// Una fila por pregunta: así el XLSX / PDF muestran cada pregunta con su respuesta
+const aplanarEncuestas = (lista = []) =>
+  lista.flatMap((e) =>
+    (e.respuestas ?? []).length
+      ? e.respuestas.map((r) => ({
+          ...e,
+          numero: r.numero,
+          pregunta: r.pregunta,
+          respuesta: r.respuesta,
+          id: `${e.id}-${r.pregunta_id}`,
+        }))
+      : [
+          {
+            ...e,
+            numero: "",
+            pregunta: "Sin respuestas registradas",
+            respuesta: "",
+            id: `${e.id}-vacia`,
+          },
+        ]
+  );
+
+const COLUMNAS_EXPORT_ENCUESTAS = [
+  { key: "codigo", label: "Código" },
+  { key: "nombreEstudiante", label: "Practicante" },
+  { key: "encuesta", label: "Encuesta" },
+  { key: "tipoEncuesta", label: "Dirigida a" },
+  { key: "respondio", label: "Respondida por" },
+  { key: "fechaTexto", label: "Fecha" },
+  { key: "numero", label: "N°" },
+  { key: "pregunta", label: "Pregunta" },
+  { key: "respuesta", label: "Respuesta" },
+];
+
+function RespuestasEncuestaModal({ row }) {
+  const [abierto, setAbierto] = useState(false);
+  const lista = row.respuestas ?? [];
+
+  useEffect(() => {
+    if (!abierto) return;
+
+    const onKey = (e) => e.key === "Escape" && setAbierto(false);
+    document.addEventListener("keydown", onKey);
+
+    const overflowPrevio = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = overflowPrevio;
+    };
+  }, [abierto]);
+
+  if (!lista.length) {
+    return <span className="text-xs text-gray-400">Sin respuestas</span>;
+  }
+
+  return (
+    <div className="flex justify-center">
+      <button
+        type="button"
+        onClick={() => setAbierto(true)}
+        className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
+      >
+        <ClipboardList size={14} />
+        Ver ({lista.length})
+      </button>
+
+      {abierto &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setAbierto(false)}
+          >
+            <div
+              className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Encabezado */}
+              <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-gray-900">
+                    {row.encuesta}
+                  </h3>
+
+                  <p className="text-xs font-semibold text-red-500">
+                    {row.tipoEncuesta} · {lista.length}{" "}
+                    {lista.length === 1 ? "pregunta" : "preguntas"}
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-500">
+                    Practicante: {row.nombreEstudiante}
+                    {row.codigo ? ` (${row.codigo})` : ""}
+                  </p>
+
+                  <p className="text-xs text-gray-500">
+                    Respondida por: {row.respondio} · {row.fechaTexto}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setAbierto(false)}
+                  className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                  aria-label="Cerrar"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Preguntas y respuestas */}
+              <ul className="flex-1 divide-y divide-gray-100 overflow-y-auto px-5">
+                {lista.map((r) => (
+                  <li key={r.pregunta_id} className="py-3 text-left">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {r.numero}. {r.pregunta}
+                    </p>
+
+                    <p className="mt-1 whitespace-pre-line rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                      {r.respuesta}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Pie */}
+              <div className="border-t border-gray-100 px-5 py-3 text-right">
+                <button
+                  type="button"
+                  onClick={() => setAbierto(false)}
+                  className="rounded-full bg-red-500 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-600"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </div>
+  );
+}
+
+const columnaRespuestas = {
+  key: "respuestas",
+  label: "Preguntas y respuestas",
+  render: (row) => <RespuestasEncuestaModal row={row} />,
+  exportValue: exportRespuestas,
+};
+
 /* --------------------------------- Tabs ---------------------------------- */
 
 const TABS = {
@@ -422,6 +610,19 @@ const TABS = {
       columnaPracticantes,
     ],
   },
+
+  encuestas: {
+    label: "Encuestas",
+    columns: [
+      { key: "codigo", label: "Código", primary: true },
+      { key: "nombreEstudiante", label: "Practicante" },
+      { key: "encuesta", label: "Encuesta" },
+      { key: "tipoEncuesta", label: "Dirigida a" },
+      { key: "respondio", label: "Respondida por" },
+      { key: "fechaTexto", label: "Fecha" },
+      columnaRespuestas,
+    ],
+  },
 };
 
 /* ------------------------------ Menú descarga ----------------------------- */
@@ -456,6 +657,7 @@ function DescargarMenu({
   titulo = "Reporte",
   periodo = "",
   disabled = false,
+  totalRegistros, // opcional: si se omite, se usa rows.length
 }) {
   // Para exportar se usa exportValue (texto plano), nunca el render (JSX)
   const formatCell = (row, col) => {
@@ -493,8 +695,15 @@ function DescargarMenu({
     const EMU = 9525; // 1 px = 9525 EMU
 
     // Ancho (en caracteres) de cada columna
+    const anchoColumna = (key) => {
+      if (["practicantes", "vacantes"].includes(key)) return 38;
+      if (["pregunta", "respuesta"].includes(key)) return 45;
+      if (key === "numero") return 8;
+      return 22;
+    };
+
     const anchos = Array.from({ length: totalEncabezado }, (_, i) =>
-      ["practicantes", "vacantes"].includes(columns[i]?.key) ? 38 : 22
+      anchoColumna(columns[i]?.key)
     );
     const pxAncho = (w) => w * 7 + 5;
     const pxFila = altoFila * (96 / 72);
@@ -598,7 +807,7 @@ function DescargarMenu({
       { size: 10, color: { argb: "FF6B7280" } }
     );
 
-    escribirTexto(4, `Total de registros: ${rows.length}`, {
+    escribirTexto(4, `Total de registros: ${totalRegistros ?? rows.length}`, {
       size: 10,
       color: { argb: "FF6B7280" },
     });
@@ -726,7 +935,7 @@ function DescargarMenu({
       doc.setFontSize(9);
       doc.setTextColor(107, 114, 128);
       doc.text(`Generado el ${fecha}`, derechaX, 40, { align: "right" });
-      doc.text(`Total de registros: ${rows.length}`, derechaX, 55, {
+      doc.text(`Total de registros: ${totalRegistros ?? rows.length}`, derechaX, 55, {
         align: "right",
       });
 
@@ -830,11 +1039,17 @@ export default function ReportesPage() {
   const [empresas, setEmpresas] = useState([]);
   const [practicantes, setPracticantes] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [encuestas, setEncuestas] = useState([]);
 
   const [cargando, setCargando] = useState(true);
   const [cargandoEmpresas, setCargandoEmpresas] = useState(false);
   const [cargandoPracticantes, setCargandoPracticantes] = useState(false);
   const [cargandoGrupos, setCargandoGrupos] = useState(false);
+  const [cargandoEncuestas, setCargandoEncuestas] = useState(false);
+
+  // Búsqueda y filtro del tab de encuestas
+  const [busqueda, setBusqueda] = useState("");
+  const [tipoFiltro, setTipoFiltro] = useState("");
 
   const [activeTab, setActiveTab] = useState("practicas");
   const [currentPage, setCurrentPage] = useState(1);
@@ -1099,6 +1314,58 @@ export default function ReportesPage() {
     };
   }, [periodoId]);
 
+  // Cargar encuestas respondidas según el período seleccionado
+  useEffect(() => {
+    let vigente = true;
+
+    const cargarEncuestas = async () => {
+      if (!periodoId) {
+        setEncuestas([]);
+        setCargandoEncuestas(false);
+        return;
+      }
+
+      try {
+        setCargandoEncuestas(true);
+
+        const datos = await obtenerEncuestasParaReportePorPeriodo(
+          { encuestaRepository },
+          periodoId
+        );
+
+        if (!vigente) return;
+
+        const encuestasFormateadas = (Array.isArray(datos) ? datos : []).map(
+          (encuesta) => ({
+            ...encuesta,
+            respondio: textoRespondio(encuesta),
+            fechaTexto: formatearFecha(encuesta.fecha),
+          })
+        );
+
+        setEncuestas(encuestasFormateadas);
+      } catch (error) {
+        if (!vigente) return;
+
+        console.error("Error al cargar las encuestas del período:", error);
+
+        setEncuestas([]);
+
+        toast.error(
+          mensajeError(error, "No se pudieron cargar las encuestas del período.")
+        );
+      } finally {
+        if (vigente) setCargandoEncuestas(false);
+      }
+    };
+
+    cargarEncuestas();
+
+    return () => {
+      vigente = false;
+    };
+  }, [periodoId]);
+
   const periodoActual = periodos.find(
     (periodo) => String(periodo.id) === periodoId
   );
@@ -1108,6 +1375,27 @@ export default function ReportesPage() {
     if (activeTab === "empresas") return empresas;
     if (activeTab === "practicantes") return practicantes;
     if (activeTab === "grupos") return grupos;
+
+    // Encuestas: búsqueda por código / nombre / encuesta y filtro por tipo
+    if (activeTab === "encuestas") {
+      const termino = busqueda.trim().toLowerCase();
+
+      return encuestas.filter((encuesta) => {
+        if (tipoFiltro && encuesta.tipoEncuesta !== tipoFiltro) return false;
+
+        if (!termino) return true;
+
+        return [
+          encuesta.codigo,
+          encuesta.nombreEstudiante,
+          encuesta.cedula,
+          encuesta.encuesta,
+          encuesta.respondio,
+        ]
+          .filter(Boolean)
+          .some((valor) => String(valor).toLowerCase().includes(termino));
+      });
+    }
 
     // Prácticas se filtran aquí por el período seleccionado
     if (!periodoId) return practicas;
@@ -1132,7 +1420,25 @@ export default function ReportesPage() {
     empresas,
     practicantes,
     grupos,
+    encuestas,
+    busqueda,
+    tipoFiltro,
   ]);
+
+  // Tipos de encuesta presentes en el período (para el filtro)
+  const tiposEncuesta = useMemo(
+    () => [...new Set(encuestas.map((e) => e.tipoEncuesta).filter(Boolean))],
+    [encuestas]
+  );
+
+  // Para exportar el tab de encuestas se usa una fila por pregunta
+  const exportRows = useMemo(
+    () => (activeTab === "encuestas" ? aplanarEncuestas(activeRows) : activeRows),
+    [activeTab, activeRows]
+  );
+
+  const exportColumns =
+    activeTab === "encuestas" ? COLUMNAS_EXPORT_ENCUESTAS : TABS[activeTab].columns;
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -1145,7 +1451,8 @@ export default function ReportesPage() {
     cargando ||
     (activeTab === "empresas" && cargandoEmpresas) ||
     (activeTab === "practicantes" && cargandoPracticantes) ||
-    (activeTab === "grupos" && cargandoGrupos);
+    (activeTab === "grupos" && cargandoGrupos) ||
+    (activeTab === "encuestas" && cargandoEncuestas);
 
   // Mientras carga, no se muestran filas (ni paginación) de datos anteriores
   const filasTabla = cargandoTabla ? [] : activeRows;
@@ -1154,7 +1461,11 @@ export default function ReportesPage() {
     ? `Selecciona un período para consultar ${TABS[
       activeTab
     ].label.toLowerCase()}.`
-    : `No hay ${TABS[activeTab].label.toLowerCase()} registrados en este período.`;
+    : activeTab === "encuestas"
+      ? encuestas.length
+        ? "No se encontraron encuestas con la búsqueda aplicada."
+        : "No hay encuestas respondidas en este período."
+      : `No hay ${TABS[activeTab].label.toLowerCase()} registrados en este período.`;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -1198,6 +1509,44 @@ export default function ReportesPage() {
         ))}
       </div>
 
+      {activeTab === "encuestas" && (
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="relative w-full max-w-xs">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            />
+
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => {
+                setBusqueda(e.target.value);
+                setCurrentPage(1);
+              }}
+              placeholder="Buscar por código, nombre o encuesta"
+              className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm"
+            />
+          </div>
+
+          <select
+            value={tipoFiltro}
+            onChange={(e) => {
+              setTipoFiltro(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="">Todas las encuestas</option>
+            {tiposEncuesta.map((tipo) => (
+              <option key={tipo} value={tipo}>
+                {tipo}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <GenericTable
         rows={filasTabla}
         loading={cargandoTabla}
@@ -1210,8 +1559,9 @@ export default function ReportesPage() {
 
       <div className="mt-6 flex justify-end">
         <DescargarMenu
-          rows={activeRows}
-          columns={columns}
+          rows={exportRows}
+          columns={exportColumns}
+          totalRegistros={activeRows.length}
           titulo={`Reporte de ${TABS[activeTab].label}`}
           periodo={periodoActual?.nombre ?? ""}
           disabled={cargandoTabla || activeRows.length === 0}
