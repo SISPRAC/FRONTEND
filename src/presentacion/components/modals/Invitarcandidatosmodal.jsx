@@ -4,7 +4,11 @@ import toast from "react-hot-toast";
 import GenericTable from "../Table/GenericTable";
 import { parsearListado, leerExcelCrudo } from "../../components/utils/Parsearlistado";
 import { candidatoRepository } from "../../../infraestructura/repository/candidatoRepository";
-import { invitarCandidato } from "../../../aplicacion/candidato/invitarCandidato.js";
+import { invitarCandidatosMasivo } from "../../../aplicacion/candidato/invitarCandidatosMasivo.js";
+
+// Candidatos por petición: lotes pequeños para mantener la barra de progreso
+// y no acercarse al timeout del servidor.
+const TAMANO_LOTE = 20;
 const ESTADOS = {
     NUEVO: { label: "Por invitar", cls: "bg-green-100 text-green-700" },
     REGISTRADO: { label: "Registrado", cls: "bg-slate-200 text-slate-600" },
@@ -202,22 +206,40 @@ export default function InvitarCandidatosModal({
         let ok = 0;
         const fallidos = [];
 
-        // Se continúa aunque uno falle, para no perder el resto
-        for (let i = 0; i < porInvitar.length; i++) {
-            const c = porInvitar[i];
+        // Se envía por lotes (cada lote = 1 petición, y el servidor manda
+        // los correos en paralelo). Si un lote falla, se sigue con el resto.
+        for (let i = 0; i < porInvitar.length; i += TAMANO_LOTE) {
+            const lote = porInvitar.slice(i, i + TAMANO_LOTE);
+
             try {
-                await invitarCandidato(candidatoRepository, {
-                    nombre: c.nombre,
-                    correo: c.correo,
-                    codigo: c.codigo,
+                const res = await invitarCandidatosMasivo(candidatoRepository, {
+                    candidatos: lote.map((c) => ({
+                        nombre: c.nombre,
+                        correo: c.correo,
+                        codigo: c.codigo,
+                    })),
                 });
-                ok++;
+
+                const fallidosServidor = new Set(
+                    (res?.data?.fallidos ?? []).map((f) => f.correo)
+                );
+
+                lote.forEach((c) => {
+                    if (fallidosServidor.has(c.correo)) fallidos.push(c.id);
+                    else ok++;
+                });
             } catch (error) {
                 console.error(error);
-                toast.error(error.response?.data?.message || `No se pudo invitar a ${c.correo}`);
-                fallidos.push(c.id);
+                toast.error(
+                    error.response?.data?.message || "No se pudo enviar un lote de invitaciones"
+                );
+                lote.forEach((c) => fallidos.push(c.id));
             }
-            setProgreso({ actual: i + 1, total: porInvitar.length });
+
+            setProgreso({
+                actual: Math.min(i + TAMANO_LOTE, porInvitar.length),
+                total: porInvitar.length,
+            });
         }
 
         setEnviando(false);
