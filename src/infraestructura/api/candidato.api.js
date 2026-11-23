@@ -64,6 +64,11 @@ export const invitarCandidatoRequest = (data) => {
   return candidatoApi.post("/invitacion", data);
 };
 
+// Invitar varios candidatos en una sola petición
+export const invitarCandidatosMasivoRequest = (data) => {
+  return candidatoApi.post("/invitacion/masiva", data);
+};
+
 // Obtener candidatos para el reporte por período
 export const obtenerCandidatosParaReportePorPeriodoRequest = (periodo_id) => {
   return candidatoApi.get(`/reporte/periodo/${periodo_id}`);
