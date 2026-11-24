@@ -88,6 +88,31 @@ export const ESTADOS_CONFIG = {
         dot: "bg-yellow-500"
     },
 
+    // ---- Respaldos de períodos (Drive) ----
+    SUBIDO: {
+        bg: "bg-green-100",
+        text: "text-green-700",
+        dot: "bg-green-500"
+    },
+
+    COMPRIMIDO: {
+        bg: "bg-purple-100",
+        text: "text-purple-700",
+        dot: "bg-purple-500"
+    },
+
+    SIN_COMPRIMIR: {
+        bg: "bg-slate-100",
+        text: "text-slate-600",
+        dot: "bg-slate-400"
+    },
+
+    FALLO: {
+        bg: "bg-red-100",
+        text: "text-red-700",
+        dot: "bg-red-500"
+    },
+
     Vencido: {
         bg: "bg-red-100",
         text: "text-red-700",

@@ -75,6 +75,7 @@ import Practicas from "./presentacion/pages/Admin/PracticaAdmin";
 import UsersPage from "./presentacion/pages/Admin/GestionarUsuarios";
 import PracticaRequisitoDocumentoPage from "./presentacion/pages/Admin/GestionDocumentos";
 import TipoDocumentosPage from "./presentacion/pages/Admin/TipoRequisitoDocumentoPage";
+import RespaldosPeriodos from "./presentacion/pages/Admin/RespaldosPeriodos";
 
 // Notificaciones
 import NotificacionesView from "./presentacion/pages/Notificaciones";
@@ -128,6 +129,13 @@ export default function App() {
             <Route element={<ProtectedRoute roles={["Administrador"]} />}>
 
               <Route path="/usuarios" element={<UsersPage />} />
+
+            </Route>
+
+            {/* Respaldos en Drive: el backend lo permite a Administrador y Director */}
+            <Route element={<ProtectedRoute roles={["Administrador", "Director de programa"]} />}>
+
+              <Route path="/respaldos" element={<RespaldosPeriodos />} />
 
             </Route>
 

@@ -15,7 +15,8 @@ import {
   BadgeInfo,
   FileStack,
   User,
-  Bell
+  Bell,
+  DatabaseBackup
 } from "lucide-react";
 
 
@@ -279,6 +280,11 @@ export const Admin_NAV = [
     label: "Gestion de Usuarios",
     icon: <Users />,
     href: "/usuarios",
+  },
+  {
+    label: "Respaldos",
+    icon: <DatabaseBackup />,
+    href: "/respaldos",
   },
   {
     label: "Notificaciones",
