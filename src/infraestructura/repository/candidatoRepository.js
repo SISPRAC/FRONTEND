@@ -7,7 +7,9 @@ import {
   invitarCandidatoRequest,
   invitarCandidatosMasivoRequest,
   obtenerCandidatosParaReportePorPeriodoRequest,
-  verificarCandidatosPdfRequest
+  verificarCandidatosPdfRequest,
+  getMiPerfilProfesionalRequest,
+  updateMiPerfilProfesionalRequest
 } from "../api/candidato.api";
 
 export const candidatoRepository = {
@@ -43,8 +45,16 @@ export const candidatoRepository = {
   async getCandidatosParaReportePorPeriodo(periodo_id) {
     return await obtenerCandidatosParaReportePorPeriodoRequest(periodo_id);
   },
-   async verificarPdf(alumnos) {
+  async verificarPdf(alumnos) {
     return await verificarCandidatosPdfRequest(alumnos);
+  },
+  async getMiPerfilProfesional() {
+    const { data } = await getMiPerfilProfesionalRequest();
+    return data;
+  },
+  async updateMiPerfilProfesional(payload) {
+    const { data } = await updateMiPerfilProfesionalRequest(payload);
+    return data;
   },
 
 };

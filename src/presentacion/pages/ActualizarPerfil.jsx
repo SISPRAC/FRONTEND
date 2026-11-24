@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import { userRepository } from "../../infraestructura/repository/userRepository";
 import { actualizarPerfil } from "../../aplicacion/usuario/actualizarPerfil";
 import { departamentoMunicipioRepository } from "../../infraestructura/repository/departamentoMunicipioRepository";
-
+import PerfilProfesionalSection from "../components/PerfilProfesionalSection";
 const tiposDocumento = ["CC", "CE", "PEP", "PA"];
 
 const generos = [
@@ -692,6 +692,8 @@ export default function ActualizarPerfil() {
                             </p>
                         </section>
                     )}
+
+                    {(esCandidato || esPracticante) && <PerfilProfesionalSection />}
 
                     {/* INFORMACIÓN DEL TUTOR DOCENTE */}
                     {esTutorDocente && (
