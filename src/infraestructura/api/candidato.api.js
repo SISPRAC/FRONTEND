@@ -78,3 +78,9 @@ export const obtenerCandidatosParaReportePorPeriodoRequest = (periodo_id) => {
 export const verificarCandidatosPdfRequest = (alumnos) => {
   return candidatoApi.post("/verificar-pdf", { alumnos });
 };
+
+export const getMiPerfilProfesionalRequest = () =>
+  candidatoApi.get("/mi-perfil-profesional");
+
+export const updateMiPerfilProfesionalRequest = (data) =>
+  candidatoApi.put("/mi-perfil-profesional", data);
