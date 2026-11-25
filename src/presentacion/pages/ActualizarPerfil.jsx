@@ -18,6 +18,11 @@ const generos = [
     "Otro"
 ];
 
+const estaLleno = (valor) =>
+    valor !== null &&
+    valor !== undefined &&
+    String(valor).trim() !== "";
+
 const CAMPOS_OBLIGATORIOS_BASE = [
     "nombres",
     "apellidos",
@@ -449,6 +454,11 @@ export default function ActualizarPerfil() {
         return !hayErrores;
     };
 
+    // Datos de identidad: se pueden registrar la primera vez (si estaban
+    // vacíos), pero una vez guardados ya no se pueden cambiar.
+    const tipoDocumentoBloqueado = estaLleno(perfilOriginal.tipo_documento);
+    const cedulaBloqueada = estaLleno(perfilOriginal.cedula);
+
     const handleActivarEdicion = () => {
         setEditando(true);
     };
@@ -500,9 +510,19 @@ export default function ActualizarPerfil() {
             setSaving(true);
             setMostrarConfirmacion(false);
 
+            // Lo que no se debe enviar: correo y código nunca se editan aquí,
+            // y el documento tampoco una vez registrado.
+            const datosAEnviar = { ...form };
+
+            delete datosAEnviar.correo;
+            delete datosAEnviar.codigo;
+
+            if (tipoDocumentoBloqueado) delete datosAEnviar.tipo_documento;
+            if (cedulaBloqueada) delete datosAEnviar.cedula;
+
             await actualizarPerfil(
                 { userRepository },
-                form
+                datosAEnviar
             );
 
             // Actualizar el estado global del Layout inmediatamente.
@@ -619,7 +639,7 @@ export default function ActualizarPerfil() {
                                 name="tipo_documento"
                                 value={form.tipo_documento}
                                 onChange={handleChange}
-                                disabled={!editando}
+                                disabled={!editando || tipoDocumentoBloqueado}
                                 options={tiposDocumento}
                                 placeholder="Seleccione un tipo"
                                 required
@@ -631,7 +651,7 @@ export default function ActualizarPerfil() {
                                 name="cedula"
                                 value={form.cedula}
                                 onChange={handleChange}
-                                disabled={!editando}
+                                disabled={!editando || cedulaBloqueada}
                                 placeholder="Ej: 1091234567"
                                 required
                                 error={errors.cedula}
@@ -660,6 +680,14 @@ export default function ActualizarPerfil() {
                         <p className="mt-4 text-xs text-gray-400">
                             El correo electrónico es asignado mediante
                             invitación y no puede modificarse.
+                            {(tipoDocumentoBloqueado || cedulaBloqueada) && (
+                                <>
+                                    {" "}El tipo y número de documento, una vez
+                                    registrados, tampoco pueden modificarse; si
+                                    hay un error, comunícate con el
+                                    administrador.
+                                </>
+                            )}
                         </p>
                     </section>
 

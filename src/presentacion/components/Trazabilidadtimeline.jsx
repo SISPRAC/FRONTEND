@@ -168,6 +168,15 @@ export default function TrazabilidadTimeline({ eventos = [] }) {
                                     </div>
 
 
+                                    {ev.responsable && (
+
+                                        <p className="text-[11px] font-semibold text-slate-600 mt-0.5 leading-snug">
+                                            {ev.responsable}
+                                        </p>
+
+                                    )}
+
+
                                     {ev.comentario && (
 
                                         <p className="text-[11px] text-slate-500 mt-1 leading-snug">

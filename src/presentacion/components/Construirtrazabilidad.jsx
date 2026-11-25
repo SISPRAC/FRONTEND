@@ -4,6 +4,32 @@
 // tutores y director.
 // ---------------------------------------------------------------
 
+// Nombre completo del tutor de una entrega. Sirve para las dos formas en que
+// llegan los datos: con `tutor_docente_nombre` / `tutor_empresarial_nombre`
+// (endpoint de trazabilidad) o anidado en `tutorDocente.Usuario` /
+// `tutorEmpresarial.Usuario` (listado de requisitos).
+function nombreTutor(entrega, tipo) {
+
+    const plano =
+        tipo === "docente"
+            ? entrega.tutor_docente_nombre
+            : entrega.tutor_empresarial_nombre;
+
+    if (plano) return plano;
+
+    const tutor =
+        tipo === "docente"
+            ? entrega.tutorDocente
+            : entrega.tutorEmpresarial;
+
+    const usuario = tutor?.Usuario ?? tutor?.User;
+
+    return (
+        `${usuario?.nombres ?? ""} ${usuario?.apellidos ?? ""}`.trim() ||
+        null
+    );
+}
+
 export function construirTrazabilidad(entregas = []) {
 
     const ordenadas = [...entregas].sort(
@@ -38,9 +64,10 @@ export function construirTrazabilidad(entregas = []) {
                 fecha:
                     entrega.fecha_revision_tutor_docente ||
                     entrega.fecha_entrega,
-                comentario: entrega.observacion_tutor_docente
-                    ? `Tutor docente: ${entrega.observacion_tutor_docente}`
-                    : "Revisión del tutor docente",
+                responsable: nombreTutor(entrega, "docente")
+                    ? `Tutor docente: ${nombreTutor(entrega, "docente")}`
+                    : "Tutor docente",
+                comentario: entrega.observacion_tutor_docente || "",
             });
         }
 
@@ -55,9 +82,10 @@ export function construirTrazabilidad(entregas = []) {
                 fecha:
                     entrega.fecha_revision_tutor_empresarial ||
                     entrega.fecha_entrega,
-                comentario: entrega.observacion_tutor_empresarial
-                    ? `Tutor empresarial: ${entrega.observacion_tutor_empresarial}`
-                    : "Revisión del tutor empresarial",
+                responsable: nombreTutor(entrega, "empresarial")
+                    ? `Tutor empresarial: ${nombreTutor(entrega, "empresarial")}`
+                    : "Tutor empresarial",
+                comentario: entrega.observacion_tutor_empresarial || "",
             });
         }
     });
