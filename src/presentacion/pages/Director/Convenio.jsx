@@ -23,8 +23,8 @@ const ConveniosSkeleton = ({ filas = 6 }) => (
   >
 
     {/* ENCABEZADO */}
-    <div className="grid grid-cols-4 gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200">
-      {[1, 2, 3, 4].map((item) => (
+    <div className="grid grid-cols-5 gap-4 px-5 py-3 bg-slate-50 border-b border-slate-200">
+      {[1, 2, 3, 4, 5].map((item) => (
         <div
           key={item}
           className="h-3 w-20 rounded bg-slate-200 animate-pulse"
@@ -36,13 +36,16 @@ const ConveniosSkeleton = ({ filas = 6 }) => (
     {Array.from({ length: filas }).map((_, fila) => (
       <div
         key={fila}
-        className="grid grid-cols-4 gap-4 items-center px-5 py-4 border-b border-slate-100 last:border-0"
+        className="grid grid-cols-5 gap-4 items-center px-5 py-4 border-b border-slate-100 last:border-0"
       >
         {/* Empresa */}
         <div className="h-3 w-2/3 rounded bg-slate-200 animate-pulse" />
 
         {/* Fin */}
         <div className="h-3 w-1/2 rounded bg-slate-200 animate-pulse" />
+
+        {/* Requisitos */}
+        <div className="h-3 w-2/3 rounded bg-slate-200 animate-pulse" />
 
         {/* Estado */}
         <div className="h-6 w-24 rounded-full bg-slate-200 animate-pulse" />
@@ -113,10 +116,14 @@ export default function Convenios() {
   // VER CONVENIO
   // =========================================================
 
-  const handleVerConvenio = async (id) => {
+  // La tabla ahora usa "key" como identificador de fila, así que se busca el id real del convenio
+  const handleVerConvenio = async (key) => {
+    const fila = rows.find((row) => row.key === key);
+    if (!fila?.id) return;
+
     navigate("/convenio", {
       state: {
-        convenioId: id
+        convenioId: fila.id
       }
     });
   };
@@ -183,6 +190,7 @@ export default function Convenios() {
 
         <GenericTable
           rows={rows}
+          rowKey="key"
           currentPage={currentPage}
           onPageChange={setCurrentPage}
 
@@ -192,13 +200,38 @@ export default function Convenios() {
               label: "Empresa",
               primary: true
             },
-             {
+            {
               key: "fechaInicio",
-              label: "Inicio"
+              label: "Inicio",
+              render: (row) => row.fechaInicio ?? "—"
             },
             {
               key: "fechaFin",
-              label: "Fin"
+              label: "Fin",
+              render: (row) => row.fechaFin ?? "—"
+            },
+            {
+              key: "requisitos",
+              label: "Requisitos",
+              render: (row) => {
+                const { total = 0, subidos = 0, completos = false } = row.requisitos ?? {};
+                const porcentaje = total ? Math.round((subidos / total) * 100) : 0;
+
+                return (
+                  <div className="min-w-[110px]">
+                    <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                      <span className="text-slate-700">{subidos} de {total}</span>
+                      {completos && <span className="text-emerald-600">Completos</span>}
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-slate-200">
+                      <div
+                        className={`h-1.5 rounded-full ${completos ? "bg-emerald-500" : "bg-amber-400"}`}
+                        style={{ width: `${porcentaje}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              },
             },
             {
               key: "estado",
@@ -213,7 +246,8 @@ export default function Convenios() {
             {
               icon: <FileSliders size={24} />,
               className: "hover:bg-blue-100",
-              onClick: handleVerConvenio
+              onClick: handleVerConvenio,
+              show: (row) => row.id !== null
             },
           ]}
 

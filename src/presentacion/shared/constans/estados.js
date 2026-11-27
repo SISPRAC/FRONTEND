@@ -24,6 +24,12 @@ export const ESTADOS_CONFIG = {
         dot: "bg-green-500"
     },
 
+    "Sin convenio": {
+        bg: "bg-slate-100",
+        text: "text-slate-600",
+        dot: "bg-slate-400"
+    },
+
     Aprobado: {
         bg: "bg-green-100",
         text: "text-green-700",
